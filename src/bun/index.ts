@@ -1,4 +1,5 @@
 import Electrobun, { BrowserWindow, BrowserView } from "electrobun/bun";
+import { spawn } from "node:child_process";
 import type { RadiusRPC } from "../shared/types";
 import { createSchema, getInboxMessages, getMessageById, getSyncState } from "./db";
 import {
@@ -33,7 +34,6 @@ async function getMainViewUrl(): Promise<string> {
 
 // PKCE state
 let codeVerifier: string | null = null;
-let oauthWindow: BrowserWindow | null = null;
 let stopPolling: (() => void) | null = null;
 
 async function handleOAuthCallback(url: string): Promise<void> {
@@ -51,10 +51,6 @@ async function handleOAuthCallback(url: string): Promise<void> {
     if (tokens.refresh_token) {
       await storeRefreshToken(tokens.refresh_token);
     }
-
-    // Close OAuth window
-    oauthWindow?.close();
-    oauthWindow = null;
 
     // Start sync
     await doFullSync();
@@ -113,12 +109,8 @@ async function init() {
             const codeChallenge = await sha256(codeVerifier);
             const authURL = buildAuthURL(codeChallenge);
 
-            // Open OAuth window
-            oauthWindow = new BrowserWindow({
-              title: "Connect Gmail",
-              url: authURL,
-              frame: { width: 480, height: 600, x: 0, y: 0 },
-            });
+            // Open the user's default system browser
+            spawn("open", [authURL]);
 
             return { success: true };
           } catch (err) {
