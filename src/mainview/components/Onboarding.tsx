@@ -1,8 +1,10 @@
 interface OnboardingProps {
   onConnect: () => void;
+  error?: string;
+  onRetry?: () => void;
 }
 
-export function Onboarding({ onConnect }: OnboardingProps) {
+export function Onboarding({ onConnect, error, onRetry }: OnboardingProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-radius-bg-primary px-6">
       <div className="flex flex-col items-center max-w-md text-center">
@@ -33,11 +35,20 @@ export function Onboarding({ onConnect }: OnboardingProps) {
           account to get started.
         </p>
 
+        {error && (
+          <div className="mb-6 p-4 rounded-lg bg-radius-error/10 border border-radius-error/20 text-left w-full">
+            <p className="text-sm font-medium text-radius-error mb-1">
+              Couldn&apos;t connect
+            </p>
+            <p className="text-xs text-radius-text-secondary">{error}</p>
+          </div>
+        )}
+
         <button
-          onClick={onConnect}
+          onClick={onRetry ?? onConnect}
           className="px-6 py-3 bg-radius-accent hover:bg-radius-accent-hover text-radius-text-inverse font-medium rounded-lg transition-colors duration-80 text-base"
         >
-          Connect Gmail Account
+          {error ? "Try Again" : "Connect Gmail Account"}
         </button>
 
         <p className="mt-4 text-xs text-radius-text-muted">

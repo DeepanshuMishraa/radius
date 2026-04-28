@@ -1,7 +1,13 @@
-import Electrobun, { BrowserWindow, BrowserView } from "electrobun/bun";
+import { BrowserWindow, BrowserView } from "electrobun/bun";
 import { spawn } from "node:child_process";
 import type { RadiusRPC } from "../shared/types";
-import { createSchema, getInboxMessages, getMessageById, getSyncState } from "./db";
+import {
+  createSchema,
+  getInboxMessages,
+  getMessageById,
+  getSyncState,
+  updateSyncState,
+} from "./db";
 import {
   buildAuthURL,
   exchangeCodeForTokens,
@@ -10,14 +16,20 @@ import {
   sha256,
   setTokens,
 } from "./auth";
-import { doFullSync, startIncrementalSyncPolling } from "./sync";
+import {
+  runBackgroundCatchupSync,
+  runInitialAndBackgroundSync,
+  startIncrementalSyncPolling,
+} from "./sync";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
 
 // Check if Vite dev server is running for HMR
 async function getMainViewUrl(): Promise<string> {
-  const channel = await import("electrobun/bun").then((m) => m.Updater.localInfo.channel());
+  const channel = await import("electrobun/bun").then((m) =>
+    m.Updater.localInfo.channel(),
+  );
   if (channel === "dev") {
     try {
       await fetch(DEV_SERVER_URL, { method: "HEAD" });
@@ -25,7 +37,7 @@ async function getMainViewUrl(): Promise<string> {
       return DEV_SERVER_URL;
     } catch {
       console.log(
-        "Vite dev server not running. Run 'bun run dev:hmr' for HMR support."
+        "Vite dev server not running. Run 'bun run dev:hmr' for HMR support.",
       );
     }
   }
@@ -34,14 +46,17 @@ async function getMainViewUrl(): Promise<string> {
 
 // PKCE state
 let codeVerifier: string | null = null;
+let authServer: ReturnType<typeof Bun.serve> | null = null;
 let stopPolling: (() => void) | null = null;
 
-async function handleOAuthCallback(url: string): Promise<void> {
-  const parsed = new URL(url);
-  const code = parsed.searchParams.get("code");
-
+async function handleOAuthCallback(code: string): Promise<void> {
   if (!code || !codeVerifier) {
     console.error("OAuth callback missing code or verifier");
+    await updateSyncState({
+      status: "error",
+      phase: null,
+      error: "OAuth callback missing authorization code",
+    });
     return;
   }
 
@@ -52,15 +67,17 @@ async function handleOAuthCallback(url: string): Promise<void> {
       await storeRefreshToken(tokens.refresh_token);
     }
 
-    // Start sync
-    await doFullSync();
+    // Start the initial onboarding sync, then continue the remainder in background.
+    await runInitialAndBackgroundSync();
 
     // Start incremental polling
     stopPolling = await startIncrementalSyncPolling();
 
     console.log("OAuth complete — sync started");
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     console.error("OAuth callback error:", err);
+    await updateSyncState({ status: "error", phase: null, error: message });
   }
 }
 
@@ -68,14 +85,6 @@ async function init() {
   await createSchema();
 
   const url = await getMainViewUrl();
-
-  // Listen for deeplink OAuth callbacks
-  Electrobun.events.on("open-url", (e: { data?: { url?: string } }) => {
-    const url = e.data?.url as string | undefined;
-    if (url?.startsWith("radius://oauth/callback")) {
-      handleOAuthCallback(url);
-    }
-  });
 
   // Define typed RPC handlers
   const rpc = BrowserView.defineRPC<RadiusRPC>({
@@ -85,7 +94,8 @@ async function init() {
         async getInbox({ limit, offset }: { limit: number; offset: number }) {
           const result = await getInboxMessages(limit, offset);
           return {
-            messages: result.messages as unknown as RadiusRPC["bun"]["requests"]["getInbox"]["response"]["messages"],
+            messages:
+              result.messages as unknown as RadiusRPC["bun"]["requests"]["getInbox"]["response"]["messages"],
             total: result.total,
           };
         },
@@ -98,8 +108,22 @@ async function init() {
         async getSyncStatus() {
           const state = await getSyncState();
           return {
-            status: state.status as RadiusRPC["bun"]["requests"]["getSyncStatus"]["response"]["status"],
+            status:
+              state.status as RadiusRPC["bun"]["requests"]["getSyncStatus"]["response"]["status"],
+            phase:
+              (state.phase as RadiusRPC["bun"]["requests"]["getSyncStatus"]["response"]["phase"]) ??
+              undefined,
+            progress:
+              state.progressCurrent !== null && state.progressTotal !== null
+                ? {
+                    current: state.progressCurrent,
+                    total: state.progressTotal,
+                  }
+                : undefined,
             lastSyncAt: state.lastSyncAt ?? undefined,
+            initialSyncCompletedAt: state.initialSyncCompletedAt ?? undefined,
+            fullSyncCompletedAt: state.fullSyncCompletedAt ?? undefined,
+            error: state.error ?? undefined,
           };
         },
 
@@ -108,6 +132,42 @@ async function init() {
             codeVerifier = generateCodeVerifier();
             const codeChallenge = await sha256(codeVerifier);
             const authURL = buildAuthURL(codeChallenge);
+
+            await updateSyncState({
+              status: "syncing",
+              phase: "initial",
+              progressCurrent: 0,
+              progressTotal: 1000,
+              error: null,
+            });
+
+            // Start local redirect server
+            authServer = Bun.serve({
+              port: 3333,
+              async fetch(req) {
+                const url = new URL(req.url);
+                if (url.pathname === "/oauth/callback") {
+                  const code = url.searchParams.get("code");
+                  if (code) {
+                    // Handle the OAuth callback
+                    handleOAuthCallback(code);
+
+                    // Stop the server after receiving the callback
+                    authServer?.stop();
+                    authServer = null;
+
+                    return new Response(
+                      "<html><body style='font-family: system-ui; text-align: center; padding-top: 40px;'><h2>Authentication successful</h2><p>You can close this window and return to Radius.</p></body></html>",
+                      {
+                        status: 200,
+                        headers: { "Content-Type": "text/html" },
+                      },
+                    );
+                  }
+                }
+                return new Response("Not found", { status: 404 });
+              },
+            });
 
             // Open the user's default system browser
             spawn("open", [authURL]);
@@ -121,7 +181,7 @@ async function init() {
 
         async startSync() {
           try {
-            await doFullSync();
+            await runInitialAndBackgroundSync();
 
             if (!stopPolling) {
               stopPolling = await startIncrementalSyncPolling();
@@ -147,7 +207,7 @@ async function init() {
       x: 200,
       y: 200,
     },
-    titleBarStyle: "default",
+    titleBarStyle: "hiddenInset",
     renderer: "cef",
     rpc,
   });
@@ -159,6 +219,16 @@ async function init() {
   const state = await getSyncState();
   if (state.fullSyncCompletedAt) {
     stopPolling = await startIncrementalSyncPolling();
+  } else if (state.initialSyncCompletedAt && !state.fullSyncCompletedAt) {
+    void runBackgroundCatchupSync()
+      .then(async () => {
+        if (!stopPolling) {
+          stopPolling = await startIncrementalSyncPolling();
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to resume background sync:", err);
+      });
   }
 
   console.log("Radius App Started");

@@ -15,11 +15,15 @@ export interface Message {
 
 export interface SyncStatus {
   status: "idle" | "syncing" | "error" | "offline";
+  phase?: "initial" | "background";
   progress?: {
     current: number;
     total: number;
   };
   lastSyncAt?: number;
+  initialSyncCompletedAt?: number;
+  fullSyncCompletedAt?: number;
+  error?: string;
 }
 
 export function useInbox(limit: number = 50, offset: number = 0) {
@@ -72,17 +76,33 @@ export function useSyncStatus() {
   const [status, setStatus] = useState<SyncStatus>({ status: "idle" });
 
   useEffect(() => {
-    // Fetch initial status
-    radiusRpc.request.getSyncStatus({}).then((s) => setStatus(s));
+    let cancelled = false;
 
-    // Subscribe to sync progress messages via custom events
+    async function poll() {
+      try {
+        const s = await radiusRpc.request.getSyncStatus({});
+        if (!cancelled) setStatus(s);
+      } catch (err) {
+        console.error("Sync status poll failed:", err);
+      }
+    }
+
+    // Poll immediately and frequently enough for visible sync progress.
+    poll();
+    const interval = setInterval(poll, 500);
+
+    // Also listen for push events from main process
     const handler = (e: Event) => {
       const data = (e as CustomEvent<SyncStatus>).detail;
       setStatus(data);
     };
-
     window.addEventListener("radius:syncProgress", handler);
-    return () => window.removeEventListener("radius:syncProgress", handler);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener("radius:syncProgress", handler);
+    };
   }, []);
 
   return status;
@@ -94,7 +114,9 @@ export function useAuth() {
   const checkAuth = useCallback(async () => {
     try {
       const status = await radiusRpc.request.getSyncStatus({});
-      setIsAuthenticated(!!status.lastSyncAt);
+      setIsAuthenticated(
+        Boolean(status.initialSyncCompletedAt ?? status.lastSyncAt)
+      );
     } catch {
       setIsAuthenticated(false);
     }

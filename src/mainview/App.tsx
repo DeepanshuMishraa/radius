@@ -5,60 +5,87 @@ import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
 import { useAuth, useSyncStatus, useInbox } from "./hooks/useInbox";
 
-type View = "onboarding" | "syncing" | "inbox" | "reader";
-
 function App() {
-  const [view, setView] = useState<View>("onboarding");
-  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
-    null
-  );
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
 
   const { isAuthenticated, startOAuth } = useAuth();
   const syncStatus = useSyncStatus();
   const { messages, total, refresh } = useInbox(100, 0);
 
   const handleConnect = useCallback(async () => {
-    const success = await startOAuth();
-    if (success) {
-      setView("syncing");
-    }
+    await startOAuth();
   }, [startOAuth]);
 
-  const handleSelectMessage = useCallback(
-    (id: string) => {
-      setSelectedMessageId(id);
-      setView("reader");
-    },
-    []
-  );
+  const handleSelectMessage = useCallback((id: string) => {
+    setSelectedMessageId(id);
+  }, []);
 
   const handleBackToInbox = useCallback(() => {
     setSelectedMessageId(null);
-    setView("inbox");
   }, []);
 
-  // Show onboarding if not authenticated
-  if (isAuthenticated === false && view === "onboarding") {
-    return <Onboarding onConnect={handleConnect} />;
-  }
+  const handleRetry = useCallback(async () => {
+    await startOAuth();
+  }, [startOAuth]);
 
-  // Show sync progress
-  if (view === "syncing" || syncStatus.status === "syncing") {
+  // ---- State machine driven by syncStatus ----
+
+  // Still checking auth state
+  if (isAuthenticated === null) {
     return (
-      <SyncProgress
-        current={syncStatus.progress?.current ?? 0}
-        total={syncStatus.progress?.total ?? 1000}
-      />
+      <div className="relative h-screen bg-radius-bg-primary">
+        <DragRegion />
+      </div>
     );
   }
 
-  // Show inbox + reader split view
-  const selectedMessage = messages.find((m) => m.id === selectedMessageId) ?? null;
+  // Sync in progress (initial or retry)
+  if (syncStatus.status === "syncing") {
+    return (
+      <div className="relative h-screen bg-radius-bg-primary">
+        <DragRegion />
+        <SyncProgress
+          current={syncStatus.progress?.current ?? 0}
+          total={syncStatus.progress?.total ?? 1000}
+        />
+      </div>
+    );
+  }
+
+  // Not authenticated yet — show onboarding
+  if (!isAuthenticated) {
+    return (
+      <div className="relative h-screen bg-radius-bg-primary">
+        <DragRegion />
+        <Onboarding
+          onConnect={handleConnect}
+          error={syncStatus.status === "error" ? syncStatus.error : undefined}
+          onRetry={syncStatus.status === "error" ? handleRetry : undefined}
+        />
+      </div>
+    );
+  }
+
+  // Authenticated — show inbox (or reader if message selected)
+  const selectedMessage =
+    messages.find((m) => m.id === selectedMessageId) ?? null;
+
+  if (selectedMessageId && selectedMessage) {
+    return (
+      <div className="relative h-screen bg-radius-bg-primary">
+        <DragRegion />
+        <div className="h-full pt-9">
+          <ReaderView message={selectedMessage} onBack={handleBackToInbox} />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-screen bg-radius-bg-primary">
+    <div className="relative flex h-screen bg-radius-bg-primary">
+      <DragRegion />
       {/* Inbox sidebar */}
-      <div className="w-[420px] flex-shrink-0 border-r border-radius-border-subtle">
+      <div className="w-[420px] flex-shrink-0 border-r border-radius-border-subtle pt-9">
         <InboxList
           messages={messages}
           total={total}
@@ -69,10 +96,20 @@ function App() {
       </div>
 
       {/* Reader pane */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pt-9">
         <ReaderView message={selectedMessage} onBack={handleBackToInbox} />
       </div>
     </div>
+  );
+}
+
+/** Invisible drag region for hiddenInset title bar style */
+function DragRegion() {
+  return (
+    <div
+      className="electrobun-webkit-app-region-drag fixed top-0 left-0 right-0 h-9 z-50"
+      style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+    />
   );
 }
 

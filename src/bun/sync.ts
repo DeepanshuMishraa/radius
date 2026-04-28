@@ -53,100 +53,272 @@ export interface SyncProgress {
 
 export type ProgressCallback = (progress: SyncProgress) => void;
 
+type SyncPhase = "initial" | "background";
+
+const INITIAL_SYNC_TARGET = 1000;
+const PAGE_SIZE = 500;
+const FETCH_BATCH_SIZE = 5;
+const INSERT_BATCH_SIZE = 50;
+
+interface SyncRunOptions {
+  phase: SyncPhase;
+  limit?: number;
+  startPageToken?: string;
+  totalEstimate?: number;
+  processedBeforeStart?: number;
+  latestHistoryId?: string;
+  onProgress?: ProgressCallback;
+}
+
+interface SyncRunResult {
+  processed: number;
+  totalEstimate: number;
+  nextPageToken?: string;
+  latestHistoryId?: string;
+}
+
+async function pushSyncProgress(
+  phase: SyncPhase,
+  progress: SyncProgress,
+  latestHistoryId?: string
+): Promise<void> {
+  await updateSyncState({
+    status: "syncing",
+    phase,
+    progressCurrent: progress.current,
+    progressTotal: progress.total,
+    historyId: latestHistoryId,
+    error: null,
+  });
+}
+
+async function runSyncPass({
+  phase,
+  limit,
+  startPageToken,
+  totalEstimate,
+  processedBeforeStart = 0,
+  latestHistoryId,
+  onProgress,
+}: SyncRunOptions): Promise<SyncRunResult> {
+  const accessToken = await getValidAccessToken();
+  const firstPage =
+    totalEstimate === undefined
+      ? await withRetry(() =>
+          listMessages(accessToken, { maxResults: 1, q: "in:inbox" })
+        )
+      : null;
+  const resolvedTotalEstimate =
+    totalEstimate ?? firstPage?.resultSizeEstimate ?? INITIAL_SYNC_TARGET;
+  const progressTotal =
+    phase === "initial"
+      ? Math.min(limit ?? INITIAL_SYNC_TARGET, resolvedTotalEstimate)
+      : resolvedTotalEstimate;
+
+  let pageToken = startPageToken;
+  let processed = processedBeforeStart;
+  let insertBuffer: GmailMessage[] = [];
+
+  await pushSyncProgress(
+    phase,
+    {
+      current: Math.min(processed, progressTotal),
+      total: progressTotal,
+    },
+    latestHistoryId
+  );
+
+  do {
+    const page = await withRetry(() =>
+      listMessages(accessToken, {
+        maxResults: PAGE_SIZE,
+        pageToken,
+        q: "in:inbox",
+      })
+    );
+
+    const pageMessages = page.messages ?? [];
+    if (pageMessages.length === 0) {
+      pageToken = undefined;
+      break;
+    }
+
+    const remaining =
+      limit === undefined ? pageMessages.length : Math.max(limit - processed, 0);
+    const messagesToFetch =
+      limit === undefined ? pageMessages : pageMessages.slice(0, remaining);
+
+    for (let i = 0; i < messagesToFetch.length; i += FETCH_BATCH_SIZE) {
+      const batch = messagesToFetch.slice(i, i + FETCH_BATCH_SIZE);
+      const fetched = await Promise.all(
+        batch.map((m) =>
+          withRetry(() => getMessage(accessToken, m.id)).catch((err) => {
+            console.error(`Failed to fetch message ${m.id}:`, err);
+            return null;
+          })
+        )
+      );
+
+      const valid = fetched.filter((m): m is GmailMessage => m !== null);
+      if (!latestHistoryId && valid.length > 0) {
+        latestHistoryId = valid[0].historyId;
+      }
+      insertBuffer.push(...valid);
+
+      if (insertBuffer.length >= INSERT_BATCH_SIZE) {
+        await flushInsertBuffer(insertBuffer);
+        processed += insertBuffer.length;
+        insertBuffer = [];
+
+        const progress = {
+          current: Math.min(processed, progressTotal),
+          total: progressTotal,
+        };
+        await pushSyncProgress(phase, progress, latestHistoryId);
+        onProgress?.(progress);
+        await Bun.sleep(0);
+      }
+    }
+
+    pageToken = page.nextPageToken;
+    if (limit !== undefined && processed >= limit) {
+      break;
+    }
+  } while (pageToken);
+
+  if (insertBuffer.length > 0) {
+    await flushInsertBuffer(insertBuffer);
+    processed += insertBuffer.length;
+    const progress = {
+      current: Math.min(processed, progressTotal),
+      total: progressTotal,
+    };
+    await pushSyncProgress(phase, progress, latestHistoryId);
+    onProgress?.(progress);
+  }
+
+  return {
+    processed,
+    totalEstimate: resolvedTotalEstimate,
+    nextPageToken: pageToken,
+    latestHistoryId,
+  };
+}
+
 export async function doFullSync(
   onProgress?: ProgressCallback
 ): Promise<void> {
-  await updateSyncState({ status: "syncing" });
+  await runInitialAndBackgroundSync(onProgress);
+}
+
+export async function runInitialAndBackgroundSync(
+  onProgress?: ProgressCallback
+): Promise<void> {
+  await updateSyncState({
+    status: "syncing",
+    phase: "initial",
+    progressCurrent: 0,
+    progressTotal: INITIAL_SYNC_TARGET,
+    error: null,
+  });
 
   try {
-    const accessToken = await getValidAccessToken();
-
-    // Get total estimate
-    const firstPage = await withRetry(() =>
-      listMessages(accessToken, { maxResults: 1, q: "in:inbox" })
+    const initialResult = await runSyncPass({
+      phase: "initial",
+      limit: INITIAL_SYNC_TARGET,
+      onProgress,
+    });
+    const initialCompletedAt = Date.now();
+    const initialProgressTotal = Math.min(
+      initialResult.totalEstimate,
+      INITIAL_SYNC_TARGET
     );
-    const totalEstimate = firstPage.resultSizeEstimate ?? 1000;
 
-    let pageToken: string | undefined;
-    let processed = 0;
-    const batchSize = 5; // concurrency limit
-    const insertBatchSize = 50;
-    let insertBuffer: GmailMessage[] = [];
+    await updateSyncState({
+      historyId: initialResult.latestHistoryId,
+      lastSyncAt: initialCompletedAt,
+      initialSyncCompletedAt: initialCompletedAt,
+      progressCurrent: Math.min(initialResult.processed, initialProgressTotal),
+      progressTotal: initialProgressTotal,
+      status: "idle",
+      phase: null,
+      error: null,
+    });
 
-    do {
-      const page = await withRetry(() =>
-        listMessages(accessToken, {
-          maxResults: 500,
-          pageToken,
-          q: "in:inbox",
-        })
-      );
+    const hasMoreToSync =
+      initialResult.totalEstimate > initialResult.processed &&
+      initialResult.nextPageToken !== undefined;
 
-      const messages = page.messages ?? [];
-      if (messages.length === 0) break;
-
-      // Fetch in batches of 5 concurrently
-      for (let i = 0; i < messages.length; i += batchSize) {
-        const batch = messages.slice(i, i + batchSize);
-        const fetched = await Promise.all(
-          batch.map((m) =>
-            withRetry(() => getMessage(accessToken, m.id)).catch((err) => {
-              console.error(`Failed to fetch message ${m.id}:`, err);
-              return null;
-            })
-          )
-        );
-
-        const valid = fetched.filter((m): m is GmailMessage => m !== null);
-        insertBuffer.push(...valid);
-
-        // Insert in batches of 50
-        if (insertBuffer.length >= insertBatchSize) {
-          await flushInsertBuffer(insertBuffer);
-          processed += insertBuffer.length;
-          insertBuffer = [];
-
-          onProgress?.({ current: processed, total: totalEstimate });
-          await Bun.sleep(0); // Yield event loop
-        }
-      }
-
-      pageToken = page.nextPageToken;
-    } while (pageToken);
-
-    // Flush remaining
-    if (insertBuffer.length > 0) {
-      await flushInsertBuffer(insertBuffer);
-      processed += insertBuffer.length;
-      onProgress?.({ current: processed, total: totalEstimate });
+    if (!hasMoreToSync) {
+      await updateSyncState({
+        fullSyncCompletedAt: initialCompletedAt,
+        status: "idle",
+        phase: null,
+      });
+      console.log(`Initial sync complete: ${initialResult.processed} messages`);
+      return;
     }
 
-    // Get latest historyId
-    const accessToken2 = await getValidAccessToken();
-    const latest = await withRetry(() =>
-      listMessages(accessToken2, { maxResults: 1, q: "in:inbox" })
-    );
-    if (latest.messages && latest.messages.length > 0) {
-      const msg = await withRetry(() =>
-        getMessage(accessToken2, latest.messages![0].id)
-      );
-      await updateSyncState({
-        historyId: msg.historyId,
-        lastSyncAt: Date.now(),
-        fullSyncCompletedAt: Date.now(),
-        status: "idle",
-      });
-    } else {
-      await updateSyncState({
-        lastSyncAt: Date.now(),
-        fullSyncCompletedAt: Date.now(),
-        status: "idle",
-      });
-    }
+    const backgroundResult = await runSyncPass({
+      phase: "background",
+      startPageToken: initialResult.nextPageToken,
+      totalEstimate: initialResult.totalEstimate,
+      processedBeforeStart: initialResult.processed,
+      latestHistoryId: initialResult.latestHistoryId,
+    });
 
-    console.log(`Full sync complete: ${processed} messages`);
+    await updateSyncState({
+      historyId: backgroundResult.latestHistoryId,
+      lastSyncAt: Date.now(),
+      fullSyncCompletedAt: Date.now(),
+      progressCurrent: backgroundResult.processed,
+      progressTotal: backgroundResult.totalEstimate,
+      status: "idle",
+      phase: null,
+      error: null,
+    });
+
+    console.log(`Full sync complete: ${backgroundResult.processed} messages`);
   } catch (err) {
-    await updateSyncState({ status: "error" });
+    const message = err instanceof Error ? err.message : String(err);
+    await updateSyncState({
+      status: "error",
+      phase: null,
+      error: message,
+    });
+    throw err;
+  }
+}
+
+export async function runBackgroundCatchupSync(): Promise<void> {
+  await updateSyncState({
+    status: "syncing",
+    phase: "background",
+    progressCurrent: 0,
+    progressTotal: null,
+    error: null,
+  });
+
+  try {
+    const backgroundResult = await runSyncPass({
+      phase: "background",
+    });
+
+    await updateSyncState({
+      historyId: backgroundResult.latestHistoryId,
+      lastSyncAt: Date.now(),
+      fullSyncCompletedAt: Date.now(),
+      progressCurrent: backgroundResult.processed,
+      progressTotal: backgroundResult.totalEstimate,
+      status: "idle",
+      phase: null,
+      error: null,
+    });
+
+    console.log(`Background catch-up complete: ${backgroundResult.processed} messages`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await updateSyncState({ status: "error", phase: null, error: message });
     throw err;
   }
 }
@@ -158,11 +330,17 @@ export async function doIncrementalSync(): Promise<{
   const state = await getSyncState();
   if (!state.historyId) {
     console.log("No historyId — running full sync instead");
-    await doFullSync();
+    await runInitialAndBackgroundSync();
     return { newMessages: 0, hadGap: false };
   }
 
-  await updateSyncState({ status: "syncing" });
+  await updateSyncState({
+    status: "syncing",
+    phase: "background",
+    progressCurrent: null,
+    progressTotal: null,
+    error: null,
+  });
 
   try {
     const accessToken = await getValidAccessToken();
@@ -183,10 +361,9 @@ export async function doIncrementalSync(): Promise<{
 
       if (addedIds.size > 0) {
         const ids = Array.from(addedIds);
-        const batchSize = 5;
 
-        for (let i = 0; i < ids.length; i += batchSize) {
-          const batch = ids.slice(i, i + batchSize);
+        for (let i = 0; i < ids.length; i += FETCH_BATCH_SIZE) {
+          const batch = ids.slice(i, i + FETCH_BATCH_SIZE);
           const fetched = await Promise.all(
             batch.map((id) =>
               withRetry(() => getMessage(accessToken, id)).catch(() => null)
@@ -204,7 +381,11 @@ export async function doIncrementalSync(): Promise<{
         await updateSyncState({
           historyId: history.historyId,
           lastSyncAt: Date.now(),
+          phase: null,
+          progressCurrent: null,
+          progressTotal: null,
           status: "idle",
+          error: null,
         });
       }
     } catch (err) {
@@ -212,7 +393,7 @@ export async function doIncrementalSync(): Promise<{
         console.log("History gap detected — running full re-sync");
         hadGap = true;
         await clearMessages();
-        await doFullSync();
+        await runInitialAndBackgroundSync();
       } else {
         throw err;
       }
@@ -220,7 +401,8 @@ export async function doIncrementalSync(): Promise<{
 
     return { newMessages: newCount, hadGap };
   } catch (err) {
-    await updateSyncState({ status: "error" });
+    const message = err instanceof Error ? err.message : String(err);
+    await updateSyncState({ status: "error", phase: null, error: message });
     throw err;
   }
 }
@@ -260,7 +442,6 @@ export async function startIncrementalSyncPolling(
         console.error("Incremental sync failed:", err);
       }
 
-      // Wait 30s before next poll
       for (let i = 0; i < 30 && running; i++) {
         await Bun.sleep(1000);
       }

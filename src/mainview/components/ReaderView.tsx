@@ -76,10 +76,10 @@ export function ReaderView({ message, onBack }: ReaderViewProps) {
   return (
     <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto">
       {/* Back button */}
-      <div className="sticky top-0 bg-radius-bg-primary/95 backdrop-blur-sm z-10 px-6 py-3 border-b border-radius-border-subtle">
+      <div className="sticky top-9 bg-radius-bg-primary/95 backdrop-blur-sm z-10 px-6 py-3 border-b border-radius-border-subtle">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-sm text-radius-text-secondary hover:text-radius-text-primary transition-colors duration-80"
+          className="electrobun-webkit-app-region-no-drag flex items-center gap-2 text-sm text-radius-text-secondary hover:text-radius-text-primary transition-colors duration-80"
         >
           <svg
             width="16"

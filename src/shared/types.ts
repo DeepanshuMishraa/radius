@@ -15,11 +15,14 @@ export interface Message {
 
 export interface SyncStatus {
   status: "idle" | "syncing" | "error" | "offline";
+  phase?: "initial" | "background";
   progress?: {
     current: number;
     total: number;
   };
   lastSyncAt?: number;
+  initialSyncCompletedAt?: number;
+  fullSyncCompletedAt?: number;
   error?: string;
 }
 
@@ -49,8 +52,7 @@ export type RadiusRPC = {
       };
     };
     messages: {
-      syncProgress: SyncStatus;
-      newMail: Message;
+      ready: {};
     };
   };
   webview: {
@@ -62,8 +64,8 @@ export type RadiusRPC = {
       };
     };
     messages: {
-      // Renderer can receive messages
-      ready: {};
+      syncProgress: SyncStatus;
+      newMail: Message;
     };
   };
 };

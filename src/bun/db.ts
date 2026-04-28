@@ -44,12 +44,39 @@ export async function createSchema(): Promise<void> {
       id INTEGER PRIMARY KEY CHECK (id = 1),
       history_id TEXT,
       last_sync_at INTEGER,
+      initial_sync_completed_at INTEGER,
       full_sync_completed_at INTEGER,
-      status TEXT NOT NULL DEFAULT 'idle'
+      status TEXT NOT NULL DEFAULT 'idle',
+      phase TEXT,
+      progress_current INTEGER,
+      progress_total INTEGER,
+      error TEXT
     );
 
     INSERT OR IGNORE INTO sync_state (id) VALUES (1);
   `);
+
+  const syncStateColumns = db.query(
+    `SELECT name FROM pragma_table_info('sync_state')`
+  ).all() as Array<{ name: string }>;
+
+  const existingColumns = new Set(syncStateColumns.map((column) => column.name));
+
+  if (!existingColumns.has("initial_sync_completed_at")) {
+    db.exec("ALTER TABLE sync_state ADD COLUMN initial_sync_completed_at INTEGER");
+  }
+  if (!existingColumns.has("phase")) {
+    db.exec("ALTER TABLE sync_state ADD COLUMN phase TEXT");
+  }
+  if (!existingColumns.has("progress_current")) {
+    db.exec("ALTER TABLE sync_state ADD COLUMN progress_current INTEGER");
+  }
+  if (!existingColumns.has("progress_total")) {
+    db.exec("ALTER TABLE sync_state ADD COLUMN progress_total INTEGER");
+  }
+  if (!existingColumns.has("error")) {
+    db.exec("ALTER TABLE sync_state ADD COLUMN error TEXT");
+  }
 }
 
 export async function insertMessage(message: {
@@ -124,12 +151,17 @@ export async function getMessageById(
 export async function updateSyncState(state: {
   historyId?: string;
   lastSyncAt?: number;
+  initialSyncCompletedAt?: number | null;
   fullSyncCompletedAt?: number;
   status?: string;
+  phase?: string | null;
+  progressCurrent?: number | null;
+  progressTotal?: number | null;
+  error?: string | null;
 }): Promise<void> {
   const db = await getDb();
   const sets: string[] = [];
-  const vals: (string | number)[] = [];
+  const vals: (string | number | null)[] = [];
 
   if (state.historyId !== undefined) {
     sets.push("history_id = ?");
@@ -139,6 +171,10 @@ export async function updateSyncState(state: {
     sets.push("last_sync_at = ?");
     vals.push(state.lastSyncAt);
   }
+  if (state.initialSyncCompletedAt !== undefined) {
+    sets.push("initial_sync_completed_at = ?");
+    vals.push(state.initialSyncCompletedAt);
+  }
   if (state.fullSyncCompletedAt !== undefined) {
     sets.push("full_sync_completed_at = ?");
     vals.push(state.fullSyncCompletedAt);
@@ -146,6 +182,22 @@ export async function updateSyncState(state: {
   if (state.status !== undefined) {
     sets.push("status = ?");
     vals.push(state.status);
+  }
+  if (state.phase !== undefined) {
+    sets.push("phase = ?");
+    vals.push(state.phase);
+  }
+  if (state.progressCurrent !== undefined) {
+    sets.push("progress_current = ?");
+    vals.push(state.progressCurrent);
+  }
+  if (state.progressTotal !== undefined) {
+    sets.push("progress_total = ?");
+    vals.push(state.progressTotal);
+  }
+  if (state.error !== undefined) {
+    sets.push("error = ?");
+    vals.push(state.error);
   }
 
   if (sets.length > 0) {
@@ -156,24 +208,44 @@ export async function updateSyncState(state: {
 export async function getSyncState(): Promise<{
   historyId: string | null;
   lastSyncAt: number | null;
+  initialSyncCompletedAt: number | null;
   fullSyncCompletedAt: number | null;
   status: string;
+  phase: string | null;
+  progressCurrent: number | null;
+  progressTotal: number | null;
+  error: string | null;
 }> {
   const db = await getDb();
   const row = db
-    .query("SELECT history_id, last_sync_at, full_sync_completed_at, status FROM sync_state WHERE id = 1")
+    .query(
+      `SELECT history_id, last_sync_at, initial_sync_completed_at,
+              full_sync_completed_at, status, phase, progress_current,
+              progress_total, error
+       FROM sync_state WHERE id = 1`
+    )
     .get() as {
     history_id: string | null;
     last_sync_at: number | null;
+    initial_sync_completed_at: number | null;
     full_sync_completed_at: number | null;
     status: string;
+    phase: string | null;
+    progress_current: number | null;
+    progress_total: number | null;
+    error: string | null;
   } | null;
 
   return {
     historyId: row?.history_id ?? null,
     lastSyncAt: row?.last_sync_at ?? null,
+    initialSyncCompletedAt: row?.initial_sync_completed_at ?? null,
     fullSyncCompletedAt: row?.full_sync_completed_at ?? null,
     status: row?.status ?? "idle",
+    phase: row?.phase ?? null,
+    progressCurrent: row?.progress_current ?? null,
+    progressTotal: row?.progress_total ?? null,
+    error: row?.error ?? null,
   };
 }
 
