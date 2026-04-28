@@ -1,0 +1,52 @@
+src/bun/auth.ts
+  64aad0d51b0d2f2c 13
+src/bun/index.ts
+  64aad0d51b0d2f2c 5-10,30-32,40,49,52,55-56,58-59,78,97-98,111-112,126,144-170,210
+  28d3a5e3c4f91c0f 1,19-23,57,70-71,80,113-122,124-125,136-143,184,222-231
+src/mainview/hooks/useInbox.ts
+  64aad0d51b0d2f2c 79-89,91,94,100-105
+  28d3a5e3c4f91c0f 18,24-26,90,92,117-119
+src/mainview/components/ReaderView.tsx
+  64aad0d51b0d2f2c 79,82
+src/bun/db.ts
+  64aad0d51b0d2f2c 49,53,58,62,78-79,160,164,193,198-200,217,236,248
+  28d3a5e3c4f91c0f 47,50-52,59-61,63-77,154,157-159,174-177,186-192,194-197,211,214-216,221-226,230,233-235,242,245-247
+src/mainview/App.tsx
+  64aad0d51b0d2f2c 35-39,45-51,55-82,85-86,88,99,106-112
+src/bun/sync.ts
+  64aad0d51b0d2f2c 283,388,404
+  28d3a5e3c4f91c0f 56-71,73-78,80-137,139-159,162-164,166-181,183-185,187-206,208-234,236-252,254,256,258-259,262-281,284-318,320-321,333,337-343,365-366,384-386,396,405
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "ef40b36d367407a67df3cbeeb132954157331708",
+  "prompts": {
+    "28d3a5e3c4f91c0f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019dd501-0907-7d62-837b-ec5deb9b6367",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 462,
+      "total_deletions": 105,
+      "accepted_lines": 374,
+      "overriden_lines": 3
+    },
+    "64aad0d51b0d2f2c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019dd502-1964-7962-bfb2-d401c94d6a03",
+        "model": "unknown"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 188,
+      "total_deletions": 97,
+      "accepted_lines": 118,
+      "overriden_lines": 1
+    }
+  }
+}
