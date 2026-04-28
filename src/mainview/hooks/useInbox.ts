@@ -21,7 +21,6 @@ export interface SyncStatus {
     total: number;
   };
   lastSyncAt?: number;
-  initialSyncCompletedAt?: number;
   fullSyncCompletedAt?: number;
   error?: string;
 }
@@ -87,11 +86,9 @@ export function useSyncStatus() {
       }
     }
 
-    // Poll immediately and frequently enough for visible sync progress.
     poll();
     const interval = setInterval(poll, 500);
 
-    // Also listen for push events from main process
     const handler = (e: Event) => {
       const data = (e as CustomEvent<SyncStatus>).detail;
       setStatus(data);
@@ -114,9 +111,7 @@ export function useAuth() {
   const checkAuth = useCallback(async () => {
     try {
       const status = await radiusRpc.request.getSyncStatus({});
-      setIsAuthenticated(
-        Boolean(status.initialSyncCompletedAt ?? status.lastSyncAt)
-      );
+      setIsAuthenticated(Boolean(status.fullSyncCompletedAt ?? status.lastSyncAt));
     } catch {
       setIsAuthenticated(false);
     }
@@ -134,6 +129,8 @@ export function useAuth() {
 
   useEffect(() => {
     checkAuth();
+    const interval = setInterval(checkAuth, 1000);
+    return () => clearInterval(interval);
   }, [checkAuth]);
 
   return { isAuthenticated, startOAuth, startSync, checkAuth };

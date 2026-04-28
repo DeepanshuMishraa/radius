@@ -149,8 +149,10 @@ async function init() {
                 if (url.pathname === "/oauth/callback") {
                   const code = url.searchParams.get("code");
                   if (code) {
-                    // Handle the OAuth callback
-                    handleOAuthCallback(code);
+                    // Handle the OAuth callback — must catch so the promise doesn't float
+                    handleOAuthCallback(code).catch((err) => {
+                      console.error("OAuth callback failed:", err);
+                    });
 
                     // Stop the server after receiving the callback
                     authServer?.stop();

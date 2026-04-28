@@ -28,9 +28,9 @@ function App() {
     await startOAuth();
   }, [startOAuth]);
 
-  // ---- State machine driven by syncStatus ----
+  // ---- State machine ----
 
-  // Still checking auth state
+  // Still checking auth
   if (isAuthenticated === null) {
     return (
       <div className="relative h-screen bg-radius-bg-primary">
@@ -39,21 +39,20 @@ function App() {
     );
   }
 
-  // Sync in progress (initial or retry)
-  if (syncStatus.status === "syncing") {
-    return (
-      <div className="relative h-screen bg-radius-bg-primary">
-        <DragRegion />
-        <SyncProgress
-          current={syncStatus.progress?.current ?? 0}
-          total={syncStatus.progress?.total ?? 1000}
-        />
-      </div>
-    );
-  }
-
-  // Not authenticated yet — show onboarding
+  // Not authenticated yet — show onboarding or sync progress
   if (!isAuthenticated) {
+    if (syncStatus.status === "syncing") {
+      return (
+        <div className="relative h-screen bg-radius-bg-primary">
+          <DragRegion />
+          <SyncProgress
+            current={syncStatus.progress?.current ?? 0}
+            total={syncStatus.progress?.total ?? 0}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="relative h-screen bg-radius-bg-primary">
         <DragRegion />
@@ -66,7 +65,7 @@ function App() {
     );
   }
 
-  // Authenticated — show inbox (or reader if message selected)
+  // Authenticated — always show inbox/reader, even during background sync
   const selectedMessage =
     messages.find((m) => m.id === selectedMessageId) ?? null;
 
