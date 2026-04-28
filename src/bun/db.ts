@@ -65,6 +65,9 @@ export async function createSchema(): Promise<void> {
   if (!existingColumns.has("initial_sync_completed_at")) {
     db.exec("ALTER TABLE sync_state ADD COLUMN initial_sync_completed_at INTEGER");
   }
+  if (!existingColumns.has("full_sync_completed_at")) {
+    db.exec("ALTER TABLE sync_state ADD COLUMN full_sync_completed_at INTEGER");
+  }
   if (!existingColumns.has("phase")) {
     db.exec("ALTER TABLE sync_state ADD COLUMN phase TEXT");
   }
@@ -77,6 +80,9 @@ export async function createSchema(): Promise<void> {
   if (!existingColumns.has("error")) {
     db.exec("ALTER TABLE sync_state ADD COLUMN error TEXT");
   }
+
+  // Reset any stale 'syncing' state from a previous crashed run
+  db.run("UPDATE sync_state SET status = 'idle', phase = NULL, progress_current = NULL, progress_total = NULL WHERE status = 'syncing'");
 }
 
 export async function insertMessage(message: {
