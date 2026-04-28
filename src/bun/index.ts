@@ -17,7 +17,6 @@ import {
   setTokens,
 } from "./auth";
 import {
-  runBackgroundCatchupSync,
   runInitialAndBackgroundSync,
   startIncrementalSyncPolling,
 } from "./sync";
@@ -25,7 +24,6 @@ import {
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
 
-// Check if Vite dev server is running for HMR
 async function getMainViewUrl(): Promise<string> {
   const channel = await import("electrobun/bun").then((m) =>
     m.Updater.localInfo.channel(),
@@ -33,25 +31,21 @@ async function getMainViewUrl(): Promise<string> {
   if (channel === "dev") {
     try {
       await fetch(DEV_SERVER_URL, { method: "HEAD" });
-      console.log(`HMR enabled: Using Vite dev server at ${DEV_SERVER_URL}`);
       return DEV_SERVER_URL;
     } catch {
-      console.log(
-        "Vite dev server not running. Run 'bun run dev:hmr' for HMR support.",
-      );
+      /* fallthrough */
     }
   }
   return "views://mainview/index.html";
 }
 
-// PKCE state
 let codeVerifier: string | null = null;
 let authServer: ReturnType<typeof Bun.serve> | null = null;
 let stopPolling: (() => void) | null = null;
 
 async function handleOAuthCallback(code: string): Promise<void> {
   if (!code || !codeVerifier) {
-    console.error("OAuth callback missing code or verifier");
+    console.error("❌ OAuth callback missing code or verifier");
     await updateSyncState({
       status: "error",
       phase: null,
@@ -61,22 +55,36 @@ async function handleOAuthCallback(code: string): Promise<void> {
   }
 
   try {
+    console.log("🔐 Exchanging OAuth code for tokens...");
     const tokens = await exchangeCodeForTokens(code, codeVerifier);
     setTokens(tokens);
+
     if (tokens.refresh_token) {
       await storeRefreshToken(tokens.refresh_token);
+      console.log("💾 Refresh token stored in Keychain");
     }
 
-    // Start the initial onboarding sync, then continue the remainder in background.
-    await runInitialAndBackgroundSync();
+    // Mark as authenticated immediately — this triggers the inbox view
+    await updateSyncState({
+      status: "syncing",
+      phase: "initial",
+      lastSyncAt: Date.now(),
+      error: null,
+    });
+    console.log("✅ Authenticated — opening inbox, streaming messages in background");
+
+    // Start sync in the background — don't block the callback
+    runInitialAndBackgroundSync().catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("❌ Background sync failed:", msg);
+      updateSyncState({ status: "error", phase: null, error: msg });
+    });
 
     // Start incremental polling
     stopPolling = await startIncrementalSyncPolling();
-
-    console.log("OAuth complete — sync started");
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("OAuth callback error:", err);
+    console.error("❌ OAuth callback error:", message);
     await updateSyncState({ status: "error", phase: null, error: message });
   }
 }
@@ -86,7 +94,6 @@ async function init() {
 
   const url = await getMainViewUrl();
 
-  // Define typed RPC handlers
   const rpc = BrowserView.defineRPC<RadiusRPC>({
     maxRequestTime: 10000,
     handlers: {
@@ -110,18 +117,12 @@ async function init() {
           return {
             status:
               state.status as RadiusRPC["bun"]["requests"]["getSyncStatus"]["response"]["status"],
-            phase:
-              (state.phase as RadiusRPC["bun"]["requests"]["getSyncStatus"]["response"]["phase"]) ??
-              undefined,
+            phase: (state.phase as "initial" | "background" | undefined) ?? undefined,
             progress:
               state.progressCurrent !== null && state.progressTotal !== null
-                ? {
-                    current: state.progressCurrent,
-                    total: state.progressTotal,
-                  }
+                ? { current: state.progressCurrent, total: state.progressTotal }
                 : undefined,
             lastSyncAt: state.lastSyncAt ?? undefined,
-            initialSyncCompletedAt: state.initialSyncCompletedAt ?? undefined,
             fullSyncCompletedAt: state.fullSyncCompletedAt ?? undefined,
             error: state.error ?? undefined,
           };
@@ -133,14 +134,6 @@ async function init() {
             const codeChallenge = await sha256(codeVerifier);
             const authURL = buildAuthURL(codeChallenge);
 
-            await updateSyncState({
-              status: "syncing",
-              phase: "initial",
-              progressCurrent: 0,
-              progressTotal: 1000,
-              error: null,
-            });
-
             // Start local redirect server
             authServer = Bun.serve({
               port: 3333,
@@ -149,21 +142,16 @@ async function init() {
                 if (url.pathname === "/oauth/callback") {
                   const code = url.searchParams.get("code");
                   if (code) {
-                    // Handle the OAuth callback — must catch so the promise doesn't float
                     handleOAuthCallback(code).catch((err) => {
                       console.error("OAuth callback failed:", err);
                     });
 
-                    // Stop the server after receiving the callback
                     authServer?.stop();
                     authServer = null;
 
                     return new Response(
-                      "<html><body style='font-family: system-ui; text-align: center; padding-top: 40px;'><h2>Authentication successful</h2><p>You can close this window and return to Radius.</p></body></html>",
-                      {
-                        status: 200,
-                        headers: { "Content-Type": "text/html" },
-                      },
+                      "<html><body style='font-family: system-ui; text-align: center; padding-top: 40px;'><h2>✅ Authentication successful</h2><p>You can close this window and return to Radius.</p></body></html>",
+                      { status: 200, headers: { "Content-Type": "text/html" } },
                     );
                   }
                 }
@@ -171,8 +159,8 @@ async function init() {
               },
             });
 
-            // Open the user's default system browser
             spawn("open", [authURL]);
+            console.log("🌐 Opened system browser for OAuth");
 
             return { success: true };
           } catch (err) {
@@ -183,12 +171,9 @@ async function init() {
 
         async startSync() {
           try {
-            await runInitialAndBackgroundSync();
-
-            if (!stopPolling) {
-              stopPolling = await startIncrementalSyncPolling();
-            }
-
+            runInitialAndBackgroundSync().catch((err) => {
+              console.error("Sync failed:", err);
+            });
             return { success: true };
           } catch (err) {
             console.error("startSync error:", err);
@@ -203,37 +188,23 @@ async function init() {
   const mainWindow = new BrowserWindow<typeof rpc>({
     title: "Radius",
     url,
-    frame: {
-      width: 1300,
-      height: 800,
-      x: 200,
-      y: 200,
-    },
+    frame: { width: 1300, height: 800, x: 200, y: 200 },
     titleBarStyle: "hiddenInset",
     renderer: "cef",
     rpc,
   });
 
-  // Silence unused warning — we keep the reference for future message sending
   void mainWindow;
 
-  // Check if already authenticated
   const state = await getSyncState();
   if (state.fullSyncCompletedAt) {
     stopPolling = await startIncrementalSyncPolling();
-  } else if (state.initialSyncCompletedAt && !state.fullSyncCompletedAt) {
-    void runBackgroundCatchupSync()
-      .then(async () => {
-        if (!stopPolling) {
-          stopPolling = await startIncrementalSyncPolling();
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to resume background sync:", err);
-      });
   }
 
-  console.log("Radius App Started");
+  // Keep reference for future cleanup (logout, quit, etc.)
+  void stopPolling;
+
+  console.log("🚀 Radius App Started");
 }
 
 init().catch((err) => {

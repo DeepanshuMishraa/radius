@@ -1,13 +1,13 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useCallback } from "react";
-import type { Message } from "../hooks/useInbox";
+import type { Message, SyncStatus } from "../hooks/useInbox";
 
 interface InboxListProps {
   messages: Message[];
   total: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  onLoadMore: () => void;
+  syncStatus: SyncStatus;
 }
 
 function formatDate(timestamp: number): string {
@@ -54,19 +54,17 @@ function EmailRow({
       `}
     >
       <span
-        className={`
-        text-[13px] min-w-[140px] max-w-[180px] truncate
-        ${isSelected ? "font-semibold text-radius-text-primary" : "font-medium text-radius-text-primary"}
-      `}
+        className={`text-[13px] min-w-[140px] max-w-[180px] truncate ${
+          isSelected ? "font-semibold" : "font-medium"
+        } text-radius-text-primary`}
       >
         {message.from.split("<")[0].trim() || message.from}
       </span>
 
       <span
-        className={`
-        text-[13px] flex-1 truncate text-radius-text-secondary
-        ${isSelected ? "font-medium" : ""}
-      `}
+        className={`text-[13px] flex-1 truncate text-radius-text-secondary ${
+          isSelected ? "font-medium" : ""
+        }`}
       >
         {message.subject}
       </span>
@@ -78,10 +76,39 @@ function EmailRow({
   );
 }
 
+function SyncIndicator({ syncStatus }: { syncStatus: SyncStatus }) {
+  if (syncStatus.status !== "syncing") return null;
+
+  const current = syncStatus.progress?.current ?? 0;
+  const total = syncStatus.progress?.total ?? 0;
+  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+
+  return (
+    <div className="px-5 py-2 border-b border-radius-border-subtle bg-radius-bg-secondary">
+      <div className="flex items-center justify-between text-xs mb-1.5">
+        <span className="text-radius-text-secondary">
+          {syncStatus.phase === "initial" ? "📥 Fetching your inbox" : "🔄 Catching up"}
+        </span>
+        <span className="text-radius-text-muted tabular-nums">
+          {current.toLocaleString()} / {total.toLocaleString()}
+        </span>
+      </div>
+      <div className="h-1 bg-radius-bg-tertiary rounded-full overflow-hidden">
+        <div
+          className="h-full bg-radius-accent rounded-full transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function InboxList({
   messages,
+  total,
   selectedId,
   onSelect,
+  syncStatus,
 }: InboxListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -103,46 +130,71 @@ export function InboxList({
     <div className="flex flex-col h-full bg-radius-bg-primary">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-radius-border-subtle">
-        <span className="text-sm font-semibold text-radius-text-primary">
-          Inbox
-        </span>
-        <span className="text-xs text-radius-text-muted">
-          {messages.length} messages
+        <span className="text-sm font-semibold text-radius-text-primary">Inbox</span>
+        <span className="text-xs text-radius-text-muted tabular-nums">
+          {total.toLocaleString()} messages
         </span>
       </div>
 
-      {/* Virtualized list */}
-      <div ref={parentRef} className="flex-1 overflow-auto">
-        <div
-          style={{
-            height: `${virtualizer.getTotalSize()}px`,
-            width: "100%",
-            position: "relative",
-          }}
-        >
-          {virtualizer.getVirtualItems().map((virtualItem) => {
-            const message = messages[virtualItem.index];
-            return (
-              <div
-                key={message.id}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  transform: `translateY(${virtualItem.start}px)`,
-                }}
-              >
-                <EmailRow
-                  message={message}
-                  isSelected={selectedId === message.id}
-                  onClick={() => handleMessageClick(message.id)}
-                />
-              </div>
-            );
-          })}
+      {/* Sync indicator */}
+      <SyncIndicator syncStatus={syncStatus} />
+
+      {/* Messages or empty state */}
+      {messages.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <div className="w-10 h-10 rounded-full bg-radius-bg-tertiary flex items-center justify-center mb-3">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-radius-text-muted"
+            >
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg>
+          </div>
+          <p className="text-sm text-radius-text-secondary">
+            {syncStatus.status === "syncing"
+              ? "Your emails are on their way..."
+              : "No messages yet"}
+          </p>
         </div>
-      </div>
+      ) : (
+        <div ref={parentRef} className="flex-1 overflow-auto">
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const message = messages[virtualItem.index];
+              return (
+                <div
+                  key={message.id}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                >
+                  <EmailRow
+                    message={message}
+                    isSelected={selectedId === message.id}
+                    onClick={() => handleMessageClick(message.id)}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

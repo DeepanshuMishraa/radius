@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { Onboarding } from "./components/Onboarding";
-import { SyncProgress } from "./components/SyncProgress";
 import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
 import { useAuth, useSyncStatus, useInbox } from "./hooks/useInbox";
@@ -10,7 +9,7 @@ function App() {
 
   const { isAuthenticated, startOAuth } = useAuth();
   const syncStatus = useSyncStatus();
-  const { messages, total, refresh } = useInbox(100, 0);
+  const { messages, total } = useInbox(200, 0);
 
   const handleConnect = useCallback(async () => {
     await startOAuth();
@@ -24,12 +23,6 @@ function App() {
     setSelectedMessageId(null);
   }, []);
 
-  const handleRetry = useCallback(async () => {
-    await startOAuth();
-  }, [startOAuth]);
-
-  // ---- State machine ----
-
   // Still checking auth
   if (isAuthenticated === null) {
     return (
@@ -39,35 +32,21 @@ function App() {
     );
   }
 
-  // Not authenticated yet — show onboarding or sync progress
+  // Not authenticated — show onboarding
   if (!isAuthenticated) {
-    if (syncStatus.status === "syncing") {
-      return (
-        <div className="relative h-screen bg-radius-bg-primary">
-          <DragRegion />
-          <SyncProgress
-            current={syncStatus.progress?.current ?? 0}
-            total={syncStatus.progress?.total ?? 0}
-          />
-        </div>
-      );
-    }
-
     return (
       <div className="relative h-screen bg-radius-bg-primary">
         <DragRegion />
         <Onboarding
           onConnect={handleConnect}
           error={syncStatus.status === "error" ? syncStatus.error : undefined}
-          onRetry={syncStatus.status === "error" ? handleRetry : undefined}
         />
       </div>
     );
   }
 
-  // Authenticated — always show inbox/reader, even during background sync
-  const selectedMessage =
-    messages.find((m) => m.id === selectedMessageId) ?? null;
+  // Authenticated — show inbox immediately, stream messages as they arrive
+  const selectedMessage = messages.find((m) => m.id === selectedMessageId) ?? null;
 
   if (selectedMessageId && selectedMessage) {
     return (
@@ -83,18 +62,15 @@ function App() {
   return (
     <div className="relative flex h-screen bg-radius-bg-primary">
       <DragRegion />
-      {/* Inbox sidebar */}
       <div className="w-[420px] flex-shrink-0 border-r border-radius-border-subtle pt-9">
         <InboxList
           messages={messages}
           total={total}
           selectedId={selectedMessageId}
           onSelect={handleSelectMessage}
-          onLoadMore={refresh}
+          syncStatus={syncStatus}
         />
       </div>
-
-      {/* Reader pane */}
       <div className="flex-1 min-w-0 pt-9">
         <ReaderView message={selectedMessage} onBack={handleBackToInbox} />
       </div>
@@ -102,7 +78,6 @@ function App() {
   );
 }
 
-/** Invisible drag region for hiddenInset title bar style */
 function DragRegion() {
   return (
     <div

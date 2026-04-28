@@ -16,126 +16,208 @@ function formatFullDate(timestamp: number): string {
   });
 }
 
+function parseSender(from: string): { name: string; email: string } {
+  const match = from.match(/^"?([^"<]+)"?\s*(?:<([^>]+)>)?$/);
+  if (match) {
+    return { name: match[1].trim(), email: match[2]?.trim() || match[1].trim() };
+  }
+  return { name: from, email: from };
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
 export function ReaderView({ message, onBack }: ReaderViewProps) {
   if (!message) {
     return (
-      <div className="flex items-center justify-center h-full bg-radius-bg-primary">
-        <p className="text-sm text-radius-text-muted">
-          Select an email to read
-        </p>
+      <div className="flex flex-col items-center justify-center h-full bg-radius-bg-primary">
+        <div className="w-12 h-12 rounded-2xl bg-radius-bg-secondary flex items-center justify-center mb-4">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            className="text-radius-text-muted"
+          >
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
+          </svg>
+        </div>
+        <p className="text-sm text-radius-text-muted">Select an email to read</p>
       </div>
     );
   }
 
-  // Sanitize HTML body
   const sanitizedHtml = message.bodyHtml
     ? DOMPurify.sanitize(message.bodyHtml, {
         ALLOWED_TAGS: [
-          "p",
-          "br",
-          "strong",
-          "em",
-          "u",
-          "a",
-          "ul",
-          "ol",
-          "li",
-          "h1",
-          "h2",
-          "h3",
-          "h4",
-          "h5",
-          "h6",
-          "blockquote",
-          "pre",
-          "code",
-          "img",
-          "table",
-          "thead",
-          "tbody",
-          "tr",
-          "td",
-          "th",
-          "div",
-          "span",
-          "hr",
+          "p", "br", "strong", "b", "em", "i", "u", "a", "ul", "ol", "li",
+          "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "code",
+          "img", "table", "thead", "tbody", "tr", "td", "th", "div", "span",
+          "hr", "sup", "sub", "del", "ins", "mark",
         ],
         ALLOWED_ATTR: [
-          "href",
-          "src",
-          "alt",
-          "title",
-          "class",
-          "style",
-          "width",
-          "height",
+          "href", "src", "alt", "title", "class", "style", "width", "height",
+          "colspan", "rowspan", "target", "rel",
         ],
       })
     : null;
 
+  const sender = parseSender(message.from);
+
   return (
     <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto">
-      {/* Back button */}
-      <div className="sticky top-9 bg-radius-bg-primary/95 backdrop-blur-sm z-10 px-6 py-3 border-b border-radius-border-subtle">
-        <button
-          onClick={onBack}
-          className="electrobun-webkit-app-region-no-drag flex items-center gap-2 text-sm text-radius-text-secondary hover:text-radius-text-primary transition-colors duration-80"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+      {/* Toolbar */}
+      <div className="sticky top-0 z-10 bg-radius-bg-primary/90 backdrop-blur-sm border-b border-radius-border-subtle">
+        <div className="max-w-[680px] mx-auto px-6 h-11 flex items-center">
+          <button
+            onClick={onBack}
+            className="electrobun-webkit-app-region-no-drag inline-flex items-center gap-1.5 text-xs font-medium text-radius-text-secondary hover:text-radius-text-primary transition-colors duration-80"
           >
-            <path d="M19 12H5" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
-          Back to Inbox
-        </button>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            Inbox
+          </button>
+        </div>
       </div>
 
-      {/* Email content */}
-      <div className="flex-1 px-6 py-6">
-        <div className="max-w-[680px] mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-xl font-semibold text-radius-text-primary mb-3 leading-snug">
-              {message.subject}
-            </h1>
+      {/* Content */}
+      <div className="flex-1">
+        <article className="max-w-[680px] mx-auto px-6 pt-10 pb-20">
+          {/* Subject */}
+          <h1 className="text-[22px] font-semibold text-radius-text-primary leading-[1.3] mb-6">
+            {message.subject}
+          </h1>
 
-            <div className="flex items-center gap-3 text-sm">
-              <div className="w-8 h-8 rounded-full bg-radius-bg-tertiary flex items-center justify-center text-xs font-medium text-radius-text-secondary">
-                {message.from.charAt(0).toUpperCase()}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-radius-text-primary truncate">
-                  {message.from.split("<")[0].trim() || message.from}
-                </p>
-                <p className="text-xs text-radius-text-muted">
-                  {formatFullDate(message.internalDate)}
-                </p>
-              </div>
+          {/* Sender meta */}
+          <div className="flex items-center gap-3 mb-10 pb-8 border-b border-radius-border-subtle">
+            <div className="w-9 h-9 rounded-full bg-radius-accent/10 flex items-center justify-center text-xs font-semibold text-radius-accent">
+              {getInitials(sender.name)}
             </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-radius-text-primary truncate">
+                {sender.name}
+              </p>
+              <p className="text-xs text-radius-text-muted truncate">
+                {sender.email}
+              </p>
+            </div>
+            <time className="text-xs text-radius-text-muted whitespace-nowrap tabular-nums">
+              {formatFullDate(message.internalDate)}
+            </time>
           </div>
 
           {/* Body */}
-          <div className="font-serif text-[15px] leading-[1.7] text-radius-text-primary">
-            {sanitizedHtml ? (
-              <div
-                className="prose prose-stone max-w-none"
-                dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-              />
-            ) : (
-              <p className="whitespace-pre-wrap">{message.bodyText || message.snippet}</p>
-            )}
-          </div>
-        </div>
+          {sanitizedHtml ? (
+            <div
+              className="email-body font-serif text-[17px] leading-[1.75] text-radius-text-primary"
+              dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+            />
+          ) : (
+            <div className="font-serif text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
+              {message.bodyText || message.snippet}
+            </div>
+          )}
+        </article>
       </div>
+
+      {/* Custom email body styles */}
+      <style>{`
+        .email-body p {
+          margin-bottom: 1em;
+        }
+        .email-body p:last-child {
+          margin-bottom: 0;
+        }
+        .email-body a {
+          color: var(--radius-accent, #C4785A);
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+        .email-body a:hover {
+          color: var(--radius-accent-hover, #B56A4D);
+        }
+        .email-body blockquote {
+          border-left: 3px solid var(--radius-border-subtle, #E8E4DE);
+          margin: 1.25em 0;
+          padding: 0.25em 0 0.25em 1em;
+          color: var(--radius-text-secondary, #5C5C5C);
+          font-style: italic;
+        }
+        .email-body ul, .email-body ol {
+          margin: 1em 0;
+          padding-left: 1.5em;
+        }
+        .email-body li {
+          margin-bottom: 0.35em;
+        }
+        .email-body h1, .email-body h2, .email-body h3,
+        .email-body h4, .email-body h5, .email-body h6 {
+          font-family: 'Instrument Sans', system-ui, sans-serif;
+          font-weight: 600;
+          color: var(--radius-text-primary, #1A1A1A);
+          margin: 1.5em 0 0.75em;
+          line-height: 1.3;
+        }
+        .email-body h1 { font-size: 1.4em; }
+        .email-body h2 { font-size: 1.25em; }
+        .email-body h3 { font-size: 1.1em; }
+        .email-body img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 6px;
+          margin: 1em 0;
+        }
+        .email-body pre {
+          background: var(--radius-bg-secondary, #F7F5F0);
+          padding: 1em;
+          border-radius: 6px;
+          overflow-x: auto;
+          font-size: 0.85em;
+          line-height: 1.5;
+          margin: 1em 0;
+        }
+        .email-body code {
+          background: var(--radius-bg-secondary, #F7F5F0);
+          padding: 0.15em 0.4em;
+          border-radius: 3px;
+          font-size: 0.9em;
+        }
+        .email-body pre code {
+          background: none;
+          padding: 0;
+        }
+        .email-body table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 1em 0;
+          font-size: 0.95em;
+        }
+        .email-body th, .email-body td {
+          padding: 0.5em 0.75em;
+          border: 1px solid var(--radius-border-subtle, #E8E4DE);
+          text-align: left;
+        }
+        .email-body th {
+          background: var(--radius-bg-secondary, #F7F5F0);
+          font-weight: 600;
+          font-family: 'Instrument Sans', system-ui, sans-serif;
+        }
+        .email-body hr {
+          border: none;
+          border-top: 1px solid var(--radius-border-subtle, #E8E4DE);
+          margin: 1.5em 0;
+        }
+      `}</style>
     </div>
   );
 }

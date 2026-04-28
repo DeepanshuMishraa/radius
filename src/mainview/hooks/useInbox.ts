@@ -25,7 +25,7 @@ export interface SyncStatus {
   error?: string;
 }
 
-export function useInbox(limit: number = 50, offset: number = 0) {
+export function useInbox(limit: number = 200, offset: number = 0) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -45,6 +45,9 @@ export function useInbox(limit: number = 50, offset: number = 0) {
 
   useEffect(() => {
     fetchInbox();
+    // Poll every 2 seconds during sync to stream messages in
+    const interval = setInterval(fetchInbox, 2000);
+    return () => clearInterval(interval);
   }, [fetchInbox]);
 
   return { messages, total, loading, refresh: fetchInbox };
@@ -111,7 +114,8 @@ export function useAuth() {
   const checkAuth = useCallback(async () => {
     try {
       const status = await radiusRpc.request.getSyncStatus({});
-      setIsAuthenticated(Boolean(status.fullSyncCompletedAt ?? status.lastSyncAt));
+      // Authenticated as soon as we have a refresh token (lastSyncAt set on callback)
+      setIsAuthenticated(Boolean(status.lastSyncAt));
     } catch {
       setIsAuthenticated(false);
     }
@@ -122,16 +126,11 @@ export function useAuth() {
     return result.success;
   }, []);
 
-  const startSync = useCallback(async () => {
-    const result = await radiusRpc.request.startSync({});
-    return result.success;
-  }, []);
-
   useEffect(() => {
     checkAuth();
     const interval = setInterval(checkAuth, 1000);
     return () => clearInterval(interval);
   }, [checkAuth]);
 
-  return { isAuthenticated, startOAuth, startSync, checkAuth };
+  return { isAuthenticated, startOAuth };
 }
