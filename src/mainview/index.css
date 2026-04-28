@@ -1,19 +1,63 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
-/*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
+@theme {
+  /* Background colors */
+  --color-radius-bg-primary: #fdfcf8;
+  --color-radius-bg-secondary: #f7f5f0;
+  --color-radius-bg-tertiary: #efebe4;
 
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
+  /* Text colors */
+  --color-radius-text-primary: #1a1a1a;
+  --color-radius-text-secondary: #5c5c5c;
+  --color-radius-text-muted: #9e9a93;
+  --color-radius-text-inverse: #fdfcf8;
+
+  /* Accent colors */
+  --color-radius-accent: #c4785a;
+  --color-radius-accent-hover: #b56a4d;
+  --color-radius-accent-subtle: #f5e6e0;
+
+  /* Semantic colors */
+  --color-radius-success: #5a8c6f;
+  --color-radius-warning: #c4a35a;
+  --color-radius-error: #c45a5a;
+  --color-radius-info: #5a7dc4;
+
+  /* Border */
+  --color-radius-border-subtle: #e8e4de;
+
+  /* Font families */
+  --font-family-display: "Satoshi", system-ui, sans-serif;
+  --font-family-sans: "Instrument Sans", system-ui, sans-serif;
+  --font-family-serif: "Newsreader", Georgia, serif;
+  --font-family-mono: "DM Sans", monospace;
+
+  /* Transitions */
+  --transition-duration-80: 80ms;
+}
+
+/* Base styles */
 @layer base {
-  *,
-  ::after,
-  ::before,
-  ::backdrop,
-  ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+  body {
+    font-family: var(--font-family-sans);
+    background-color: var(--color-radius-bg-primary);
+    color: var(--color-radius-text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-radius-border-subtle);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-radius-text-muted);
   }
 }
