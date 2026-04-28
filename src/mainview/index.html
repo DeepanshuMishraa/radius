@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <title>Radius</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,6 +13,15 @@
     />
   </head>
   <body>
+    <script>
+      (function() {
+        const mq = window.matchMedia('(prefers-color-scheme: dark)');
+        document.body.style.backgroundColor = mq.matches ? '#1a1a1a' : '#fdfcf8';
+        mq.addEventListener('change', function(e) {
+          document.body.style.backgroundColor = e.matches ? '#1a1a1a' : '#fdfcf8';
+        });
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/main.tsx"></script>
   </body>

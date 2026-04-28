@@ -1,8 +1,4 @@
-import {
-  getRefreshToken,
-  refreshAccessToken,
-  type TokenData,
-} from "./auth";
+import { getValidAccessToken } from "./auth";
 import {
   insertMessage,
   updateSyncState,
@@ -19,30 +15,6 @@ import {
   HistoryGapError,
   type GmailMessage,
 } from "./gmail";
-
-let currentAccessToken: string | null = null;
-let tokenExpiresAt = 0;
-
-async function ensureAccessToken(): Promise<string> {
-  if (currentAccessToken && Date.now() < tokenExpiresAt - 60000) {
-    return currentAccessToken;
-  }
-
-  const refreshToken = await getRefreshToken();
-  if (!refreshToken) {
-    throw new Error("No refresh token found — please authenticate first");
-  }
-
-  const refreshed = await refreshAccessToken(refreshToken);
-  currentAccessToken = refreshed.access_token;
-  tokenExpiresAt = Date.now() + refreshed.expires_in * 1000;
-  return currentAccessToken;
-}
-
-export function setTokens(tokens: TokenData): void {
-  currentAccessToken = tokens.access_token;
-  tokenExpiresAt = Date.now() + tokens.expires_in * 1000;
-}
 
 async function withRetry<T>(
   fn: () => Promise<T>,
@@ -62,13 +34,9 @@ async function withRetry<T>(
           await Bun.sleep(delay);
           continue;
         }
-        if (err.isAuthError()) {
-          // Force token refresh on next call
-          currentAccessToken = null;
-          if (attempt < maxRetries) {
-            await Bun.sleep(500);
-            continue;
-          }
+        if (err.isAuthError() && attempt < maxRetries) {
+          await Bun.sleep(500);
+          continue;
         }
       }
       throw err;
@@ -91,7 +59,7 @@ export async function doFullSync(
   await updateSyncState({ status: "syncing" });
 
   try {
-    const accessToken = await ensureAccessToken();
+    const accessToken = await getValidAccessToken();
 
     // Get total estimate
     const firstPage = await withRetry(() =>
@@ -154,7 +122,7 @@ export async function doFullSync(
     }
 
     // Get latest historyId
-    const accessToken2 = await ensureAccessToken();
+    const accessToken2 = await getValidAccessToken();
     const latest = await withRetry(() =>
       listMessages(accessToken2, { maxResults: 1, q: "in:inbox" })
     );
@@ -197,7 +165,7 @@ export async function doIncrementalSync(): Promise<{
   await updateSyncState({ status: "syncing" });
 
   try {
-    const accessToken = await ensureAccessToken();
+    const accessToken = await getValidAccessToken();
     let hadGap = false;
     let newCount = 0;
 
@@ -277,7 +245,7 @@ async function flushInsertBuffer(messages: GmailMessage[]): Promise<void> {
 }
 
 export async function startIncrementalSyncPolling(
-  onNewMail?: (message: GmailMessage) => void
+  _onNewMail?: (message: GmailMessage) => void
 ): Promise<() => void> {
   let running = true;
 

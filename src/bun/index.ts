@@ -1,4 +1,4 @@
-import { BrowserWindow, BrowserView } from "electrobun/bun";
+import Electrobun, { BrowserWindow, BrowserView } from "electrobun/bun";
 import type { RadiusRPC } from "../shared/types";
 import { createSchema, getInboxMessages, getMessageById, getSyncState } from "./db";
 import {
@@ -33,31 +33,70 @@ async function getMainViewUrl(): Promise<string> {
 
 // PKCE state
 let codeVerifier: string | null = null;
-let authServer: ReturnType<typeof Bun.serve> | null = null;
 let oauthWindow: BrowserWindow | null = null;
 let stopPolling: (() => void) | null = null;
+
+async function handleOAuthCallback(url: string): Promise<void> {
+  const parsed = new URL(url);
+  const code = parsed.searchParams.get("code");
+
+  if (!code || !codeVerifier) {
+    console.error("OAuth callback missing code or verifier");
+    return;
+  }
+
+  try {
+    const tokens = await exchangeCodeForTokens(code, codeVerifier);
+    setTokens(tokens);
+    if (tokens.refresh_token) {
+      await storeRefreshToken(tokens.refresh_token);
+    }
+
+    // Close OAuth window
+    oauthWindow?.close();
+    oauthWindow = null;
+
+    // Start sync
+    await doFullSync();
+
+    // Start incremental polling
+    stopPolling = await startIncrementalSyncPolling();
+
+    console.log("OAuth complete — sync started");
+  } catch (err) {
+    console.error("OAuth callback error:", err);
+  }
+}
 
 async function init() {
   await createSchema();
 
   const url = await getMainViewUrl();
 
+  // Listen for deeplink OAuth callbacks
+  Electrobun.events.on("open-url", (e: { data?: { url?: string } }) => {
+    const url = e.data?.url as string | undefined;
+    if (url?.startsWith("radius://oauth/callback")) {
+      handleOAuthCallback(url);
+    }
+  });
+
   // Define typed RPC handlers
   const rpc = BrowserView.defineRPC<RadiusRPC>({
     maxRequestTime: 10000,
     handlers: {
       requests: {
-        async getInbox({ limit, offset }) {
+        async getInbox({ limit, offset }: { limit: number; offset: number }) {
           const result = await getInboxMessages(limit, offset);
           return {
-            messages: result.messages as RadiusRPC["bun"]["requests"]["getInbox"]["response"]["messages"],
+            messages: result.messages as unknown as RadiusRPC["bun"]["requests"]["getInbox"]["response"]["messages"],
             total: result.total,
           };
         },
 
-        async getMessage({ id }) {
+        async getMessage({ id }: { id: string }) {
           const msg = await getMessageById(id);
-          return msg as RadiusRPC["bun"]["requests"]["getMessage"]["response"];
+          return msg as unknown as RadiusRPC["bun"]["requests"]["getMessage"]["response"];
         },
 
         async getSyncStatus() {
@@ -74,64 +113,11 @@ async function init() {
             const codeChallenge = await sha256(codeVerifier);
             const authURL = buildAuthURL(codeChallenge);
 
-            // Start local redirect server
-            authServer = Bun.serve({
-              port: 3333,
-              async fetch(req) {
-                const url = new URL(req.url);
-                if (url.pathname === "/oauth/callback") {
-                  const code = url.searchParams.get("code");
-                  if (code && codeVerifier) {
-                    try {
-                      const tokens = await exchangeCodeForTokens(code, codeVerifier);
-                      setTokens(tokens);
-                      if (tokens.refresh_token) {
-                        await storeRefreshToken(tokens.refresh_token);
-                      }
-
-                      // Close OAuth window
-                      oauthWindow?.close();
-                      oauthWindow = null;
-                      authServer?.stop();
-                      authServer = null;
-
-                      // Start sync
-                      await doFullSync((progress) => {
-                        mainWindow?.webview.send("syncProgress", {
-                          status: "syncing",
-                          progress: {
-                            current: progress.current,
-                            total: progress.total,
-                          },
-                        });
-                      });
-
-                      mainWindow?.webview.send("syncProgress", {
-                        status: "idle",
-                      });
-
-                      // Start incremental polling
-                      stopPolling = await startIncrementalSyncPolling();
-
-                      return new Response("Authentication successful! You can close this window.", {
-                        status: 200,
-                        headers: { "Content-Type": "text/plain" },
-                      });
-                    } catch (err) {
-                      console.error("OAuth callback error:", err);
-                      return new Response(`Authentication failed: ${err}`, { status: 500 });
-                    }
-                  }
-                }
-                return new Response("Not found", { status: 404 });
-              },
-            });
-
             // Open OAuth window
             oauthWindow = new BrowserWindow({
               title: "Connect Gmail",
               url: authURL,
-              frame: { width: 480, height: 600 },
+              frame: { width: 480, height: 600, x: 0, y: 0 },
             });
 
             return { success: true };
@@ -143,19 +129,7 @@ async function init() {
 
         async startSync() {
           try {
-            await doFullSync((progress) => {
-              mainWindow?.webview.send("syncProgress", {
-                status: "syncing",
-                progress: {
-                  current: progress.current,
-                  total: progress.total,
-                },
-              });
-            });
-
-            mainWindow?.webview.send("syncProgress", {
-              status: "idle",
-            });
+            await doFullSync();
 
             if (!stopPolling) {
               stopPolling = await startIncrementalSyncPolling();
@@ -172,7 +146,7 @@ async function init() {
     },
   });
 
-  const mainWindow = new BrowserWindow({
+  const mainWindow = new BrowserWindow<typeof rpc>({
     title: "Radius",
     url,
     frame: {
@@ -183,8 +157,11 @@ async function init() {
     },
     titleBarStyle: "default",
     renderer: "cef",
-    webview: rpc,
+    rpc,
   });
+
+  // Silence unused warning — we keep the reference for future message sending
+  void mainWindow;
 
   // Check if already authenticated
   const state = await getSyncState();

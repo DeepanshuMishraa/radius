@@ -5,6 +5,7 @@ export default {
 		name: "Radius",
 		identifier: "radius.dipxsy.app",
 		version: "0.0.1",
+		urlSchemes: ["radius"],
 	},
 	build: {
 		// Vite builds to dist/, we copy from there

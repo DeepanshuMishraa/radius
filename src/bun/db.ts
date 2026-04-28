@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { homedir } from "node:os";
 
 const DB_DIR = join(homedir(), "Library", "Application Support", "Radius");

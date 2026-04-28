@@ -1,8 +1,16 @@
 import { spawn } from "node:child_process";
 
-const CLIENT_ID =
-  "394343158069-35abpob1ksoipg6d3qgpb7edteu7s8jv.apps.googleusercontent.com";
-const REDIRECT_URI = "http://localhost:3333/oauth/callback";
+function getEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+const CLIENT_ID = getEnv("GOOGLE_CLIENT_ID");
+const CLIENT_SECRET = getEnv("GOOGLE_CLIENT_SECRET");
+const REDIRECT_URI = "radius://oauth/callback";
 const SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 
 export interface TokenData {
@@ -10,6 +18,30 @@ export interface TokenData {
   refresh_token: string;
   expires_in: number;
   token_type: string;
+}
+
+let currentAccessToken: string | null = null;
+let tokenExpiresAt = 0;
+
+export function setTokens(tokens: TokenData): void {
+  currentAccessToken = tokens.access_token;
+  tokenExpiresAt = Date.now() + tokens.expires_in * 1000;
+}
+
+export async function getValidAccessToken(): Promise<string> {
+  if (currentAccessToken && Date.now() < tokenExpiresAt - 60000) {
+    return currentAccessToken;
+  }
+
+  const refreshToken = await getRefreshToken();
+  if (!refreshToken) {
+    throw new Error("No refresh token found — please authenticate first");
+  }
+
+  const refreshed = await refreshAccessToken(refreshToken);
+  currentAccessToken = refreshed.access_token;
+  tokenExpiresAt = Date.now() + refreshed.expires_in * 1000;
+  return currentAccessToken;
 }
 
 function base64URLEncode(str: string): string {
@@ -52,6 +84,7 @@ export async function exchangeCodeForTokens(
 ): Promise<TokenData> {
   const body = new URLSearchParams({
     client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
     code,
     redirect_uri: REDIRECT_URI,
     grant_type: "authorization_code",
@@ -77,6 +110,7 @@ export async function refreshAccessToken(
 ): Promise<{ access_token: string; expires_in: number }> {
   const body = new URLSearchParams({
     client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
     refresh_token: refreshToken,
     grant_type: "refresh_token",
   });

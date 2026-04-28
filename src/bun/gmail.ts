@@ -148,7 +148,7 @@ export function extractBodies(payload: GmailMessage["payload"]): {
   let text: string | null = null;
   let html: string | null = null;
 
-  function traverse(part: typeof payload | (typeof payload.parts)[0]): void {
+  function traverse(part: GmailMessage["payload"] | NonNullable<GmailMessage["payload"]["parts"]>[0]): void {
     const mimeType = "mimeType" in part ? part.mimeType : undefined;
 
     if (mimeType === "text/plain" && part.body?.data) {
