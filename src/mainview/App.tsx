@@ -1,16 +1,30 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Onboarding } from "./components/Onboarding";
 import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
 import { useAuth, useSyncStatus, useInbox } from "./hooks/useInbox";
+import { CommandDemo } from "@/components/cmd";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 function App() {
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [cmdOpen, setCmdOpen] = useState(false);
 
   const { isAuthenticated, startOAuth } = useAuth();
   const syncStatus = useSyncStatus();
   const { messages, total } = useInbox(200, 0);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCmdOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const handleConnect = useCallback(async () => {
     await startOAuth();
@@ -73,6 +87,13 @@ function App() {
           onOpenSidebar={handleOpenSidebar}
         />
       </main>
+
+      {/* Command Palette */}
+      <Dialog open={cmdOpen} onOpenChange={setCmdOpen}>
+        <DialogContent className="w-full max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none">
+          <CommandDemo />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
