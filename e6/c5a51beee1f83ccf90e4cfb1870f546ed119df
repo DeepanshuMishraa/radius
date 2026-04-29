@@ -1,0 +1,52 @@
+src/mainview/components/ReaderView.tsx
+  cb087ecd3eac8db4 3,8,21-24,28-31,36-69,73,88-90,98-132,135-146,156-157,160,162-163,167,170-175,178-183,186-187
+  8c1f061c2b673c45 25-26,33,72,151-152,155,161,169,177,185,193,196,200,227,272
+src/mainview/index.css
+  8c1f061c2b673c45 20-23,117,136-137
+  cb087ecd3eac8db4 26-73,115-116
+src/mainview/components/SyncProgress.tsx
+  8c1f061c2b673c45 31,35,49
+src/mainview/components/InboxList.tsx
+  8c1f061c2b673c45 45,51,54,60,65,82,85,123,126,129-131,152
+src/mainview/App.tsx
+  cb087ecd3eac8db4 24-25,54-57,66,69,73,75
+  8c1f061c2b673c45 21,51,53,58-65,67-68
+src/mainview/components/Onboarding.tsx
+  8c1f061c2b673c45 28,32,38-39,45,50
+src/mainview/index.html
+  8c1f061c2b673c45 19,21
+  cb087ecd3eac8db4 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "e6c5a51beee1f83ccf90e4cfb1870f546ed119df",
+  "prompts": {
+    "8c1f061c2b673c45": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019dd431-19a8-7675-89e2-0fba33e76bc6",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 220,
+      "total_deletions": 140,
+      "accepted_lines": 60,
+      "overriden_lines": 0
+    },
+    "cb087ecd3eac8db4": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019dda3f-b0de-7237-a770-18c074813c83",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 476,
+      "total_deletions": 109,
+      "accepted_lines": 181,
+      "overriden_lines": 2
+    }
+  }
+}
