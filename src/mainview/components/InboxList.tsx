@@ -37,7 +37,7 @@ function EmailRow({
   isSelected: boolean;
   onClick: () => void;
 }) {
-  const senderName = message.from.split("<")[0].trim() || message.from;
+  const senderName = message.from?.split("<")[0].trim() || message.from || "";
 
   return (
     <div

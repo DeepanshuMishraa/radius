@@ -18,7 +18,8 @@ function formatFullDate(timestamp: number): string {
   });
 }
 
-function parseSender(from: string): { name: string; email: string } {
+function parseSender(from: string | null | undefined): { name: string; email: string } {
+  if (!from) return { name: "", email: "" };
   const match = from.match(/^"?([^"<]+)"?\s*(?:<([^>]+)>)?$/);
   if (match) {
     return { name: match[1].trim(), email: match[2]?.trim() || match[1].trim() };
