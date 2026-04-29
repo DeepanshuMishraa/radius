@@ -1,0 +1,23 @@
+README.md
+  cb087ecd3eac8db4 1,3,5,7-10,12,14-18,20,22-24,27,29-31,33-34,36-37,39-41,43,46-48,51,53-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "c1b575197d238491838351836dff9dfc9e3bb1c3",
+  "prompts": {
+    "cb087ecd3eac8db4": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019dda3f-b0de-7237-a770-18c074813c83",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 37,
+      "total_deletions": 42,
+      "accepted_lines": 170,
+      "overriden_lines": 0
+    }
+  }
+}
