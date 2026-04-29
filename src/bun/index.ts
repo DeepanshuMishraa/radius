@@ -15,10 +15,12 @@ import {
   generateCodeVerifier,
   sha256,
   setTokens,
+  getRefreshToken,
 } from "./auth";
 import {
   runInitialAndBackgroundSync,
   startIncrementalSyncPolling,
+  doIncrementalSync,
 } from "./sync";
 
 const DEV_SERVER_PORT = 5173;
@@ -197,8 +199,38 @@ async function init() {
   void mainWindow;
 
   const state = await getSyncState();
+
   if (state.fullSyncCompletedAt) {
+    // User has synced before — catch up immediately then poll
+    doIncrementalSync()
+      .then((result) => {
+        if (result.newMessages > 0) {
+          console.log(
+            `📥 Startup catch-up: ${result.newMessages} new message(s)`,
+          );
+        } else {
+          console.log("📥 Startup catch-up: no new messages");
+        }
+      })
+      .catch((err) => {
+        console.error("❌ Startup catch-up failed:", err);
+      });
+
     stopPolling = await startIncrementalSyncPolling();
+  } else {
+    // No full sync on record — check if user is authenticated but
+    // initial sync never completed (crash, quit mid-sync, etc.)
+    const refreshToken = await getRefreshToken();
+    if (refreshToken) {
+      console.log(
+        "🔄 Authenticated but no full sync found — resuming initial sync",
+      );
+      runInitialAndBackgroundSync().catch((err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("❌ Resume sync failed:", msg);
+        updateSyncState({ status: "error", phase: null, error: msg });
+      });
+    }
   }
 
   // Keep reference for future cleanup (logout, quit, etc.)
