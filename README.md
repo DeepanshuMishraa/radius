@@ -1,61 +1,56 @@
-# React + Tailwind + Vite Electrobun Template
+# Radius
 
-A fast Electrobun desktop app template with React, Tailwind CSS, and Vite for hot module replacement (HMR).
+A minimal, fast desktop email client for Gmail. Built with [Electrobun](https://electrobun.dev) (Bun + native web views).
 
-## Getting Started
+## What it does
+
+- Connects to Gmail via OAuth (read-only — never sends, deletes, or modifies emails)
+- Syncs your inbox locally for instant access
+- Incremental catch-up on every launch — fetches new emails automatically
+- Clean reader view with smooth sidebar transitions
+
+## Requirements
+
+- macOS
+- [Bun](https://bun.sh)
+- A Google Cloud project with the Gmail API enabled
+
+## Setup
+
+Create a `.env` file in the project root:
+
+```env
+GOOGLE_CLIENT_ID=your_client_id
+GOOGLE_CLIENT_SECRET=your_client_secret
+```
+
+## Running
 
 ```bash
 # Install dependencies
 bun install
 
-# Development without HMR (uses bundled assets)
-bun run dev
-
-# Development with HMR (recommended)
+# Dev with HMR (recommended)
 bun run dev:hmr
 
-# Build for production
-bun run build
+# Dev without HMR
+bun run dev
 
-# Build for production release
-bun run build:prod
+# Production build
+bun run build:canary
 ```
 
-## How HMR Works
-
-When you run `bun run dev:hmr`:
-
-1. **Vite dev server** starts on `http://localhost:5173` with HMR enabled
-2. **Electrobun** starts and detects the running Vite server
-3. The app loads from the Vite dev server instead of bundled assets
-4. Changes to React components update instantly without full page reload
-
-When you run `bun run dev` (without HMR):
-
-1. Electrobun starts and loads from `views://mainview/index.html`
-2. You need to rebuild (`bun run build`) to see changes
-
-## Project Structure
+## Project structure
 
 ```
-├── src/
-│   ├── bun/
-│   │   └── index.ts        # Main process (Electrobun/Bun)
-│   └── mainview/
-│       ├── App.tsx         # React app component
-│       ├── main.tsx        # React entry point
-│       ├── index.html      # HTML template
-│       └── index.css       # Tailwind CSS
-├── electrobun.config.ts    # Electrobun configuration
-├── vite.config.ts          # Vite configuration
-├── tailwind.config.js      # Tailwind configuration
-└── package.json
+src/
+  bun/          # Main process — auth, sync, database, RPC
+  mainview/     # Renderer — React UI
 ```
 
-## Customizing
+## Tech stack
 
-- **React components**: Edit files in `src/mainview/`
-- **Tailwind theme**: Edit `tailwind.config.js`
-- **Vite settings**: Edit `vite.config.ts`
-- **Window settings**: Edit `src/bun/index.ts`
-- **App metadata**: Edit `electrobun.config.ts`
+- Electrobun (Bun runtime + native web views)
+- React + Tailwind CSS
+- SQLite (local email storage)
+- Gmail API
