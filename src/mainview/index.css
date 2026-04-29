@@ -1,14 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  /* Light mode (default) */
-  --radius-bg-primary: #fdfcf8;
-  --radius-bg-secondary: #f7f5f0;
-  --radius-bg-tertiary: #efebe4;
-  --radius-text-primary: #1a1a1a;
-  --radius-text-secondary: #5c5c5c;
-  --radius-text-muted: #9e9a93;
-  --radius-text-inverse: #fdfcf8;
+  --radius-bg-primary: #ffffff;
+  --radius-bg-secondary: #f7f6f3;
+  --radius-bg-tertiary: #efebe5;
+  --radius-text-primary: #292827;
+  --radius-text-secondary: #5c5a57;
+  --radius-text-muted: #99948e;
+  --radius-text-inverse: #ffffff;
   --radius-accent: #c4785a;
   --radius-accent-hover: #b56a4d;
   --radius-accent-subtle: #f5e6e0;
@@ -16,18 +15,19 @@
   --radius-warning: #c4a35a;
   --radius-error: #c45a5a;
   --radius-info: #5a7dc4;
-  --radius-border-subtle: #e8e4de;
+  --radius-border-subtle: #e5e0d9;
+  --radius-border: #d5d0c9;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --radius-bg-primary: #1a1a1a;
-    --radius-bg-secondary: #242424;
-    --radius-bg-tertiary: #2e2e2e;
-    --radius-text-primary: #e8e6e3;
-    --radius-text-secondary: #a8a49d;
-    --radius-text-muted: #6e6a64;
-    --radius-text-inverse: #1a1a1a;
+    --radius-bg-primary: #1b1a18;
+    --radius-bg-secondary: #242320;
+    --radius-bg-tertiary: #2e2d2a;
+    --radius-text-primary: #e8e6e1;
+    --radius-text-secondary: #a8a49c;
+    --radius-text-muted: #6e6a62;
+    --radius-text-inverse: #1b1a18;
     --radius-accent: #d48a6e;
     --radius-accent-hover: #c4785a;
     --radius-accent-subtle: #3a2822;
@@ -36,6 +36,7 @@
     --radius-error: #d46e6e;
     --radius-info: #6e8ed4;
     --radius-border-subtle: #33302c;
+    --radius-border: #44413c;
   }
 }
 
@@ -55,18 +56,16 @@
   --color-radius-error: var(--radius-error);
   --color-radius-info: var(--radius-info);
   --color-radius-border-subtle: var(--radius-border-subtle);
+  --color-radius-border: var(--radius-border);
 
-  /* Font families */
   --font-family-display: "Satoshi", system-ui, sans-serif;
   --font-family-sans: "Instrument Sans", system-ui, sans-serif;
   --font-family-serif: "Newsreader", Georgia, serif;
   --font-family-mono: "DM Sans", monospace;
 
-  /* Transitions */
   --transition-duration-80: 80ms;
 }
 
-/* Base styles */
 @layer base {
   html {
     color-scheme: light dark;
@@ -81,18 +80,14 @@
     transition: background-color 0.2s ease, color 0.2s ease;
   }
 
-  /* Scrollbar styling */
   ::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--color-radius-border-subtle);
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-radius-text-muted);
+    background: var(--radius-border);
+    border-radius: 4px;
   }
 }

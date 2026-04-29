@@ -23,7 +23,6 @@ function App() {
     setSelectedMessageId(null);
   }, []);
 
-  // Still checking auth
   if (isAuthenticated === null) {
     return (
       <div className="relative h-screen bg-radius-bg-primary">
@@ -32,7 +31,6 @@ function App() {
     );
   }
 
-  // Not authenticated — show onboarding
   if (!isAuthenticated) {
     return (
       <div className="relative h-screen bg-radius-bg-primary">
@@ -45,7 +43,6 @@ function App() {
     );
   }
 
-  // Authenticated — show inbox immediately, stream messages as they arrive
   const selectedMessage = messages.find((m) => m.id === selectedMessageId) ?? null;
 
   if (selectedMessageId && selectedMessage) {
@@ -62,7 +59,7 @@ function App() {
   return (
     <div className="relative flex h-screen bg-radius-bg-primary">
       <DragRegion />
-      <div className="w-[420px] flex-shrink-0 border-r border-radius-border-subtle pt-9">
+      <div className="w-[380px] shrink-0 border-r border-radius-border-subtle pt-9">
         <InboxList
           messages={messages}
           total={total}

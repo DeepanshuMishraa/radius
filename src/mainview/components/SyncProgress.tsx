@@ -4,20 +4,20 @@ interface SyncProgressProps {
 }
 
 export function SyncProgress({ current, total }: SyncProgressProps) {
-  const percentage = total > 0 ? Math.min((current / total) * 100, 100) : 0;
+  const showProgress = total > 0;
+  const pct = showProgress ? Math.min(Math.round((current / total) * 100), 100) : 0;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-radius-bg-primary px-6">
       <div className="flex flex-col items-center max-w-md text-center">
-        {/* Logo */}
-        <div className="w-12 h-12 rounded-xl bg-radius-accent flex items-center justify-center mb-8">
+        <div className="w-10 h-10 rounded-2xl bg-radius-accent flex items-center justify-center mb-10">
           <svg
-            width="24"
-            height="24"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.5"
+            strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"
             className="text-radius-text-inverse"
@@ -28,28 +28,29 @@ export function SyncProgress({ current, total }: SyncProgressProps) {
           </svg>
         </div>
 
-        <h1 className="text-xl font-semibold text-radius-text-primary mb-2">
+        <h1 className="font-display text-[22px] font-semibold text-radius-text-primary mb-3 leading-[1.1] -tracking-[0.4px]">
           Syncing your inbox
         </h1>
 
-        <p className="text-sm text-radius-text-secondary mb-8 leading-relaxed">
-          Fetching your emails from Gmail and storing them locally for instant
-          access. This only happens once.
+        <p className="text-[15px] text-radius-text-secondary mb-8 leading-[1.5] max-w-[320px]">
+          Fetching your emails from Gmail and storing them locally for instant access. This only happens once.
         </p>
 
-        {/* Progress bar */}
-        <div className="w-full max-w-xs mb-3">
-          <div className="h-1 bg-radius-bg-tertiary rounded-full overflow-hidden">
-            <div
-              className="h-full bg-radius-accent rounded-full transition-all duration-300"
-              style={{ width: `${percentage}%` }}
-            />
-          </div>
-        </div>
-
-        <p className="text-xs text-radius-text-muted">
-          {current.toLocaleString()} of {total.toLocaleString()} emails synced
-        </p>
+        {showProgress && (
+          <>
+            <div className="w-full max-w-xs mb-3">
+              <div className="h-[2px] bg-radius-border-subtle rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-radius-accent rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+            <p className="text-[12px] text-radius-text-muted font-mono tabular-nums">
+              {current.toLocaleString()} / {total.toLocaleString()}
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

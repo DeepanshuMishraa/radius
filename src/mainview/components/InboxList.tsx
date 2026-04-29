@@ -23,11 +23,7 @@ function formatDate(timestamp: number): string {
   } else if (date.getFullYear() === now.getFullYear()) {
     return date.toLocaleDateString([], { month: "short", day: "numeric" });
   } else {
-    return date.toLocaleDateString([], {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    return date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
   }
 }
 
@@ -44,32 +40,25 @@ function EmailRow({
     <div
       onClick={onClick}
       className={`
-        flex items-baseline gap-4 px-5 py-3.5 cursor-pointer select-none
+        flex items-center gap-4 px-5 py-3 cursor-pointer select-none
         transition-colors duration-80
-        ${
-          isSelected
-            ? "bg-radius-bg-tertiary border-l-[3px] border-radius-accent pl-[17px]"
-            : "hover:bg-radius-bg-secondary border-l-[3px] border-transparent pl-5"
+        ${isSelected
+          ? "border-l-[3px] border-l-radius-accent bg-radius-bg-secondary pl-[17px]"
+          : "border-l-[3px] border-l-transparent hover:bg-radius-bg-secondary pl-5"
         }
       `}
     >
-      <span
-        className={`text-[13px] min-w-[140px] max-w-[180px] truncate ${
-          isSelected ? "font-semibold" : "font-medium"
-        } text-radius-text-primary`}
-      >
+      <span className={`text-[13px] w-[140px] shrink-0 truncate font-medium ${
+        isSelected ? "text-radius-text-primary" : "text-radius-text-primary"
+      }`}>
         {message.from.split("<")[0].trim() || message.from}
       </span>
 
-      <span
-        className={`text-[13px] flex-1 truncate text-radius-text-secondary ${
-          isSelected ? "font-medium" : ""
-        }`}
-      >
+      <span className="text-[13px] flex-1 truncate text-radius-text-secondary">
         {message.subject}
       </span>
 
-      <span className="text-xs text-radius-text-muted whitespace-nowrap">
+      <span className="text-[12px] text-radius-text-muted shrink-0 font-mono tabular-nums">
         {formatDate(message.internalDate)}
       </span>
     </div>
@@ -81,19 +70,19 @@ function SyncIndicator({ syncStatus }: { syncStatus: SyncStatus }) {
 
   const current = syncStatus.progress?.current ?? 0;
   const total = syncStatus.progress?.total ?? 0;
-  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+  const pct = total > 0 ? Math.min(Math.round((current / total) * 100), 100) : 0;
 
   return (
-    <div className="px-5 py-2 border-b border-radius-border-subtle bg-radius-bg-secondary">
-      <div className="flex items-center justify-between text-xs mb-1.5">
-        <span className="text-radius-text-secondary">
-          {syncStatus.phase === "initial" ? "📥 Fetching your inbox" : "🔄 Catching up"}
+    <div className="px-5 py-2.5 border-b border-radius-border-subtle bg-radius-bg-secondary">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[11px] font-medium text-radius-text-secondary uppercase tracking-[0.5px]">
+          {syncStatus.phase === "initial" ? "Syncing inbox" : "Catching up"}
         </span>
-        <span className="text-radius-text-muted tabular-nums">
-          {current.toLocaleString()} / {total.toLocaleString()}
+        <span className="text-[11px] text-radius-text-muted font-mono tabular-nums">
+          {current.toLocaleString()}/{total.toLocaleString()}
         </span>
       </div>
-      <div className="h-1 bg-radius-bg-tertiary rounded-full overflow-hidden">
+      <div className="h-[2px] bg-radius-bg-tertiary rounded-full overflow-hidden">
         <div
           className="h-full bg-radius-accent rounded-full transition-all duration-500"
           style={{ width: `${pct}%` }}
@@ -115,7 +104,7 @@ export function InboxList({
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 52,
+    estimateSize: () => 44,
     overscan: 5,
   });
 
@@ -130,36 +119,36 @@ export function InboxList({
     <div className="flex flex-col h-full bg-radius-bg-primary">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-radius-border-subtle">
-        <span className="text-sm font-semibold text-radius-text-primary">Inbox</span>
-        <span className="text-xs text-radius-text-muted tabular-nums">
-          {total.toLocaleString()} messages
+        <span className="font-display text-[13px] font-semibold text-radius-text-primary tracking-[0.3px]">
+          Inbox
+        </span>
+        <span className="text-[11px] text-radius-text-muted font-mono tabular-nums">
+          {total.toLocaleString()}
         </span>
       </div>
 
       {/* Sync indicator */}
       <SyncIndicator syncStatus={syncStatus} />
 
-      {/* Messages or empty state */}
+      {/* Messages */}
       {messages.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <div className="w-10 h-10 rounded-full bg-radius-bg-tertiary flex items-center justify-center mb-3">
+          <div className="w-10 h-10 rounded-2xl border border-radius-border-subtle flex items-center justify-center mb-4">
             <svg
-              width="20"
-              height="20"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="1.5"
               className="text-radius-text-muted"
             >
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
               <polyline points="22,6 12,13 2,6" />
             </svg>
           </div>
-          <p className="text-sm text-radius-text-secondary">
-            {syncStatus.status === "syncing"
-              ? "Your emails are on their way..."
-              : "No messages yet"}
+          <p className="text-[13px] text-radius-text-muted">
+            {syncStatus.status === "syncing" ? "Fetching your emails" : "No messages"}
           </p>
         </div>
       ) : (

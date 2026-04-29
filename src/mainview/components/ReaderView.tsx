@@ -37,10 +37,10 @@ export function ReaderView({ message, onBack }: ReaderViewProps) {
   if (!message) {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-radius-bg-primary">
-        <div className="w-12 h-12 rounded-2xl bg-radius-bg-secondary flex items-center justify-center mb-4">
+        <div className="w-10 h-10 rounded-2xl border border-radius-border-subtle flex items-center justify-center mb-4">
           <svg
-            width="24"
-            height="24"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -51,7 +51,7 @@ export function ReaderView({ message, onBack }: ReaderViewProps) {
             <polyline points="22,6 12,13 2,6" />
           </svg>
         </div>
-        <p className="text-sm text-radius-text-muted">Select an email to read</p>
+        <p className="text-[12px] text-radius-text-muted">Select an email to read</p>
       </div>
     );
   }
@@ -76,11 +76,11 @@ export function ReaderView({ message, onBack }: ReaderViewProps) {
   return (
     <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto">
       {/* Toolbar */}
-      <div className="sticky top-0 z-10 bg-radius-bg-primary/90 backdrop-blur-sm border-b border-radius-border-subtle">
-        <div className="max-w-[680px] mx-auto px-6 h-11 flex items-center">
+      <div className="sticky top-0 z-10 bg-radius-bg-primary border-b border-radius-border-subtle">
+        <div className="max-w-[680px] mx-auto px-6 h-[42px] flex items-center">
           <button
             onClick={onBack}
-            className="electrobun-webkit-app-region-no-drag inline-flex items-center gap-1.5 text-xs font-medium text-radius-text-secondary hover:text-radius-text-primary transition-colors duration-80"
+            className="electrobun-webkit-app-region-no-drag inline-flex items-center gap-1.5 text-[12px] font-medium text-radius-text-secondary hover:text-radius-text-primary transition-colors duration-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radius-accent focus-visible:ring-offset-2 focus-visible:ring-offset-radius-bg-primary rounded"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -92,31 +92,31 @@ export function ReaderView({ message, onBack }: ReaderViewProps) {
 
       {/* Content */}
       <div className="flex-1">
-        <article className="max-w-[680px] mx-auto px-6 pt-10 pb-20">
-          {/* Subject */}
-          <h1 className="text-[22px] font-semibold text-radius-text-primary leading-[1.3] mb-6">
+        <article className="max-w-[680px] mx-auto px-6 pt-10 pb-24">
+          {/* Subject — tight display heading */}
+          <h1 className="font-display text-[26px] font-semibold text-radius-text-primary leading-[1.1] -tracking-[0.5px] mb-8">
             {message.subject}
           </h1>
 
           {/* Sender meta */}
           <div className="flex items-center gap-3 mb-10 pb-8 border-b border-radius-border-subtle">
-            <div className="w-9 h-9 rounded-full bg-radius-accent/10 flex items-center justify-center text-xs font-semibold text-radius-accent">
+            <div className="w-9 h-9 rounded-2xl bg-radius-accent/8 flex items-center justify-center text-[11px] font-semibold text-radius-accent shrink-0">
               {getInitials(sender.name)}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-radius-text-primary truncate">
+              <p className="text-[14px] font-medium text-radius-text-primary truncate">
                 {sender.name}
               </p>
-              <p className="text-xs text-radius-text-muted truncate">
+              <p className="text-[12px] text-radius-text-muted truncate">
                 {sender.email}
               </p>
             </div>
-            <time className="text-xs text-radius-text-muted whitespace-nowrap tabular-nums">
+            <time className="text-[12px] text-radius-text-muted shrink-0 font-mono tabular-nums">
               {formatFullDate(message.internalDate)}
             </time>
           </div>
 
-          {/* Body */}
+          {/* Body — generous reading typography */}
           {sanitizedHtml ? (
             <div
               className="email-body font-serif text-[17px] leading-[1.75] text-radius-text-primary"
@@ -130,43 +130,31 @@ export function ReaderView({ message, onBack }: ReaderViewProps) {
         </article>
       </div>
 
-      {/* Custom email body styles */}
       <style>{`
-        .email-body p {
-          margin-bottom: 1em;
-        }
-        .email-body p:last-child {
-          margin-bottom: 0;
-        }
+        .email-body p { margin-bottom: 1em; }
+        .email-body p:last-child { margin-bottom: 0; }
         .email-body a {
           color: var(--radius-accent, #C4785A);
           text-decoration: underline;
           text-underline-offset: 2px;
         }
-        .email-body a:hover {
-          color: var(--radius-accent-hover, #B56A4D);
-        }
+        .email-body a:hover { color: var(--radius-accent-hover, #B56A4D); }
         .email-body blockquote {
-          border-left: 3px solid var(--radius-border-subtle, #E8E4DE);
+          border-left: 2px solid var(--radius-border, #D5D0C9);
           margin: 1.25em 0;
           padding: 0.25em 0 0.25em 1em;
           color: var(--radius-text-secondary, #5C5C5C);
           font-style: italic;
         }
-        .email-body ul, .email-body ol {
-          margin: 1em 0;
-          padding-left: 1.5em;
-        }
-        .email-body li {
-          margin-bottom: 0.35em;
-        }
+        .email-body ul, .email-body ol { margin: 1em 0; padding-left: 1.5em; }
+        .email-body li { margin-bottom: 0.35em; }
         .email-body h1, .email-body h2, .email-body h3,
         .email-body h4, .email-body h5, .email-body h6 {
           font-family: 'Instrument Sans', system-ui, sans-serif;
           font-weight: 600;
           color: var(--radius-text-primary, #1A1A1A);
           margin: 1.5em 0 0.75em;
-          line-height: 1.3;
+          line-height: 1.2;
         }
         .email-body h1 { font-size: 1.4em; }
         .email-body h2 { font-size: 1.25em; }
@@ -174,28 +162,25 @@ export function ReaderView({ message, onBack }: ReaderViewProps) {
         .email-body img {
           max-width: 100%;
           height: auto;
-          border-radius: 6px;
+          border-radius: 8px;
           margin: 1em 0;
         }
         .email-body pre {
-          background: var(--radius-bg-secondary, #F7F5F0);
+          background: var(--radius-bg-secondary, #F7F6F3);
           padding: 1em;
-          border-radius: 6px;
+          border-radius: 8px;
           overflow-x: auto;
           font-size: 0.85em;
           line-height: 1.5;
           margin: 1em 0;
         }
         .email-body code {
-          background: var(--radius-bg-secondary, #F7F5F0);
+          background: var(--radius-bg-secondary, #F7F6F3);
           padding: 0.15em 0.4em;
-          border-radius: 3px;
+          border-radius: 4px;
           font-size: 0.9em;
         }
-        .email-body pre code {
-          background: none;
-          padding: 0;
-        }
+        .email-body pre code { background: none; padding: 0; }
         .email-body table {
           width: 100%;
           border-collapse: collapse;
@@ -204,17 +189,17 @@ export function ReaderView({ message, onBack }: ReaderViewProps) {
         }
         .email-body th, .email-body td {
           padding: 0.5em 0.75em;
-          border: 1px solid var(--radius-border-subtle, #E8E4DE);
+          border: 1px solid var(--radius-border-subtle, #E5E0D9);
           text-align: left;
         }
         .email-body th {
-          background: var(--radius-bg-secondary, #F7F5F0);
+          background: var(--radius-bg-secondary, #F7F6F3);
           font-weight: 600;
           font-family: 'Instrument Sans', system-ui, sans-serif;
         }
         .email-body hr {
           border: none;
-          border-top: 1px solid var(--radius-border-subtle, #E8E4DE);
+          border-top: 1px solid var(--radius-border-subtle, #E5E0D9);
           margin: 1.5em 0;
         }
       `}</style>
