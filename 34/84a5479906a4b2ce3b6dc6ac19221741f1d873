@@ -1,0 +1,45 @@
+src/components/ui/input-group.tsx
+  cb087ecd3eac8db4 1-156
+vite.config.ts
+  cb087ecd3eac8db4 3,16-19
+components.json
+  cb087ecd3eac8db4 1-25
+src/lib/utils.ts
+  cb087ecd3eac8db4 1-6
+src/components/ui/textarea.tsx
+  cb087ecd3eac8db4 1-18
+src/components/ui/dialog.tsx
+  cb087ecd3eac8db4 1-166
+tsconfig.json
+  cb087ecd3eac8db4 17-21
+src/mainview/index.css
+  cb087ecd3eac8db4 2-5,28-59,178-180,182-258
+src/components/ui/input.tsx
+  cb087ecd3eac8db4 1-19
+package.json
+  cb087ecd3eac8db4 13,16-18,21-22,24-27
+src/components/ui/button.tsx
+  cb087ecd3eac8db4 1-67
+src/components/ui/command.tsx
+  cb087ecd3eac8db4 1-193
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "3484a5479906a4b2ce3b6dc6ac19221741f1d873",
+  "prompts": {
+    "cb087ecd3eac8db4": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019dda3f-b0de-7237-a770-18c074813c83",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 794,
+      "total_deletions": 138,
+      "accepted_lines": 816,
+      "overriden_lines": 0
+    }
+  }
+}
