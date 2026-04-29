@@ -57,7 +57,7 @@ function InboxWidget({
       "
       title="Open inbox"
     >
-      <ListIcon size={20} />
+      <ListIcon size={16} />
     </button>
   );
 }

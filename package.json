@@ -10,6 +10,7 @@
     "build:canary": "vite build && electrobun build --env=canary"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "@tanstack/react-virtual": "^3.13.24",
     "dompurify": "^3.4.1",
     "electrobun": "1.16.0",
