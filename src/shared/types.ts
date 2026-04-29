@@ -7,6 +7,7 @@ export interface Message {
   historyId: string;
   internalDate: number;
   from: string;
+  to: string;
   subject: string;
   snippet: string;
   bodyText: string | null;

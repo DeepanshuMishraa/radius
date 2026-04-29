@@ -8,9 +8,10 @@ interface InboxListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   syncStatus: SyncStatus;
+  onToggleSidebar: () => void;
 }
 
-function formatDate(timestamp: number): string {
+function formatDateShort(timestamp: number): string {
   const date = new Date(timestamp);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -36,31 +37,35 @@ function EmailRow({
   isSelected: boolean;
   onClick: () => void;
 }) {
+  const senderName = message.from.split("<")[0].trim() || message.from;
+
   return (
     <div
       onClick={onClick}
       className={`
-        flex items-center gap-4 px-5 py-3 cursor-pointer select-none
-        transition-colors duration-80
-        ${isSelected
-          ? "border-l-[3px] border-l-radius-accent bg-radius-bg-secondary pl-[17px]"
-          : "border-l-[3px] border-l-transparent hover:bg-radius-bg-secondary pl-5"
-        }
+        px-5 py-3 cursor-pointer select-none transition-colors duration-80
+        ${isSelected ? "border-l-[2px] border-l-radius-accent bg-radius-bg-secondary" : "border-l-[2px] border-l-transparent hover:bg-radius-bg-secondary"}
       `}
     >
-      <span className={`text-[13px] w-[140px] shrink-0 truncate font-medium ${
-        isSelected ? "text-radius-text-primary" : "text-radius-text-primary"
-      }`}>
-        {message.from.split("<")[0].trim() || message.from}
-      </span>
+      {/* Top line: sender + date pill */}
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[13px] font-semibold text-radius-text-primary truncate pr-3">
+          {senderName}
+        </span>
+        <span className="shrink-0 text-[11px] text-radius-text-muted font-mono tabular-nums border border-radius-border-subtle rounded-full px-2 py-0.5">
+          {formatDateShort(message.internalDate)}
+        </span>
+      </div>
 
-      <span className="text-[13px] flex-1 truncate text-radius-text-secondary">
+      {/* Subject */}
+      <p className="text-[13px] text-radius-text-primary truncate mb-0.5">
         {message.subject}
-      </span>
+      </p>
 
-      <span className="text-[12px] text-radius-text-muted shrink-0 font-mono tabular-nums">
-        {formatDate(message.internalDate)}
-      </span>
+      {/* Snippet */}
+      <p className="text-[12px] text-radius-text-muted truncate leading-[1.4]">
+        {message.snippet}
+      </p>
     </div>
   );
 }
@@ -98,13 +103,14 @@ export function InboxList({
   selectedId,
   onSelect,
   syncStatus,
+  onToggleSidebar,
 }: InboxListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 44,
+    estimateSize: () => 84,
     overscan: 5,
   });
 
@@ -119,12 +125,24 @@ export function InboxList({
     <div className="flex flex-col h-full bg-radius-bg-primary">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-radius-border-subtle">
-        <span className="font-display text-[13px] font-semibold text-radius-text-primary tracking-[0.3px]">
+        <span className="text-[11px] font-semibold text-radius-text-muted uppercase tracking-[1px]">
           Inbox
         </span>
-        <span className="text-[11px] text-radius-text-muted font-mono tabular-nums">
-          {total.toLocaleString()}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-radius-text-muted font-mono tabular-nums">
+            {total.toLocaleString()}
+          </span>
+          <button
+            onClick={onToggleSidebar}
+            className="electrobun-webkit-app-region-no-drag p-1 rounded hover:bg-radius-bg-secondary transition-colors"
+            title="Collapse sidebar"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-radius-text-muted">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Sync indicator */}

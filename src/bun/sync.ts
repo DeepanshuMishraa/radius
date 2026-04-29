@@ -418,6 +418,7 @@ async function flushInsertBuffer(messages: GmailMessage[]): Promise<void> {
       historyId: msg.historyId,
       internalDate: parseInt(msg.internalDate, 10),
       from: headers["from"] ?? "",
+      to: headers["to"] ?? "",
       subject: headers["subject"] ?? "",
       snippet: msg.snippet,
       bodyText: bodies.text,

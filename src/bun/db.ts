@@ -30,6 +30,7 @@ export async function createSchema(): Promise<void> {
       history_id TEXT NOT NULL,
       internal_date INTEGER NOT NULL,
       from_addr TEXT,
+      to_addr TEXT,
       subject TEXT,
       snippet TEXT,
       body_text TEXT,
@@ -59,6 +60,14 @@ export async function createSchema(): Promise<void> {
   const syncStateColumns = db.query(
     `SELECT name FROM pragma_table_info('sync_state')`
   ).all() as Array<{ name: string }>;
+
+  const messageColumns = db.query(
+    `SELECT name FROM pragma_table_info('messages')`
+  ).all() as Array<{ name: string }>;
+  const existingMessageColumns = new Set(messageColumns.map((c) => c.name));
+  if (!existingMessageColumns.has("to_addr")) {
+    db.exec("ALTER TABLE messages ADD COLUMN to_addr TEXT");
+  }
 
   const existingColumns = new Set(syncStateColumns.map((column) => column.name));
 
@@ -91,6 +100,7 @@ export async function insertMessage(message: {
   historyId: string;
   internalDate: number;
   from: string;
+  to: string;
   subject: string;
   snippet: string;
   bodyText: string | null;
@@ -99,14 +109,15 @@ export async function insertMessage(message: {
   const db = await getDb();
   db.run(
     `INSERT OR REPLACE INTO messages
-     (id, thread_id, history_id, internal_date, from_addr, subject, snippet, body_text, body_html)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       message.id,
       message.threadId,
       message.historyId,
       message.internalDate,
       message.from,
+      message.to,
       message.subject,
       message.snippet,
       message.bodyText,
@@ -128,7 +139,7 @@ export async function getInboxMessages(
   const rows = db
     .query(
       `SELECT id, thread_id as threadId, history_id as historyId,
-              internal_date as internalDate, from_addr as \`from\`,
+              internal_date as internalDate, from_addr as \`from\`, to_addr as \`to\`,
               subject, snippet, body_text as bodyText, body_html as bodyHtml
        FROM messages
        ORDER BY internal_date DESC
@@ -146,7 +157,7 @@ export async function getMessageById(
   const row = db
     .query(
       `SELECT id, thread_id as threadId, history_id as historyId,
-              internal_date as internalDate, from_addr as \`from\`,
+              internal_date as internalDate, from_addr as \`from\`, to_addr as \`to\`,
               subject, snippet, body_text as bodyText, body_html as bodyHtml
        FROM messages WHERE id = ?`
     )

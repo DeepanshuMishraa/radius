@@ -6,6 +6,7 @@ import { useAuth, useSyncStatus, useInbox } from "./hooks/useInbox";
 
 function App() {
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const { isAuthenticated, startOAuth } = useAuth();
   const syncStatus = useSyncStatus();
@@ -21,6 +22,10 @@ function App() {
 
   const handleBackToInbox = useCallback(() => {
     setSelectedMessageId(null);
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen((prev) => !prev);
   }, []);
 
   if (isAuthenticated === null) {
@@ -50,7 +55,12 @@ function App() {
       <div className="relative h-screen bg-radius-bg-primary">
         <DragRegion />
         <div className="h-full pt-9">
-          <ReaderView message={selectedMessage} onBack={handleBackToInbox} />
+          <ReaderView
+            message={selectedMessage}
+            onBack={handleBackToInbox}
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={toggleSidebar}
+          />
         </div>
       </div>
     );
@@ -59,17 +69,25 @@ function App() {
   return (
     <div className="relative flex h-screen bg-radius-bg-primary">
       <DragRegion />
-      <div className="w-[380px] shrink-0 border-r border-radius-border-subtle pt-9">
-        <InboxList
-          messages={messages}
-          total={total}
-          selectedId={selectedMessageId}
-          onSelect={handleSelectMessage}
-          syncStatus={syncStatus}
-        />
-      </div>
+      {sidebarOpen && (
+        <div className="w-[380px] shrink-0 border-r border-radius-border-subtle pt-9">
+          <InboxList
+            messages={messages}
+            total={total}
+            selectedId={selectedMessageId}
+            onSelect={handleSelectMessage}
+            syncStatus={syncStatus}
+            onToggleSidebar={toggleSidebar}
+          />
+        </div>
+      )}
       <div className="flex-1 min-w-0 pt-9">
-        <ReaderView message={selectedMessage} onBack={handleBackToInbox} />
+        <ReaderView
+          message={selectedMessage}
+          onBack={handleBackToInbox}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={toggleSidebar}
+        />
       </div>
     </div>
   );

@@ -4,6 +4,8 @@ import type { Message } from "../hooks/useInbox";
 interface ReaderViewProps {
   message: Message | null;
   onBack: () => void;
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
 }
 
 function formatFullDate(timestamp: number): string {
@@ -24,19 +26,23 @@ function parseSender(from: string): { name: string; email: string } {
   return { name: from, email: from };
 }
 
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-export function ReaderView({ message, onBack }: ReaderViewProps) {
+export function ReaderView({ message, onBack, sidebarOpen, onToggleSidebar }: ReaderViewProps) {
   if (!message) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-radius-bg-primary">
+      <div className="flex flex-col items-center justify-center h-full bg-radius-bg-primary relative">
+        {!sidebarOpen && (
+          <button
+            onClick={onToggleSidebar}
+            className="electrobun-webkit-app-region-no-drag absolute top-3 left-5 z-20 p-2 rounded-lg hover:bg-radius-bg-secondary transition-colors"
+            title="Open sidebar"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-radius-text-secondary">
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+        )}
         <div className="w-10 h-10 rounded-2xl border border-radius-border-subtle flex items-center justify-center mb-4">
           <svg
             width="18"
@@ -72,12 +78,26 @@ export function ReaderView({ message, onBack }: ReaderViewProps) {
     : null;
 
   const sender = parseSender(message.from);
+  const recipient = parseSender(message.to);
 
   return (
-    <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto">
+    <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative">
       {/* Toolbar */}
       <div className="sticky top-0 z-10 bg-radius-bg-primary border-b border-radius-border-subtle">
-        <div className="max-w-[680px] mx-auto px-6 h-[42px] flex items-center">
+        <div className="max-w-[720px] mx-auto px-6 h-[42px] flex items-center gap-3">
+          {!sidebarOpen && (
+            <button
+              onClick={onToggleSidebar}
+              className="electrobun-webkit-app-region-no-drag p-1.5 rounded hover:bg-radius-bg-secondary transition-colors"
+              title="Open sidebar"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-radius-text-secondary">
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+          )}
           <button
             onClick={onBack}
             className="electrobun-webkit-app-region-no-drag inline-flex items-center gap-1.5 text-[12px] font-medium text-radius-text-secondary hover:text-radius-text-primary transition-colors duration-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radius-accent focus-visible:ring-offset-2 focus-visible:ring-offset-radius-bg-primary rounded"
@@ -92,31 +112,31 @@ export function ReaderView({ message, onBack }: ReaderViewProps) {
 
       {/* Content */}
       <div className="flex-1">
-        <article className="max-w-[680px] mx-auto px-6 pt-10 pb-24">
-          {/* Subject — tight display heading */}
-          <h1 className="font-display text-[26px] font-semibold text-radius-text-primary leading-[1.1] -tracking-[0.5px] mb-8">
+        <article className="max-w-[720px] mx-auto px-6 pt-10 pb-24">
+          {/* Subject — large display heading */}
+          <h1 className="font-display text-[32px] font-semibold text-radius-text-primary leading-[1.05] -tracking-[0.6px] mb-10">
             {message.subject}
           </h1>
 
-          {/* Sender meta */}
-          <div className="flex items-center gap-3 mb-10 pb-8 border-b border-radius-border-subtle">
-            <div className="w-9 h-9 rounded-2xl bg-radius-accent/8 flex items-center justify-center text-[11px] font-semibold text-radius-accent shrink-0">
-              {getInitials(sender.name)}
+          {/* Metadata: From / To */}
+          <div className="mb-10 pb-8 border-b border-radius-border-subtle space-y-2">
+            <div className="flex items-baseline gap-4">
+              <span className="text-[13px] text-radius-text-muted w-10 shrink-0">From</span>
+              <span className="text-[14px] text-radius-text-primary">{sender.name}</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-medium text-radius-text-primary truncate">
-                {sender.name}
-              </p>
-              <p className="text-[12px] text-radius-text-muted truncate">
-                {sender.email}
-              </p>
+            <div className="flex items-baseline gap-4">
+              <span className="text-[13px] text-radius-text-muted w-10 shrink-0">To</span>
+              <span className="text-[14px] text-radius-text-primary">{recipient.name}</span>
             </div>
-            <time className="text-[12px] text-radius-text-muted shrink-0 font-mono tabular-nums">
-              {formatFullDate(message.internalDate)}
-            </time>
+            <div className="flex items-baseline gap-4 pt-1">
+              <span className="text-[13px] text-radius-text-muted w-10 shrink-0"></span>
+              <time className="text-[12px] text-radius-text-muted font-mono tabular-nums">
+                {formatFullDate(message.internalDate)}
+              </time>
+            </div>
           </div>
 
-          {/* Body — generous reading typography */}
+          {/* Body */}
           {sanitizedHtml ? (
             <div
               className="email-body font-serif text-[17px] leading-[1.75] text-radius-text-primary"
@@ -143,7 +163,7 @@ export function ReaderView({ message, onBack }: ReaderViewProps) {
           border-left: 2px solid var(--radius-border, #D5D0C9);
           margin: 1.25em 0;
           padding: 0.25em 0 0.25em 1em;
-          color: var(--radius-text-secondary, #5C5C5C);
+          color: var(--radius-text-secondary, #5C5A57);
           font-style: italic;
         }
         .email-body ul, .email-body ol { margin: 1em 0; padding-left: 1.5em; }
@@ -152,7 +172,7 @@ export function ReaderView({ message, onBack }: ReaderViewProps) {
         .email-body h4, .email-body h5, .email-body h6 {
           font-family: 'Instrument Sans', system-ui, sans-serif;
           font-weight: 600;
-          color: var(--radius-text-primary, #1A1A1A);
+          color: var(--radius-text-primary, #292827);
           margin: 1.5em 0 0.75em;
           line-height: 1.2;
         }
