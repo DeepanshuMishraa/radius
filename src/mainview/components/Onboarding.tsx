@@ -8,7 +8,6 @@ export function Onboarding({ onConnect, error, onRetry }: OnboardingProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-radius-bg-primary px-6">
       <div className="flex flex-col items-center max-w-md text-center">
-        {/* Logo — minimal, just the mark */}
         <div className="w-10 h-10 rounded-2xl bg-radius-accent flex items-center justify-center mb-10">
           <svg
             width="20"
@@ -26,29 +25,29 @@ export function Onboarding({ onConnect, error, onRetry }: OnboardingProps) {
           </svg>
         </div>
 
-        <h1 className="font-display text-[28px] font-semibold text-radius-text-primary mb-4 leading-[1.1] -tracking-[0.6px]">
+        <h1 className="font-[family-name:var(--font-family-sans)] text-[28px] font-semibold text-radius-text-primary mb-4 leading-[1.1] -tracking-[0.6px]">
           Welcome to Radius
         </h1>
 
-        <p className="text-[15px] text-radius-text-secondary mb-10 leading-[1.5] max-w-[320px]">
+        <p className="text-[15px] text-radius-text-secondary mb-10 leading-[1.5] max-w-[320px] font-[family-name:var(--font-family-sans)]">
           A calm, distraction-free space for your email. Connect your Gmail account to get started.
         </p>
 
         {error && (
           <div className="mb-8 p-4 rounded-lg border border-radius-error/30 bg-radius-error/5 text-left w-full">
-            <p className="text-[13px] font-medium text-radius-error mb-1">Couldn&apos;t connect</p>
-            <p className="text-[12px] text-radius-text-secondary leading-[1.4]">{error}</p>
+            <p className="text-[13px] font-medium text-radius-error mb-1 font-[family-name:var(--font-family-sans)]">Couldn&apos;t connect</p>
+            <p className="text-[12px] text-radius-text-secondary leading-[1.4] font-[family-name:var(--font-family-sans)]">{error}</p>
           </div>
         )}
 
         <button
           onClick={onRetry ?? onConnect}
-          className="px-6 py-3 bg-radius-accent hover:bg-radius-accent-hover text-radius-text-inverse text-[15px] font-medium rounded-lg transition-colors duration-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radius-accent focus-visible:ring-offset-2 focus-visible:ring-offset-radius-bg-primary"
+          className="px-6 py-3 bg-radius-accent hover:bg-radius-accent-hover text-radius-text-inverse text-[15px] font-medium rounded-lg transition-colors duration-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radius-accent focus-visible:ring-offset-2 focus-visible:ring-offset-radius-bg-primary font-[family-name:var(--font-family-sans)]"
         >
           {error ? "Try Again" : "Connect Gmail Account"}
         </button>
 
-        <p className="mt-5 text-[11px] text-radius-text-muted leading-[1.4]">
+        <p className="mt-5 text-[11px] text-radius-text-muted leading-[1.4] font-[family-name:var(--font-family-sans)]">
           Read-only access. We never send, delete, or modify your emails.
         </p>
       </div>

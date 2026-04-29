@@ -28,11 +28,11 @@ export function SyncProgress({ current, total }: SyncProgressProps) {
           </svg>
         </div>
 
-        <h1 className="font-display text-[22px] font-semibold text-radius-text-primary mb-3 leading-[1.1] -tracking-[0.4px]">
+        <h1 className="font-[family-name:var(--font-family-sans)] text-[22px] font-semibold text-radius-text-primary mb-3 leading-[1.1] -tracking-[0.4px]">
           Syncing your inbox
         </h1>
 
-        <p className="text-[15px] text-radius-text-secondary mb-8 leading-[1.5] max-w-[320px]">
+        <p className="text-[15px] text-radius-text-secondary mb-8 leading-[1.5] max-w-[320px] font-[family-name:var(--font-family-sans)]">
           Fetching your emails from Gmail and storing them locally for instant access. This only happens once.
         </p>
 
@@ -46,7 +46,7 @@ export function SyncProgress({ current, total }: SyncProgressProps) {
                 />
               </div>
             </div>
-            <p className="text-[12px] text-radius-text-muted font-mono tabular-nums">
+            <p className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
               {current.toLocaleString()} / {total.toLocaleString()}
             </p>
           </>

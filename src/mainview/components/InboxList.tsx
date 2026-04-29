@@ -8,7 +8,6 @@ interface InboxListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   syncStatus: SyncStatus;
-  onToggleSidebar: () => void;
 }
 
 function formatDateShort(timestamp: number): string {
@@ -43,27 +42,27 @@ function EmailRow({
     <div
       onClick={onClick}
       className={`
-        px-5 py-3 cursor-pointer select-none transition-colors duration-80
+        px-5 py-3.5 cursor-pointer select-none transition-colors duration-80
         ${isSelected ? "border-l-[2px] border-l-radius-accent bg-radius-bg-secondary" : "border-l-[2px] border-l-transparent hover:bg-radius-bg-secondary"}
       `}
     >
       {/* Top line: sender + date pill */}
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[13px] font-semibold text-radius-text-primary truncate pr-3">
+        <span className="text-[13px] font-semibold text-radius-text-primary truncate pr-3 font-[family-name:var(--font-family-sans)]">
           {senderName}
         </span>
-        <span className="shrink-0 text-[11px] text-radius-text-muted font-mono tabular-nums border border-radius-border-subtle rounded-full px-2 py-0.5">
+        <span className="shrink-0 text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)] border border-radius-border-subtle rounded-full px-2 py-0.5">
           {formatDateShort(message.internalDate)}
         </span>
       </div>
 
       {/* Subject */}
-      <p className="text-[13px] text-radius-text-primary truncate mb-0.5">
+      <p className="text-[13px] text-radius-text-primary truncate mb-0.5 font-[family-name:var(--font-family-sans)]">
         {message.subject}
       </p>
 
       {/* Snippet */}
-      <p className="text-[12px] text-radius-text-muted truncate leading-[1.4]">
+      <p className="text-[12px] text-radius-text-muted truncate leading-[1.4] font-[family-name:var(--font-family-sans)]">
         {message.snippet}
       </p>
     </div>
@@ -80,10 +79,10 @@ function SyncIndicator({ syncStatus }: { syncStatus: SyncStatus }) {
   return (
     <div className="px-5 py-2.5 border-b border-radius-border-subtle bg-radius-bg-secondary">
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[11px] font-medium text-radius-text-secondary uppercase tracking-[0.5px]">
+        <span className="text-[11px] font-medium text-radius-text-secondary uppercase tracking-[0.5px] font-[family-name:var(--font-family-sans)]">
           {syncStatus.phase === "initial" ? "Syncing inbox" : "Catching up"}
         </span>
-        <span className="text-[11px] text-radius-text-muted font-mono tabular-nums">
+        <span className="text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
           {current.toLocaleString()}/{total.toLocaleString()}
         </span>
       </div>
@@ -103,7 +102,6 @@ export function InboxList({
   selectedId,
   onSelect,
   syncStatus,
-  onToggleSidebar,
 }: InboxListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -122,33 +120,19 @@ export function InboxList({
   );
 
   return (
-    <div className="flex flex-col h-full bg-radius-bg-primary">
+    <div className="flex flex-col h-full bg-radius-bg-primary pt-9">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-radius-border-subtle">
-        <span className="text-[11px] font-semibold text-radius-text-muted uppercase tracking-[1px]">
+        <span className="text-[11px] font-semibold text-radius-text-muted uppercase tracking-[1px] font-[family-name:var(--font-family-sans)]">
           Inbox
         </span>
-        <div className="flex items-center gap-3">
-          <span className="text-[11px] text-radius-text-muted font-mono tabular-nums">
-            {total.toLocaleString()}
-          </span>
-          <button
-            onClick={onToggleSidebar}
-            className="electrobun-webkit-app-region-no-drag p-1 rounded hover:bg-radius-bg-secondary transition-colors"
-            title="Collapse sidebar"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-radius-text-muted">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <line x1="9" y1="3" x2="9" y2="21" />
-            </svg>
-          </button>
-        </div>
+        <span className="text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+          {total.toLocaleString()}
+        </span>
       </div>
 
-      {/* Sync indicator */}
       <SyncIndicator syncStatus={syncStatus} />
 
-      {/* Messages */}
       {messages.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
           <div className="w-10 h-10 rounded-2xl border border-radius-border-subtle flex items-center justify-center mb-4">
@@ -165,7 +149,7 @@ export function InboxList({
               <polyline points="22,6 12,13 2,6" />
             </svg>
           </div>
-          <p className="text-[13px] text-radius-text-muted">
+          <p className="text-[13px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
             {syncStatus.status === "syncing" ? "Fetching your emails" : "No messages"}
           </p>
         </div>

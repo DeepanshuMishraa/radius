@@ -1,11 +1,11 @@
 import DOMPurify from "dompurify";
 import type { Message } from "../hooks/useInbox";
+import { ListIcon } from "@phosphor-icons/react";
 
 interface ReaderViewProps {
   message: Message | null;
-  onBack: () => void;
   sidebarOpen: boolean;
-  onToggleSidebar: () => void;
+  onOpenSidebar: () => void;
 }
 
 function formatFullDate(timestamp: number): string {
@@ -18,32 +18,59 @@ function formatFullDate(timestamp: number): string {
   });
 }
 
-function parseSender(from: string | null | undefined): { name: string; email: string } {
-  if (!from) return { name: "", email: "" };
-  const match = from.match(/^"?([^"<]+)"?\s*(?:<([^>]+)>)?$/);
+function parseAddress(addr: string | null | undefined): {
+  name: string;
+  email: string;
+} {
+  if (!addr) return { name: "", email: "" };
+  const match = addr.match(/^"?([^"<]+)"?\s*(?:<([^>]+)>)?$/);
   if (match) {
-    return { name: match[1].trim(), email: match[2]?.trim() || match[1].trim() };
+    return {
+      name: match[1].trim(),
+      email: match[2]?.trim() || match[1].trim(),
+    };
   }
-  return { name: from, email: from };
+  return { name: addr, email: addr };
 }
 
-export function ReaderView({ message, onBack, sidebarOpen, onToggleSidebar }: ReaderViewProps) {
+function InboxWidget({
+  visible,
+  onClick,
+}: {
+  visible: boolean;
+  onClick: () => void;
+}) {
+  if (!visible) return null;
+
+  return (
+    <button
+      onClick={onClick}
+      className="
+        electrobun-webkit-app-region-no-drag
+        fixed top-[42px] left-4 z-30
+        p-2
+        rounded-lg
+        text-radius-text-muted
+        hover:text-radius-text-secondary
+        transition-colors duration-150 ease-out
+        active:scale-[0.98]
+      "
+      title="Open inbox"
+    >
+      <ListIcon size={20} />
+    </button>
+  );
+}
+
+export function ReaderView({
+  message,
+  sidebarOpen,
+  onOpenSidebar,
+}: ReaderViewProps) {
   if (!message) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-radius-bg-primary relative">
-        {!sidebarOpen && (
-          <button
-            onClick={onToggleSidebar}
-            className="electrobun-webkit-app-region-no-drag absolute top-3 left-5 z-20 p-2 rounded-lg hover:bg-radius-bg-secondary transition-colors"
-            title="Open sidebar"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-radius-text-secondary">
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </button>
-        )}
+      <div className="flex flex-col items-center justify-center h-full bg-radius-bg-primary relative pt-9">
+        <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
         <div className="w-10 h-10 rounded-2xl border border-radius-border-subtle flex items-center justify-center mb-4">
           <svg
             width="18"
@@ -58,7 +85,9 @@ export function ReaderView({ message, onBack, sidebarOpen, onToggleSidebar }: Re
             <polyline points="22,6 12,13 2,6" />
           </svg>
         </div>
-        <p className="text-[12px] text-radius-text-muted">Select an email to read</p>
+        <p className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-serif)]">
+          Select an email to read
+        </p>
       </div>
     );
   }
@@ -66,85 +95,109 @@ export function ReaderView({ message, onBack, sidebarOpen, onToggleSidebar }: Re
   const sanitizedHtml = message.bodyHtml
     ? DOMPurify.sanitize(message.bodyHtml, {
         ALLOWED_TAGS: [
-          "p", "br", "strong", "b", "em", "i", "u", "a", "ul", "ol", "li",
-          "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "code",
-          "img", "table", "thead", "tbody", "tr", "td", "th", "div", "span",
-          "hr", "sup", "sub", "del", "ins", "mark",
+          "p",
+          "br",
+          "strong",
+          "b",
+          "em",
+          "i",
+          "u",
+          "a",
+          "ul",
+          "ol",
+          "li",
+          "h1",
+          "h2",
+          "h3",
+          "h4",
+          "h5",
+          "h6",
+          "blockquote",
+          "pre",
+          "code",
+          "img",
+          "table",
+          "thead",
+          "tbody",
+          "tr",
+          "td",
+          "th",
+          "div",
+          "span",
+          "hr",
+          "sup",
+          "sub",
+          "del",
+          "ins",
+          "mark",
         ],
         ALLOWED_ATTR: [
-          "href", "src", "alt", "title", "class", "style", "width", "height",
-          "colspan", "rowspan", "target", "rel",
+          "href",
+          "src",
+          "alt",
+          "title",
+          "class",
+          "style",
+          "width",
+          "height",
+          "colspan",
+          "rowspan",
+          "target",
+          "rel",
         ],
       })
     : null;
 
-  const sender = parseSender(message.from);
-  const recipient = parseSender(message.to);
+  const sender = parseAddress(message.from);
+  const recipient = parseAddress(message.to);
 
   return (
-    <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative">
-      {/* Toolbar */}
-      <div className="sticky top-0 z-10 bg-radius-bg-primary border-b border-radius-border-subtle">
-        <div className="max-w-[720px] mx-auto px-6 h-[42px] flex items-center gap-3">
-          {!sidebarOpen && (
-            <button
-              onClick={onToggleSidebar}
-              className="electrobun-webkit-app-region-no-drag p-1.5 rounded hover:bg-radius-bg-secondary transition-colors"
-              title="Open sidebar"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-radius-text-secondary">
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            </button>
-          )}
-          <button
-            onClick={onBack}
-            className="electrobun-webkit-app-region-no-drag inline-flex items-center gap-1.5 text-[12px] font-medium text-radius-text-secondary hover:text-radius-text-primary transition-colors duration-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radius-accent focus-visible:ring-offset-2 focus-visible:ring-offset-radius-bg-primary rounded"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-            Inbox
-          </button>
-        </div>
-      </div>
+    <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-9">
+      {/* Minimal inbox widget — appears when sidebar is hidden */}
+      <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
 
       {/* Content */}
-      <div className="flex-1">
-        <article className="max-w-[720px] mx-auto px-6 pt-10 pb-24">
-          {/* Subject — large display heading */}
-          <h1 className="font-display text-[32px] font-semibold text-radius-text-primary leading-[1.05] -tracking-[0.6px] mb-10">
+      <div className="flex-1 email-enter" key={message.id}>
+        <article className="max-w-[720px] mx-auto px-6 pt-8 pb-24">
+          {/* Subject — large display heading in Lora */}
+          <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-[-0.02em] mb-10">
             {message.subject}
           </h1>
 
-          {/* Metadata: From / To */}
+          {/* Metadata: From / To — all Lora */}
           <div className="mb-10 pb-8 border-b border-radius-border-subtle space-y-2">
-            <div className="flex items-baseline gap-4">
-              <span className="text-[13px] text-radius-text-muted w-10 shrink-0">From</span>
-              <span className="text-[14px] text-radius-text-primary">{sender.name}</span>
+            <div className="flex items-baseline gap-6">
+              <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
+                From
+              </span>
+              <span className="text-[14px] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
+                {sender.name}
+              </span>
             </div>
-            <div className="flex items-baseline gap-4">
-              <span className="text-[13px] text-radius-text-muted w-10 shrink-0">To</span>
-              <span className="text-[14px] text-radius-text-primary">{recipient.name}</span>
+            <div className="flex items-baseline gap-6">
+              <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
+                To
+              </span>
+              <span className="text-[14px] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
+                {recipient.name}
+              </span>
             </div>
-            <div className="flex items-baseline gap-4 pt-1">
-              <span className="text-[13px] text-radius-text-muted w-10 shrink-0"></span>
-              <time className="text-[12px] text-radius-text-muted font-mono tabular-nums">
+            <div className="flex items-baseline gap-6 pt-1">
+              <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]"></span>
+              <time className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-serif)]">
                 {formatFullDate(message.internalDate)}
               </time>
             </div>
           </div>
 
-          {/* Body */}
+          {/* Body — Lora serif */}
           {sanitizedHtml ? (
             <div
-              className="email-body font-serif text-[17px] leading-[1.75] text-radius-text-primary"
+              className="email-body font-[family-name:var(--font-family-serif)] text-[17px] leading-[1.75] text-radius-text-primary"
               dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
             />
           ) : (
-            <div className="font-serif text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
+            <div className="font-[family-name:var(--font-family-serif)] text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
               {message.bodyText || message.snippet}
             </div>
           )}
@@ -171,7 +224,7 @@ export function ReaderView({ message, onBack, sidebarOpen, onToggleSidebar }: Re
         .email-body li { margin-bottom: 0.35em; }
         .email-body h1, .email-body h2, .email-body h3,
         .email-body h4, .email-body h5, .email-body h6 {
-          font-family: 'Instrument Sans', system-ui, sans-serif;
+          font-family: var(--font-family-sans), system-ui, sans-serif;
           font-weight: 600;
           color: var(--radius-text-primary, #292827);
           margin: 1.5em 0 0.75em;
@@ -216,7 +269,7 @@ export function ReaderView({ message, onBack, sidebarOpen, onToggleSidebar }: Re
         .email-body th {
           background: var(--radius-bg-secondary, #F7F6F3);
           font-weight: 600;
-          font-family: 'Instrument Sans', system-ui, sans-serif;
+          font-family: var(--font-family-sans), system-ui, sans-serif;
         }
         .email-body hr {
           border: none;

@@ -18,14 +18,11 @@ function App() {
 
   const handleSelectMessage = useCallback((id: string) => {
     setSelectedMessageId(id);
+    setSidebarOpen(false);
   }, []);
 
-  const handleBackToInbox = useCallback(() => {
-    setSelectedMessageId(null);
-  }, []);
-
-  const toggleSidebar = useCallback(() => {
-    setSidebarOpen((prev) => !prev);
+  const handleOpenSidebar = useCallback(() => {
+    setSidebarOpen(true);
   }, []);
 
   if (isAuthenticated === null) {
@@ -50,45 +47,32 @@ function App() {
 
   const selectedMessage = messages.find((m) => m.id === selectedMessageId) ?? null;
 
-  if (selectedMessageId && selectedMessage) {
-    return (
-      <div className="relative h-screen bg-radius-bg-primary">
-        <DragRegion />
-        <div className="h-full pt-9">
-          <ReaderView
-            message={selectedMessage}
-            onBack={handleBackToInbox}
-            sidebarOpen={sidebarOpen}
-            onToggleSidebar={toggleSidebar}
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="relative flex h-screen bg-radius-bg-primary">
+    <div className="relative flex h-screen bg-radius-bg-primary overflow-hidden">
       <DragRegion />
-      {sidebarOpen && (
-        <div className="w-[380px] shrink-0 border-r border-radius-border-subtle pt-9">
-          <InboxList
-            messages={messages}
-            total={total}
-            selectedId={selectedMessageId}
-            onSelect={handleSelectMessage}
-            syncStatus={syncStatus}
-            onToggleSidebar={toggleSidebar}
-          />
-        </div>
-      )}
-      <div className="flex-1 min-w-0 pt-9">
+
+      {/* Sidebar — slides in/out with GPU-accelerated transform only */}
+      <aside
+        className="sidebar-panel h-full border-r border-radius-border-subtle bg-radius-bg-primary will-change-transform"
+        data-open={sidebarOpen}
+      >
+        <InboxList
+          messages={messages}
+          total={total}
+          selectedId={selectedMessageId}
+          onSelect={handleSelectMessage}
+          syncStatus={syncStatus}
+        />
+      </aside>
+
+      {/* Reader view — fills remaining space */}
+      <main className="flex-1 min-w-0 h-full">
         <ReaderView
           message={selectedMessage}
-          onBack={handleBackToInbox}
           sidebarOpen={sidebarOpen}
-          onToggleSidebar={toggleSidebar}
+          onOpenSidebar={handleOpenSidebar}
         />
-      </div>
+      </main>
     </div>
   );
 }

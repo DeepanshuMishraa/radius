@@ -17,6 +17,60 @@
   --radius-info: #5a7dc4;
   --radius-border-subtle: #e5e0d9;
   --radius-border: #d5d0c9;
+
+  --sidebar-width: 380px;
+  --sidebar-easing: cubic-bezier(0.32, 0.72, 0, 1);
+  --sidebar-duration: 300ms;
+}
+
+/* Sidebar animation — transform for visual slide, margin-left for layout collapse.
+   Both share identical duration/easing so they stay perfectly in sync.
+   (Emil Kowalski: transform is GPU-accelerated; margin-left is the minimal
+   layout property needed for a true push effect.) */
+.sidebar-panel {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  transform: translateX(0);
+  margin-left: 0;
+  transition:
+    transform var(--sidebar-duration) var(--sidebar-easing),
+    margin-left var(--sidebar-duration) var(--sidebar-easing);
+}
+
+.sidebar-panel[data-open="false"] {
+  transform: translateX(-100%);
+  margin-left: calc(-1 * var(--sidebar-width));
+}
+
+/* Email content entrance animation */
+@keyframes email-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.email-enter {
+  animation: email-enter 250ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* Reduced motion: disable layout animations, keep opacity fade */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-panel {
+    transition: none;
+  }
+  .sidebar-panel[data-open="false"] {
+    transform: translateX(-100%);
+    margin-left: calc(-1 * var(--sidebar-width));
+  }
+  .email-enter {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -58,10 +112,9 @@
   --color-radius-border-subtle: var(--radius-border-subtle);
   --color-radius-border: var(--radius-border);
 
-  --font-family-display: "Satoshi", system-ui, sans-serif;
-  --font-family-sans: "Instrument Sans", system-ui, sans-serif;
-  --font-family-serif: "Newsreader", Georgia, serif;
-  --font-family-mono: "DM Sans", monospace;
+  --font-family-display: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-family-sans: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-family-serif: "Lora", Georgia, serif;
 
   --transition-duration-80: 80ms;
 }
@@ -80,12 +133,8 @@
     transition: background-color 0.2s ease, color 0.2s ease;
   }
 
-  ::-webkit-scrollbar {
-    width: 4px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
     background: var(--radius-border);
     border-radius: 4px;
