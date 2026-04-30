@@ -1,0 +1,25 @@
+landing/src/components/DownloadButton.astro
+  2b0e39ee35d09679 10,29,45-50,54,60,66,90,98
+landing/src/pages/index.astro
+  2b0e39ee35d09679 55-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "caa88fc4f9ce18f39e98d1a649633ecc429d9c5c",
+  "prompts": {
+    "2b0e39ee35d09679": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019dde22-308d-70d5-863d-17f6a52eb583",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 15,
+      "total_deletions": 526,
+      "accepted_lines": 47,
+      "overriden_lines": 0
+    }
+  }
+}
