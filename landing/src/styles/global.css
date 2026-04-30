@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* stylelint-disable-next-line scss/at-rule-no-unknown */
 @theme {
   --color-radius-bg-primary: #ffffff;
   --color-radius-bg-secondary: #f7f6f3;
@@ -17,8 +18,8 @@
   --color-radius-success: #5a8c6f;
   --color-radius-error: #c45a5a;
 
-  --font-family-sans: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-family-serif: "Playfair Display", Georgia, serif;
+  --font-family-sans: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+  --font-family-serif: "Playfair Display", "Georgia", serif;
 
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;

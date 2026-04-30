@@ -27,7 +27,10 @@ function App() {
   const selectedMessagePreview = selectedMessageId
     ? messagesById.get(selectedMessageId) ?? null
     : null;
-  const selectedMessage = fullMessage ?? selectedMessagePreview;
+  const selectedMessage =
+    fullMessage && fullMessage.id === selectedMessageId
+      ? fullMessage
+      : selectedMessagePreview;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

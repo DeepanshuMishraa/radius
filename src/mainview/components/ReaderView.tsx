@@ -68,8 +68,6 @@ function InboxWidget({
 // Comprehensive allowlists for email HTML — tables, inline styles, images,
 // alignment attributes, and common legacy email markup.
 const EMAIL_ALLOWED_TAGS = [
-  // Document structure
-  "html", "head", "body", "meta", "title", "link", "style",
   // Typography
   "p", "br", "strong", "b", "em", "i", "u", "s", "strike", "del", "ins",
   "mark", "small", "big", "sub", "sup", "span", "font", "center",
@@ -113,8 +111,6 @@ const EMAIL_ALLOWED_ATTR = [
   "start", "type", "value",
   // Images / maps
   "usemap", "shape", "coords",
-  // Meta / link
-  "charset", "http-equiv", "content",
 ];
 
 const EMAIL_BODY_STYLES = `

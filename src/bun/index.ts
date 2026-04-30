@@ -123,7 +123,7 @@ async function init() {
           // On-demand body fetch only when we have no stored body at all.
           // This keeps the reader fast for already-synced mail while still
           // healing older cached messages that predate full body extraction.
-          if (msg && !msg.bodyHtml && !msg.bodyText) {
+          if (msg && msg.bodyHtml == null && msg.bodyText == null) {
             try {
               const accessToken = await getValidAccessToken();
               const gmailMsg = await getGmailMessage(accessToken, id);
@@ -133,7 +133,7 @@ async function init() {
                 id
               );
 
-              if (bodies.html || bodies.text) {
+              if (bodies.html != null || bodies.text != null) {
                 await updateMessageBodies(id, bodies.text, bodies.html);
                 // Re-fetch so the returned shape matches exactly
                 msg = await getMessageById(id);

@@ -235,85 +235,91 @@ export async function doFullSync(
   await runInitialAndBackgroundSync(onProgress);
 }
 
-export async function runInitialAndBackgroundSync(
+async function runInitialAndBackgroundSyncUnlocked(
   onProgress?: ProgressCallback
 ): Promise<void> {
-  const result = await withSyncLock(async () => {
-    await updateSyncState({
-      status: "syncing",
+  await updateSyncState({
+    status: "syncing",
+    phase: "initial",
+    progressCurrent: 0,
+    progressTotal: INITIAL_SYNC_TARGET,
+    error: null,
+  });
+
+  try {
+    const initialResult = await runSyncPass({
       phase: "initial",
-      progressCurrent: 0,
-      progressTotal: INITIAL_SYNC_TARGET,
+      limit: INITIAL_SYNC_TARGET,
+      onProgress,
+    });
+    const initialCompletedAt = Date.now();
+    const initialProgressTotal = Math.min(
+      initialResult.totalEstimate,
+      INITIAL_SYNC_TARGET
+    );
+
+    await updateSyncState({
+      historyId: initialResult.latestHistoryId,
+      lastSyncAt: initialCompletedAt,
+      initialSyncCompletedAt: initialCompletedAt,
+      progressCurrent: Math.min(initialResult.processed, initialProgressTotal),
+      progressTotal: initialProgressTotal,
+      status: "idle",
+      phase: null,
       error: null,
     });
 
-    try {
-      const initialResult = await runSyncPass({
-        phase: "initial",
-        limit: INITIAL_SYNC_TARGET,
-        onProgress,
-      });
-      const initialCompletedAt = Date.now();
-      const initialProgressTotal = Math.min(
-        initialResult.totalEstimate,
-        INITIAL_SYNC_TARGET
-      );
+    const hasMoreToSync =
+      initialResult.totalEstimate > initialResult.processed &&
+      initialResult.nextPageToken !== undefined;
 
+    if (!hasMoreToSync) {
       await updateSyncState({
-        historyId: initialResult.latestHistoryId,
-        lastSyncAt: initialCompletedAt,
-        initialSyncCompletedAt: initialCompletedAt,
-        progressCurrent: Math.min(initialResult.processed, initialProgressTotal),
-        progressTotal: initialProgressTotal,
+        fullSyncCompletedAt: initialCompletedAt,
         status: "idle",
         phase: null,
-        error: null,
       });
-
-      const hasMoreToSync =
-        initialResult.totalEstimate > initialResult.processed &&
-        initialResult.nextPageToken !== undefined;
-
-      if (!hasMoreToSync) {
-        await updateSyncState({
-          fullSyncCompletedAt: initialCompletedAt,
-          status: "idle",
-          phase: null,
-        });
-        console.log(`Initial sync complete: ${initialResult.processed} messages`);
-        return;
-      }
-
-      const backgroundResult = await runSyncPass({
-        phase: "background",
-        startPageToken: initialResult.nextPageToken,
-        totalEstimate: initialResult.totalEstimate,
-        processedBeforeStart: initialResult.processed,
-        latestHistoryId: initialResult.latestHistoryId,
-      });
-
-      await updateSyncState({
-        historyId: backgroundResult.latestHistoryId,
-        lastSyncAt: Date.now(),
-        fullSyncCompletedAt: Date.now(),
-        progressCurrent: backgroundResult.processed,
-        progressTotal: backgroundResult.totalEstimate,
-        status: "idle",
-        phase: null,
-        error: null,
-      });
-
-      console.log(`Full sync complete: ${backgroundResult.processed} messages`);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      await updateSyncState({
-        status: "error",
-        phase: null,
-        error: message,
-      });
-      throw err;
+      console.log(`Initial sync complete: ${initialResult.processed} messages`);
+      return;
     }
-  });
+
+    const backgroundResult = await runSyncPass({
+      phase: "background",
+      startPageToken: initialResult.nextPageToken,
+      totalEstimate: initialResult.totalEstimate,
+      processedBeforeStart: initialResult.processed,
+      latestHistoryId: initialResult.latestHistoryId,
+    });
+
+    await updateSyncState({
+      historyId: backgroundResult.latestHistoryId,
+      lastSyncAt: Date.now(),
+      fullSyncCompletedAt: Date.now(),
+      progressCurrent: backgroundResult.processed,
+      progressTotal: backgroundResult.totalEstimate,
+      status: "idle",
+      phase: null,
+      error: null,
+    });
+
+    console.log(`Full sync complete: ${backgroundResult.processed} messages`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await updateSyncState({
+      status: "error",
+      phase: null,
+      error: message,
+    });
+    throw err;
+  }
+}
+
+export async function runInitialAndBackgroundSync(
+  onProgress?: ProgressCallback
+): Promise<void> {
+  const result = await withSyncLock(() =>
+    runInitialAndBackgroundSyncUnlocked(onProgress)
+  );
 
   if (result === "locked") {
     console.log("Sync already in progress — skipping duplicate");
@@ -366,10 +372,7 @@ export async function doIncrementalSync(): Promise<{
   const state = await getSyncState();
   if (!state.historyId) {
     console.log("No historyId — running full sync instead");
-    const result = await withSyncLock(() => runInitialAndBackgroundSync());
-    if (result === "locked") {
-      console.log("Sync already in progress — skipping fallback full sync");
-    }
+    await runInitialAndBackgroundSync();
     return { newMessages: 0, hadGap: false };
   }
 
@@ -386,6 +389,7 @@ export async function doIncrementalSync(): Promise<{
       const accessToken = await getValidAccessToken();
       let hadGap = false;
       let newCount = 0;
+      let needsFullResync = false;
 
       try {
         const history = await withRetry(() =>
@@ -423,16 +427,22 @@ export async function doIncrementalSync(): Promise<{
         }
       } catch (err) {
         if (err instanceof HistoryGapError) {
-          console.log("History gap detected — running full re-sync");
+          console.log("History gap detected — scheduling full re-sync");
           hadGap = true;
-          await clearMessages();
-          await runInitialAndBackgroundSync();
+          needsFullResync = true;
+          await updateSyncState({
+            status: "idle",
+            phase: null,
+            progressCurrent: null,
+            progressTotal: null,
+            error: null,
+          });
         } else {
           throw err;
         }
       }
 
-      return { newMessages: newCount, hadGap };
+      return { newMessages: newCount, hadGap, needsFullResync };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await updateSyncState({ status: "error", phase: null, error: message });
@@ -443,7 +453,14 @@ export async function doIncrementalSync(): Promise<{
   if (lockResult === "locked") {
     return { newMessages: 0, hadGap: false };
   }
-  return lockResult;
+
+  if (lockResult.needsFullResync) {
+    await clearMessages();
+    await runInitialAndBackgroundSync();
+    return { newMessages: 0, hadGap: true };
+  }
+
+  return { newMessages: lockResult.newMessages, hadGap: lockResult.hadGap };
 }
 
 async function flushInsertBuffer(

@@ -48,6 +48,39 @@ function getAuthHeaders(accessToken: string): HeadersInit {
   };
 }
 
+async function fetchWithRetry(
+  input: string,
+  init: RequestInit,
+  options: { maxRetries?: number; baseDelay?: number } = {}
+): Promise<Response> {
+  const maxRetries = options.maxRetries ?? 5;
+  const baseDelay = options.baseDelay ?? 1000;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    const res = await fetch(input, init);
+    if (res.ok) return res;
+
+    const text = await res.text();
+    const error = new GmailAPIError(`request failed: ${res.status}`, res.status, text);
+
+    if (error.isRateLimit() && attempt < maxRetries) {
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+      console.log(`Rate limited. Retrying in ${Math.round(delay)}ms...`);
+      await Bun.sleep(delay);
+      continue;
+    }
+
+    if (error.isAuthError() && attempt < maxRetries) {
+      await Bun.sleep(500);
+      continue;
+    }
+
+    throw error;
+  }
+
+  throw new Error("Max retries exceeded");
+}
+
 export async function listMessages(
   accessToken: string,
   options: {
@@ -95,15 +128,10 @@ export async function getAttachment(
   messageId: string,
   attachmentId: string
 ): Promise<string> {
-  const res = await fetch(
+  const res = await fetchWithRetry(
     `${GMAIL_API_BASE}/messages/${messageId}/attachments/${attachmentId}`,
     { headers: getAuthHeaders(accessToken) }
   );
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new GmailAPIError(`attachments.get failed: ${res.status}`, res.status, text);
-  }
 
   const json = (await res.json()) as { data: string; size: number };
   return json.data;
@@ -199,9 +227,12 @@ export async function extractBodies(
     const rawMime = part.mimeType ?? "(none)";
     const mimeType = rawMime.split(";")[0].trim().toLowerCase();
     const indent = "  ".repeat(depth);
+    const hasFilename = Boolean(part.filename?.trim());
 
     if (mimeType === "text/plain") {
-      if (part.body?.data) {
+      if (hasFilename) {
+        console.log(`${indent}[body] text/plain — skipping attachment part filename=${part.filename}`);
+      } else if (part.body?.data) {
         text = decodeBase64UrlToString(part.body.data);
         console.log(`${indent}[body] text/plain — inline data (${part.body.size ?? "?"} bytes) → text=${text ? text.length : 0} chars`);
       } else if (part.body?.attachmentId) {
@@ -213,7 +244,9 @@ export async function extractBodies(
         console.log(`${indent}[body] text/plain — no data/attachmentId`);
       }
     } else if (mimeType === "text/html") {
-      if (part.body?.data) {
+      if (hasFilename) {
+        console.log(`${indent}[body] text/html — skipping attachment part filename=${part.filename}`);
+      } else if (part.body?.data) {
         html = decodeBase64UrlToString(part.body.data);
         console.log(`${indent}[body] text/html — inline data (${part.body.size ?? "?"} bytes) → html=${html ? html.length : 0} chars`);
       } else if (part.body?.attachmentId) {
