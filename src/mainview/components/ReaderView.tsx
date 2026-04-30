@@ -62,6 +62,58 @@ function InboxWidget({
   );
 }
 
+// Comprehensive allowlists for email HTML — tables, inline styles, images,
+// alignment attributes, and common legacy email markup.
+const EMAIL_ALLOWED_TAGS = [
+  // Document structure
+  "html", "head", "body", "meta", "title", "link", "style",
+  // Typography
+  "p", "br", "strong", "b", "em", "i", "u", "s", "strike", "del", "ins",
+  "mark", "small", "big", "sub", "sup", "span", "font", "center",
+  "h1", "h2", "h3", "h4", "h5", "h6",
+  "blockquote", "pre", "code", "cite", "dfn", "abbr", "address",
+  // Lists
+  "ul", "ol", "li", "dl", "dt", "dd",
+  // Links
+  "a",
+  // Media
+  "img", "figure", "figcaption", "picture", "source", "video", "audio",
+  "track", "area", "map",
+  // Tables
+  "table", "thead", "tbody", "tfoot", "tr", "td", "th", "caption",
+  "colgroup", "col",
+  // Layout / legacy
+  "div", "hr", "wbr", "noscript",
+];
+
+const EMAIL_ALLOWED_ATTR = [
+  // Core
+  "href", "src", "alt", "title", "class", "id", "name",
+  // Inline styles
+  "style",
+  // Dimensions
+  "width", "height",
+  // Table legacy
+  "border", "cellpadding", "cellspacing", "colspan", "rowspan", "scope",
+  // Alignment legacy
+  "align", "valign", "bgcolor", "background",
+  // Text direction / lang
+  "dir", "lang", "xml:lang", "xmlns",
+  // Font legacy
+  "face", "size", "color",
+  // Media
+  "controls", "autoplay", "loop", "muted", "preload", "poster",
+  "srcset", "sizes", "media", "type",
+  // Links
+  "target", "rel", "download",
+  // Lists
+  "start", "type", "value",
+  // Images / maps
+  "usemap", "shape", "coords",
+  // Meta / link
+  "charset", "http-equiv", "content",
+];
+
 export function ReaderView({
   message,
   sidebarOpen,
@@ -92,59 +144,15 @@ export function ReaderView({
     );
   }
 
-  const sanitizedHtml = message.bodyHtml
-    ? DOMPurify.sanitize(message.bodyHtml, {
-        ALLOWED_TAGS: [
-          "p",
-          "br",
-          "strong",
-          "b",
-          "em",
-          "i",
-          "u",
-          "a",
-          "ul",
-          "ol",
-          "li",
-          "h1",
-          "h2",
-          "h3",
-          "h4",
-          "h5",
-          "h6",
-          "blockquote",
-          "pre",
-          "code",
-          "img",
-          "table",
-          "thead",
-          "tbody",
-          "tr",
-          "td",
-          "th",
-          "div",
-          "span",
-          "hr",
-          "sup",
-          "sub",
-          "del",
-          "ins",
-          "mark",
-        ],
-        ALLOWED_ATTR: [
-          "href",
-          "src",
-          "alt",
-          "title",
-          "class",
-          "style",
-          "width",
-          "height",
-          "colspan",
-          "rowspan",
-          "target",
-          "rel",
-        ],
+  const rawHtml = message.bodyHtml;
+
+  // If we have HTML, sanitize and render it. If not, fall back to plain text.
+  const sanitizedHtml = rawHtml
+    ? DOMPurify.sanitize(rawHtml, {
+        ALLOWED_TAGS: EMAIL_ALLOWED_TAGS,
+        ALLOWED_ATTR: EMAIL_ALLOWED_ATTR,
+        ALLOW_DATA_ATTR: false,
+        FORCE_BODY: true,
       })
     : null;
 
@@ -153,18 +161,16 @@ export function ReaderView({
 
   return (
     <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-9">
-      {/* Minimal inbox widget — appears when sidebar is hidden */}
       <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
 
-      {/* Content */}
       <div className="flex-1 email-enter" key={message.id}>
         <article className="max-w-[720px] mx-auto px-6 pt-8 pb-24">
-          {/* Subject — large display heading in Lora */}
+          {/* Subject */}
           <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-wide mb-10">
             {message.subject}
           </h1>
 
-          {/* Metadata: From / To — all Lora */}
+          {/* Metadata */}
           <div className="mb-10 pb-8 border-b border-radius-border-subtle space-y-2">
             <div className="flex items-baseline gap-6">
               <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
@@ -190,10 +196,10 @@ export function ReaderView({
             </div>
           </div>
 
-          {/* Body — Lora serif */}
+          {/* Body */}
           {sanitizedHtml ? (
             <div
-              className="email-body font-[family-name:var(--font-family-serif)] text-[17px] leading-[1.75] text-radius-text-primary"
+              className="email-body text-[15px] leading-[1.7] text-radius-text-primary"
               dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
             />
           ) : (
@@ -205,14 +211,43 @@ export function ReaderView({
       </div>
 
       <style>{`
-        .email-body p { margin-bottom: 1em; }
+        /* ===== Reset email-container styles that might leak ===== */
+        .email-body {
+          font-family: var(--font-family-sans), system-ui, -apple-system, sans-serif;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
+        .email-body * {
+          max-width: 100%;
+          box-sizing: border-box;
+        }
+
+        /* ===== Typography ===== */
+        .email-body p { margin: 0 0 1em; }
         .email-body p:last-child { margin-bottom: 0; }
+        .email-body br { display: block; content: ""; margin-bottom: 0.3em; }
+
         .email-body a {
           color: var(--radius-accent, #C4785A);
           text-decoration: underline;
           text-underline-offset: 2px;
         }
         .email-body a:hover { color: var(--radius-accent-hover, #B56A4D); }
+
+        .email-body h1, .email-body h2, .email-body h3,
+        .email-body h4, .email-body h5, .email-body h6 {
+          font-family: var(--font-family-sans), system-ui, sans-serif;
+          font-weight: 600;
+          color: var(--radius-text-primary, #292827);
+          margin: 1.5em 0 0.6em;
+          line-height: 1.25;
+        }
+        .email-body h1 { font-size: 1.5em; }
+        .email-body h2 { font-size: 1.3em; }
+        .email-body h3 { font-size: 1.15em; }
+        .email-body h4 { font-size: 1.05em; }
+        .email-body h5, .email-body h6 { font-size: 1em; }
+
         .email-body blockquote {
           border-left: 2px solid var(--radius-border, #D5D0C9);
           margin: 1.25em 0;
@@ -220,25 +255,57 @@ export function ReaderView({
           color: var(--radius-text-secondary, #5C5A57);
           font-style: italic;
         }
+
         .email-body ul, .email-body ol { margin: 1em 0; padding-left: 1.5em; }
         .email-body li { margin-bottom: 0.35em; }
-        .email-body h1, .email-body h2, .email-body h3,
-        .email-body h4, .email-body h5, .email-body h6 {
-          font-family: var(--font-family-sans), system-ui, sans-serif;
-          font-weight: 600;
-          color: var(--radius-text-primary, #292827);
-          margin: 1.5em 0 0.75em;
-          line-height: 1.2;
-        }
-        .email-body h1 { font-size: 1.4em; }
-        .email-body h2 { font-size: 1.25em; }
-        .email-body h3 { font-size: 1.1em; }
+        .email-body dl { margin: 1em 0; }
+        .email-body dt { font-weight: 600; margin-top: 0.5em; }
+        .email-body dd { margin-left: 1.5em; }
+
+        /* ===== Images & Media ===== */
         .email-body img {
           max-width: 100%;
           height: auto;
-          border-radius: 8px;
+          border-radius: 4px;
+          display: inline-block;
+        }
+        .email-body figure { margin: 1em 0; }
+        .email-body figcaption {
+          font-size: 0.85em;
+          color: var(--radius-text-muted, #8C8A87);
+          text-align: center;
+          margin-top: 0.3em;
+        }
+        .email-body video, .email-body audio {
+          max-width: 100%;
+          border-radius: 4px;
           margin: 1em 0;
         }
+
+        /* ===== Tables ===== */
+        .email-body table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 1em 0;
+          font-size: 0.95em;
+        }
+        .email-body th, .email-body td {
+          padding: 0.5em 0.75em;
+          border: 1px solid var(--radius-border-subtle, #E5E0D9);
+          text-align: left;
+          vertical-align: top;
+        }
+        .email-body th {
+          background: var(--radius-bg-secondary, #F7F6F3);
+          font-weight: 600;
+        }
+        .email-body caption {
+          font-weight: 600;
+          margin-bottom: 0.5em;
+          text-align: left;
+        }
+
+        /* ===== Code ===== */
         .email-body pre {
           background: var(--radius-bg-secondary, #F7F6F3);
           padding: 1em;
@@ -253,28 +320,33 @@ export function ReaderView({
           padding: 0.15em 0.4em;
           border-radius: 4px;
           font-size: 0.9em;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         }
-        .email-body pre code { background: none; padding: 0; }
-        .email-body table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 1em 0;
-          font-size: 0.95em;
-        }
-        .email-body th, .email-body td {
-          padding: 0.5em 0.75em;
-          border: 1px solid var(--radius-border-subtle, #E5E0D9);
-          text-align: left;
-        }
-        .email-body th {
-          background: var(--radius-bg-secondary, #F7F6F3);
-          font-weight: 600;
-          font-family: var(--font-family-sans), system-ui, sans-serif;
-        }
+        .email-body pre code { background: none; padding: 0; font-size: 1em; }
+
+        /* ===== Dividers ===== */
         .email-body hr {
           border: none;
           border-top: 1px solid var(--radius-border-subtle, #E5E0D9);
           margin: 1.5em 0;
+        }
+
+        /* ===== Legacy alignment helpers ===== */
+        .email-body center { text-align: center; display: block; }
+        .email-body center table { margin-left: auto; margin-right: auto; }
+
+        /* ===== Prevent layout-breaking fixed widths ===== */
+        .email-body table[align="left"],
+        .email-body table[align="right"] {
+          max-width: 50%;
+        }
+        .email-body > table {
+          table-layout: fixed;
+        }
+
+        /* ===== Responsive: ensure nested tables/images don't overflow ===== */
+        .email-body table td img {
+          max-width: 100%;
         }
       `}</style>
     </div>

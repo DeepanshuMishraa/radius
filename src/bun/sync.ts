@@ -181,7 +181,7 @@ async function runSyncPass({
 
     for (let i = 0; i < fetched.length; i += INSERT_BATCH_SIZE) {
       const chunk = fetched.slice(i, i + INSERT_BATCH_SIZE);
-      await flushInsertBuffer(chunk);
+      await flushInsertBuffer(chunk, accessToken);
       processed += chunk.length;
 
       const progress = {
@@ -199,7 +199,7 @@ async function runSyncPass({
   } while (pageToken);
 
   if (insertBuffer.length > 0) {
-    await flushInsertBuffer(insertBuffer);
+    await flushInsertBuffer(insertBuffer, accessToken);
     processed += insertBuffer.length;
     const progress = {
       current: Math.min(processed, progressTotal),
@@ -380,7 +380,7 @@ export async function doIncrementalSync(): Promise<{
         newCount += fetched.length;
 
         if (allNewMessages.length > 0) {
-          await flushInsertBuffer(allNewMessages);
+          await flushInsertBuffer(allNewMessages, accessToken);
         }
       }
 
@@ -414,24 +414,29 @@ export async function doIncrementalSync(): Promise<{
   }
 }
 
-async function flushInsertBuffer(messages: GmailMessage[]): Promise<void> {
-  const toInsert = messages.map((msg) => {
-    const bodies = extractBodies(msg.payload);
-    const headers = parseHeaders(msg.payload.headers);
+async function flushInsertBuffer(
+  messages: GmailMessage[],
+  accessToken: string
+): Promise<void> {
+  const toInsert = await Promise.all(
+    messages.map(async (msg) => {
+      const bodies = await extractBodies(msg.payload, accessToken, msg.id);
+      const headers = parseHeaders(msg.payload.headers ?? []);
 
-    return {
-      id: msg.id,
-      threadId: msg.threadId,
-      historyId: msg.historyId,
-      internalDate: parseInt(msg.internalDate, 10),
-      from: headers["from"] ?? "",
-      to: headers["to"] ?? "",
-      subject: headers["subject"] ?? "",
-      snippet: msg.snippet,
-      bodyText: bodies.text,
-      bodyHtml: bodies.html,
-    };
-  });
+      return {
+        id: msg.id,
+        threadId: msg.threadId,
+        historyId: msg.historyId,
+        internalDate: parseInt(msg.internalDate, 10),
+        from: headers["from"] ?? "",
+        to: headers["to"] ?? "",
+        subject: headers["subject"] ?? "",
+        snippet: msg.snippet,
+        bodyText: bodies.text,
+        bodyHtml: bodies.html,
+      };
+    })
+  );
 
   await insertMessages(toInsert);
 }

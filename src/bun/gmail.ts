@@ -1,23 +1,24 @@
 const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 
+export interface GmailMessagePart {
+  mimeType: string;
+  headers?: Array<{ name: string; value: string }>;
+  body?: {
+    data?: string;
+    size?: number;
+    attachmentId?: string;
+  };
+  filename?: string;
+  parts?: GmailMessagePart[];
+}
+
 export interface GmailMessage {
   id: string;
   threadId: string;
   historyId: string;
   internalDate: string;
   snippet: string;
-  payload: {
-    headers: Array<{ name: string; value: string }>;
-    body?: { data?: string; size?: number };
-    parts?: Array<{
-      mimeType: string;
-      body?: { data?: string; size?: number };
-      parts?: Array<{
-        mimeType: string;
-        body?: { data?: string; size?: number };
-      }>;
-    }>;
-  };
+  payload: GmailMessagePart;
   labelIds: string[];
 }
 
@@ -89,6 +90,25 @@ export async function getMessage(
   return (await res.json()) as GmailMessage;
 }
 
+export async function getAttachment(
+  accessToken: string,
+  messageId: string,
+  attachmentId: string
+): Promise<string> {
+  const res = await fetch(
+    `${GMAIL_API_BASE}/messages/${messageId}/attachments/${attachmentId}`,
+    { headers: getAuthHeaders(accessToken) }
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new GmailAPIError(`attachments.get failed: ${res.status}`, res.status, text);
+  }
+
+  const json = (await res.json()) as { data: string; size: number };
+  return json.data;
+}
+
 export async function getHistory(
   accessToken: string,
   startHistoryId: string
@@ -140,38 +160,108 @@ export class HistoryGapError extends GmailAPIError {
   }
 }
 
-// Extract plain text and HTML from Gmail message payload
-export function extractBodies(payload: GmailMessage["payload"]): {
-  text: string | null;
-  html: string | null;
-} {
-  let text: string | null = null;
-  let html: string | null = null;
-
-  function traverse(part: GmailMessage["payload"] | NonNullable<GmailMessage["payload"]["parts"]>[0]): void {
-    const mimeType = "mimeType" in part ? part.mimeType : undefined;
-
-    if (mimeType === "text/plain" && part.body?.data) {
-      text = decodeBase64(part.body.data);
-    } else if (mimeType === "text/html" && part.body?.data) {
-      html = decodeBase64(part.body.data);
-    } else if ("parts" in part && part.parts) {
-      for (const sub of part.parts) traverse(sub);
-    }
-  }
-
-  traverse(payload);
-  return { text, html };
+interface InlineImage {
+  contentId: string;
+  mimeType: string;
+  data: string; // standard base64 (not url-safe)
 }
 
-function decodeBase64(data: string): string {
-  // Gmail uses URL-safe base64
-  const normalized = data.replace(/-/g, "+").replace(/_/g, "/");
+function normalizeBase64Url(data: string): string {
+  return data.replace(/-/g, "+").replace(/_/g, "/");
+}
+
+function decodeBase64UrlToString(data: string): string {
   try {
-    return Buffer.from(normalized, "base64").toString("utf-8");
+    return Buffer.from(normalizeBase64Url(data), "base64").toString("utf-8");
   } catch {
     return "";
   }
+}
+
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Extract plain text and HTML from Gmail message payload.
+// Fetches large bodies and inline images via attachment IDs, and embeds
+// images as data URLs so the HTML is self-contained.
+export async function extractBodies(
+  payload: GmailMessagePart,
+  accessToken: string,
+  messageId: string
+): Promise<{ text: string | null; html: string | null }> {
+  let text: string | null = null;
+  let html: string | null = null;
+  const inlineImages: InlineImage[] = [];
+
+  async function traverse(part: GmailMessagePart): Promise<void> {
+    const mimeType = part.mimeType;
+
+    if (mimeType === "text/plain") {
+      if (part.body?.data) {
+        text = decodeBase64UrlToString(part.body.data);
+      } else if (part.body?.attachmentId) {
+        const raw = await getAttachment(accessToken, messageId, part.body.attachmentId);
+        text = decodeBase64UrlToString(raw);
+      }
+    } else if (mimeType === "text/html") {
+      if (part.body?.data) {
+        html = decodeBase64UrlToString(part.body.data);
+      } else if (part.body?.attachmentId) {
+        const raw = await getAttachment(accessToken, messageId, part.body.attachmentId);
+        html = decodeBase64UrlToString(raw);
+      }
+    } else if (mimeType?.startsWith("image/") && part.body?.attachmentId) {
+      const contentId = part.headers?.find(
+        (h) => h.name.toLowerCase() === "content-id"
+      )?.value;
+      if (contentId) {
+        const cleanId = contentId.replace(/^<|>$/g, "");
+        const raw = await getAttachment(accessToken, messageId, part.body.attachmentId);
+        inlineImages.push({
+          contentId: cleanId,
+          mimeType,
+          data: normalizeBase64Url(raw),
+        });
+      }
+    }
+
+    if (part.parts) {
+      for (const sub of part.parts) {
+        await traverse(sub);
+      }
+    }
+  }
+
+  await traverse(payload);
+
+  // Replace cid: references in HTML with embedded data URLs
+  if (html && inlineImages.length > 0) {
+    let processedHtml: string = html;
+    for (const img of inlineImages) {
+      const dataUrl = `data:${img.mimeType};base64,${img.data}`;
+
+      // Exact match: cid:xxx@domain
+      const exactRef = `cid:${img.contentId}`;
+      processedHtml = processedHtml.replace(
+        new RegExp(escapeRegExp(exactRef), "g"),
+        dataUrl
+      );
+
+      // Basename match: cid:xxx (some clients drop the domain)
+      const basename = img.contentId.split("@")[0];
+      if (basename && basename !== img.contentId) {
+        const basenameRef = `cid:${basename}`;
+        processedHtml = processedHtml.replace(
+          new RegExp(escapeRegExp(basenameRef), "g"),
+          dataUrl
+        );
+      }
+    }
+    html = processedHtml;
+  }
+
+  return { text, html };
 }
 
 export function parseHeaders(
