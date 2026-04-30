@@ -2,9 +2,8 @@ import { useState, useCallback, useEffect } from "react";
 import { Onboarding } from "./components/Onboarding";
 import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
-import { SyncProgress } from "./components/SyncProgress";
 import { useAuth, useSyncStatus, useInbox } from "./hooks/useInbox";
-import {  CommandK } from "@/components/cmd";
+import { CommandK } from "@/components/cmd";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ThemeProvider } from "@/components/theme-provider";
 
@@ -61,19 +60,6 @@ function App() {
     );
   }
 
-  // Show full-screen sync progress on first startup (initial sync only)
-  if (syncStatus.phase === "initial") {
-    return (
-      <div className="relative h-full bg-radius-bg-primary">
-        <DragRegion />
-        <SyncProgress
-          current={syncStatus.progress?.current ?? 0}
-          total={syncStatus.progress?.total ?? 0}
-        />
-      </div>
-    );
-  }
-
   const selectedMessage = messages.find((m) => m.id === selectedMessageId) ?? null;
 
   return (
@@ -104,6 +90,9 @@ function App() {
           <CommandK />
         </DialogContent>
       </Dialog>
+
+      {/* Minimal sync indicator — bottom left, never blocks */}
+      <SyncPill syncStatus={syncStatus} />
       </div>
     </ThemeProvider>
   );
@@ -115,6 +104,35 @@ function DragRegion() {
       className="electrobun-webkit-app-region-drag fixed top-0 left-0 right-0 h-9 z-50"
       style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
     />
+  );
+}
+
+function SyncPill({ syncStatus }: { syncStatus: ReturnType<typeof useSyncStatus> }) {
+  if (syncStatus.status !== "syncing") return null;
+
+  const current = syncStatus.progress?.current ?? 0;
+  const total = syncStatus.progress?.total ?? 0;
+  const pct = total > 0 ? Math.min(Math.round((current / total) * 100), 100) : 0;
+
+  return (
+    <div className="fixed bottom-4 left-4 z-40 flex items-center gap-2 px-3 py-1.5 rounded-full bg-radius-bg-secondary/90 backdrop-blur-sm border border-radius-border-subtle shadow-sm">
+      <svg
+        className="animate-spin text-radius-text-muted shrink-0"
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+      </svg>
+      <span className="text-[11px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
+        {total > 0 ? `${pct}% · ${current.toLocaleString()}/${total.toLocaleString()}` : "Syncing"}
+      </span>
+    </div>
   );
 }
 

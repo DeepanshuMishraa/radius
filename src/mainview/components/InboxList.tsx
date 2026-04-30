@@ -69,34 +69,6 @@ function EmailRow({
   );
 }
 
-function SyncIndicator({ syncStatus }: { syncStatus: SyncStatus }) {
-  // Only show sync UI during initial sync. Background sync is invisible.
-  if (syncStatus.status !== "syncing" || syncStatus.phase !== "initial") return null;
-
-  const current = syncStatus.progress?.current ?? 0;
-  const total = syncStatus.progress?.total ?? 0;
-  const pct = total > 0 ? Math.min(Math.round((current / total) * 100), 100) : 0;
-
-  return (
-    <div className="px-5 py-2.5 border-b border-radius-border-subtle bg-radius-bg-secondary">
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[11px] font-medium text-radius-text-secondary uppercase tracking-[0.5px] font-[family-name:var(--font-family-sans)]">
-          {syncStatus.phase === "initial" ? "Syncing inbox" : "Catching up"}
-        </span>
-        <span className="text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-          {current.toLocaleString()}/{total.toLocaleString()}
-        </span>
-      </div>
-      <div className="h-[2px] bg-radius-bg-tertiary rounded-full overflow-hidden">
-        <div
-          className="h-full bg-radius-accent rounded-full transition-all duration-500"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
 export function InboxList({
   messages,
   total,
@@ -131,8 +103,6 @@ export function InboxList({
           {total.toLocaleString()}
         </span>
       </div>
-
-      <SyncIndicator syncStatus={syncStatus} />
 
       {messages.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
