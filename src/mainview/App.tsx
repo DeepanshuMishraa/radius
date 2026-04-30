@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Onboarding } from "./components/Onboarding";
 import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
@@ -14,8 +14,20 @@ function App() {
 
   const { isAuthenticated, startOAuth } = useAuth();
   const syncStatus = useSyncStatus();
-  const { messages, total } = useInbox(1000, 0);
+  const { messages, total } = useInbox(
+    1000,
+    0,
+    syncStatus.status === "syncing" ? 2000 : 15000
+  );
   const { message: fullMessage } = useMessage(selectedMessageId);
+  const hasAuthSignal = isAuthenticated === true || Boolean(syncStatus.lastSyncAt);
+  const messagesById = useMemo(() => {
+    return new Map(messages.map((message) => [message.id, message]));
+  }, [messages]);
+  const selectedMessagePreview = selectedMessageId
+    ? messagesById.get(selectedMessageId) ?? null
+    : null;
+  const selectedMessage = fullMessage ?? selectedMessagePreview;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -41,7 +53,7 @@ function App() {
     setSidebarOpen(true);
   }, []);
 
-  if (isAuthenticated === null) {
+  if (isAuthenticated === null && !hasAuthSignal) {
     return (
       <div className="relative h-full bg-radius-bg-primary">
         <DragRegion />
@@ -49,7 +61,7 @@ function App() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!hasAuthSignal) {
     return (
       <div className="relative h-full bg-radius-bg-primary">
         <DragRegion />
@@ -60,10 +72,6 @@ function App() {
       </div>
     );
   }
-
-  const selectedMessagePreview =
-    messages.find((m) => m.id === selectedMessageId) ?? null;
-  const selectedMessage = fullMessage ?? selectedMessagePreview;
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">

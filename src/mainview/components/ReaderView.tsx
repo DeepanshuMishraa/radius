@@ -1,4 +1,5 @@
 import DOMPurify from "dompurify";
+import { memo, useMemo } from "react";
 import type { Message } from "../hooks/useInbox";
 import { ListIcon } from "@phosphor-icons/react";
 
@@ -114,7 +115,126 @@ const EMAIL_ALLOWED_ATTR = [
   "charset", "http-equiv", "content",
 ];
 
-export function ReaderView({
+const EMAIL_BODY_STYLES = `
+  .email-body {
+    font-family: var(--font-family-sans), system-ui, -apple-system, sans-serif;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  .email-body * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .email-body p { margin: 0 0 1em; }
+  .email-body p:last-child { margin-bottom: 0; }
+  .email-body br { display: block; content: ""; margin-bottom: 0.3em; }
+  .email-body a {
+    color: var(--radius-accent, #C4785A);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .email-body a:hover { color: var(--radius-accent-hover, #B56A4D); }
+  .email-body h1, .email-body h2, .email-body h3,
+  .email-body h4, .email-body h5, .email-body h6 {
+    font-family: var(--font-family-sans), system-ui, sans-serif;
+    font-weight: 600;
+    color: var(--radius-text-primary, #292827);
+    margin: 1.5em 0 0.6em;
+    line-height: 1.25;
+  }
+  .email-body h1 { font-size: 1.5em; }
+  .email-body h2 { font-size: 1.3em; }
+  .email-body h3 { font-size: 1.15em; }
+  .email-body h4 { font-size: 1.05em; }
+  .email-body h5, .email-body h6 { font-size: 1em; }
+  .email-body blockquote {
+    border-left: 2px solid var(--radius-border, #D5D0C9);
+    margin: 1.25em 0;
+    padding: 0.25em 0 0.25em 1em;
+    color: var(--radius-text-secondary, #5C5A57);
+    font-style: italic;
+  }
+  .email-body ul, .email-body ol { margin: 1em 0; padding-left: 1.5em; }
+  .email-body li { margin-bottom: 0.35em; }
+  .email-body dl { margin: 1em 0; }
+  .email-body dt { font-weight: 600; margin-top: 0.5em; }
+  .email-body dd { margin-left: 1.5em; }
+  .email-body img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  .email-body figure { margin: 1em 0; }
+  .email-body figcaption {
+    font-size: 0.85em;
+    color: var(--radius-text-muted, #8C8A87);
+    text-align: center;
+    margin-top: 0.3em;
+  }
+  .email-body video, .email-body audio {
+    max-width: 100%;
+    border-radius: 4px;
+    margin: 1em 0;
+  }
+  .email-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 0.95em;
+  }
+  .email-body th, .email-body td {
+    padding: 0.5em 0.75em;
+    border: 1px solid var(--radius-border-subtle, #E5E0D9);
+    text-align: left;
+    vertical-align: top;
+  }
+  .email-body th {
+    background: var(--radius-bg-secondary, #F7F6F3);
+    font-weight: 600;
+  }
+  .email-body caption {
+    font-weight: 600;
+    margin-bottom: 0.5em;
+    text-align: left;
+  }
+  .email-body pre {
+    background: var(--radius-bg-secondary, #F7F6F3);
+    padding: 1em;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.85em;
+    line-height: 1.5;
+    margin: 1em 0;
+  }
+  .email-body code {
+    background: var(--radius-bg-secondary, #F7F6F3);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+  .email-body pre code { background: none; padding: 0; font-size: 1em; }
+  .email-body hr {
+    border: none;
+    border-top: 1px solid var(--radius-border-subtle, #E5E0D9);
+    margin: 1.5em 0;
+  }
+  .email-body center { text-align: center; display: block; }
+  .email-body center table { margin-left: auto; margin-right: auto; }
+  .email-body table[align="left"],
+  .email-body table[align="right"] {
+    max-width: 50%;
+  }
+  .email-body > table {
+    table-layout: fixed;
+  }
+  .email-body table td img {
+    max-width: 100%;
+  }
+`;
+
+export const ReaderView = memo(function ReaderView({
   message,
   sidebarOpen,
   onOpenSidebar,
@@ -146,15 +266,16 @@ export function ReaderView({
 
   const rawHtml = message.bodyHtml;
 
-  // If we have HTML, sanitize and render it. If not, fall back to plain text.
-  const sanitizedHtml = rawHtml
-    ? DOMPurify.sanitize(rawHtml, {
+  const sanitizedHtml = useMemo(() => {
+    if (!rawHtml) return null;
+
+    return DOMPurify.sanitize(rawHtml, {
         ALLOWED_TAGS: EMAIL_ALLOWED_TAGS,
         ALLOWED_ATTR: EMAIL_ALLOWED_ATTR,
         ALLOW_DATA_ATTR: false,
         FORCE_BODY: true,
-      })
-    : null;
+      });
+  }, [rawHtml]);
 
   const sender = parseAddress(message.from);
   const recipient = parseAddress(message.to);
@@ -210,145 +331,7 @@ export function ReaderView({
         </article>
       </div>
 
-      <style>{`
-        /* ===== Reset email-container styles that might leak ===== */
-        .email-body {
-          font-family: var(--font-family-sans), system-ui, -apple-system, sans-serif;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-        }
-        .email-body * {
-          max-width: 100%;
-          box-sizing: border-box;
-        }
-
-        /* ===== Typography ===== */
-        .email-body p { margin: 0 0 1em; }
-        .email-body p:last-child { margin-bottom: 0; }
-        .email-body br { display: block; content: ""; margin-bottom: 0.3em; }
-
-        .email-body a {
-          color: var(--radius-accent, #C4785A);
-          text-decoration: underline;
-          text-underline-offset: 2px;
-        }
-        .email-body a:hover { color: var(--radius-accent-hover, #B56A4D); }
-
-        .email-body h1, .email-body h2, .email-body h3,
-        .email-body h4, .email-body h5, .email-body h6 {
-          font-family: var(--font-family-sans), system-ui, sans-serif;
-          font-weight: 600;
-          color: var(--radius-text-primary, #292827);
-          margin: 1.5em 0 0.6em;
-          line-height: 1.25;
-        }
-        .email-body h1 { font-size: 1.5em; }
-        .email-body h2 { font-size: 1.3em; }
-        .email-body h3 { font-size: 1.15em; }
-        .email-body h4 { font-size: 1.05em; }
-        .email-body h5, .email-body h6 { font-size: 1em; }
-
-        .email-body blockquote {
-          border-left: 2px solid var(--radius-border, #D5D0C9);
-          margin: 1.25em 0;
-          padding: 0.25em 0 0.25em 1em;
-          color: var(--radius-text-secondary, #5C5A57);
-          font-style: italic;
-        }
-
-        .email-body ul, .email-body ol { margin: 1em 0; padding-left: 1.5em; }
-        .email-body li { margin-bottom: 0.35em; }
-        .email-body dl { margin: 1em 0; }
-        .email-body dt { font-weight: 600; margin-top: 0.5em; }
-        .email-body dd { margin-left: 1.5em; }
-
-        /* ===== Images & Media ===== */
-        .email-body img {
-          max-width: 100%;
-          height: auto;
-          border-radius: 4px;
-          display: inline-block;
-        }
-        .email-body figure { margin: 1em 0; }
-        .email-body figcaption {
-          font-size: 0.85em;
-          color: var(--radius-text-muted, #8C8A87);
-          text-align: center;
-          margin-top: 0.3em;
-        }
-        .email-body video, .email-body audio {
-          max-width: 100%;
-          border-radius: 4px;
-          margin: 1em 0;
-        }
-
-        /* ===== Tables ===== */
-        .email-body table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 1em 0;
-          font-size: 0.95em;
-        }
-        .email-body th, .email-body td {
-          padding: 0.5em 0.75em;
-          border: 1px solid var(--radius-border-subtle, #E5E0D9);
-          text-align: left;
-          vertical-align: top;
-        }
-        .email-body th {
-          background: var(--radius-bg-secondary, #F7F6F3);
-          font-weight: 600;
-        }
-        .email-body caption {
-          font-weight: 600;
-          margin-bottom: 0.5em;
-          text-align: left;
-        }
-
-        /* ===== Code ===== */
-        .email-body pre {
-          background: var(--radius-bg-secondary, #F7F6F3);
-          padding: 1em;
-          border-radius: 8px;
-          overflow-x: auto;
-          font-size: 0.85em;
-          line-height: 1.5;
-          margin: 1em 0;
-        }
-        .email-body code {
-          background: var(--radius-bg-secondary, #F7F6F3);
-          padding: 0.15em 0.4em;
-          border-radius: 4px;
-          font-size: 0.9em;
-          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        }
-        .email-body pre code { background: none; padding: 0; font-size: 1em; }
-
-        /* ===== Dividers ===== */
-        .email-body hr {
-          border: none;
-          border-top: 1px solid var(--radius-border-subtle, #E5E0D9);
-          margin: 1.5em 0;
-        }
-
-        /* ===== Legacy alignment helpers ===== */
-        .email-body center { text-align: center; display: block; }
-        .email-body center table { margin-left: auto; margin-right: auto; }
-
-        /* ===== Prevent layout-breaking fixed widths ===== */
-        .email-body table[align="left"],
-        .email-body table[align="right"] {
-          max-width: 50%;
-        }
-        .email-body > table {
-          table-layout: fixed;
-        }
-
-        /* ===== Responsive: ensure nested tables/images don't overflow ===== */
-        .email-body table td img {
-          max-width: 100%;
-        }
-      `}</style>
+      <style>{EMAIL_BODY_STYLES}</style>
     </div>
   );
-}
+});
