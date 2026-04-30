@@ -4,53 +4,171 @@ interface OnboardingProps {
   onRetry?: () => void;
 }
 
+function RadiusMark({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 48 48"
+      fill="none"
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Outer ring — subtle, breathing */}
+      <circle
+        cx="24"
+        cy="24"
+        r="22"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeOpacity="0.12"
+        className="onboarding-ring-outer"
+      />
+      {/* Inner ring */}
+      <circle
+        cx="24"
+        cy="24"
+        r="16"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeOpacity="0.2"
+        className="onboarding-ring-inner"
+      />
+      {/* Core dot */}
+      <circle
+        cx="24"
+        cy="24"
+        r="3"
+        fill="currentColor"
+        fillOpacity="0.9"
+        className="onboarding-dot"
+      />
+    </svg>
+  );
+}
+
 export function Onboarding({ onConnect, error, onRetry }: OnboardingProps) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-full bg-radius-bg-primary px-6">
-      <div className="flex flex-col items-center max-w-md text-center">
-        <div className="w-10 h-10 rounded-2xl bg-radius-accent flex items-center justify-center mb-10">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-radius-text-inverse"
-          >
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-            <polyline points="22,6 12,13 2,6" />
-          </svg>
+    <div className="flex flex-col items-center justify-center min-h-full bg-radius-bg-primary px-6 onboarding-enter">
+      <div className="flex flex-col items-center text-center">
+        {/* Mark */}
+        <div className="relative mb-12">
+          <RadiusMark className="w-12 h-12 text-radius-accent" />
         </div>
 
-        <h1 className="font-[family-name:var(--font-family-sans)] text-[28px] font-semibold text-radius-text-primary mb-4 leading-[1.1] -tracking-[0.6px]">
-          Welcome to Radius
+        {/* Masthead */}
+        <h1 className="font-[family-name:var(--font-family-serif)] text-[42px] font-semibold text-radius-text-primary leading-none tracking-tight mb-5">
+          Radius
         </h1>
 
-        <p className="text-[15px] text-radius-text-secondary mb-10 leading-[1.5] max-w-[320px] font-[family-name:var(--font-family-sans)]">
-          A calm, distraction-free space for your email. Connect your Gmail account to get started.
+        {/* Tagline — one breath */}
+        <p className="font-[family-name:var(--font-family-sans)] text-[14px] text-radius-text-muted leading-relaxed tracking-wide mb-14">
+          A quiet place for your email.
         </p>
 
+        {/* Error — minimal inline */}
         {error && (
-          <div className="mb-8 p-4 rounded-lg border border-radius-error/30 bg-radius-error/5 text-left w-full">
-            <p className="text-[13px] font-medium text-radius-error mb-1 font-[family-name:var(--font-family-sans)]">Couldn&apos;t connect</p>
-            <p className="text-[12px] text-radius-text-secondary leading-[1.4] font-[family-name:var(--font-family-sans)]">{error}</p>
+          <div className="mb-8 text-center">
+            <p className="text-[12px] text-radius-error font-[family-name:var(--font-family-sans)]">
+              {error}
+            </p>
           </div>
         )}
 
+        {/* Action */}
         <button
           onClick={onRetry ?? onConnect}
-          className="px-6 py-3 bg-radius-accent hover:bg-radius-accent-hover text-radius-text-inverse text-[15px] font-medium rounded-lg transition-colors duration-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radius-accent focus-visible:ring-offset-2 focus-visible:ring-offset-radius-bg-primary font-[family-name:var(--font-family-sans)]"
+          className="
+            group
+            relative
+            px-8 py-3
+            text-[13px] font-medium
+            text-radius-text-inverse
+            bg-radius-accent
+            hover:bg-radius-accent-hover
+            rounded-full
+            transition-all duration-200 ease-out
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radius-accent focus-visible:ring-offset-2 focus-visible:ring-offset-radius-bg-primary
+            font-[family-name:var(--font-family-sans)]
+            active:scale-[0.97]
+          "
         >
-          {error ? "Try Again" : "Connect Gmail Account"}
+          <span className="relative z-10 flex items-center gap-2">
+            {error ? "Try Again" : "Connect Gmail"}
+            {!error && (
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="opacity-70 group-hover:translate-x-0.5 transition-transform duration-200"
+              >
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            )}
+          </span>
         </button>
 
-        <p className="mt-5 text-[11px] text-radius-text-muted leading-[1.4] font-[family-name:var(--font-family-sans)]">
-          Read-only access. We never send, delete, or modify your emails.
+        {/* Footnote — almost invisible */}
+        <p className="mt-10 text-[10px] text-radius-text-muted/60 tracking-wide font-[family-name:var(--font-family-sans)]">
+          Read-only. We never touch your mail.
         </p>
       </div>
+
+      <style>{`
+        @keyframes onboarding-enter {
+          from {
+            opacity: 0;
+            transform: translateY(16px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        .onboarding-enter {
+          animation: onboarding-enter 500ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+        }
+
+        @keyframes ring-breathe {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.08);
+            opacity: 0.5;
+          }
+        }
+        .onboarding-ring-outer {
+          transform-origin: center;
+          animation: ring-breathe 4s ease-in-out infinite;
+        }
+        .onboarding-ring-inner {
+          transform-origin: center;
+          animation: ring-breathe 4s ease-in-out infinite 0.6s;
+        }
+        .onboarding-dot {
+          transform-origin: center;
+          animation: ring-breathe 4s ease-in-out infinite 1.2s;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .onboarding-enter {
+            animation: none;
+            opacity: 1;
+            transform: none;
+          }
+          .onboarding-ring-outer,
+          .onboarding-ring-inner,
+          .onboarding-dot {
+            animation: none;
+          }
+        }
+      `}</style>
     </div>
   );
 }
