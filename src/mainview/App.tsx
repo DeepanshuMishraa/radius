@@ -1,8 +1,8 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Onboarding } from "./components/Onboarding";
 import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
-import { useAuth, useSyncStatus, useInbox } from "./hooks/useInbox";
+import { useAuth, useSyncStatus, useInbox, useMessage } from "./hooks/useInbox";
 import { CommandK } from "@/components/cmd";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -14,7 +14,23 @@ function App() {
 
   const { isAuthenticated, startOAuth } = useAuth();
   const syncStatus = useSyncStatus();
-  const { messages, total } = useInbox(1000, 0);
+  const { messages, total } = useInbox(
+    1000,
+    0,
+    syncStatus.status === "syncing" ? 2000 : 15000
+  );
+  const { message: fullMessage } = useMessage(selectedMessageId);
+  const hasAuthSignal = isAuthenticated === true || Boolean(syncStatus.lastSyncAt);
+  const messagesById = useMemo(() => {
+    return new Map(messages.map((message) => [message.id, message]));
+  }, [messages]);
+  const selectedMessagePreview = selectedMessageId
+    ? messagesById.get(selectedMessageId) ?? null
+    : null;
+  const selectedMessage =
+    fullMessage && fullMessage.id === selectedMessageId
+      ? fullMessage
+      : selectedMessagePreview;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -40,7 +56,7 @@ function App() {
     setSidebarOpen(true);
   }, []);
 
-  if (isAuthenticated === null) {
+  if (isAuthenticated === null && !hasAuthSignal) {
     return (
       <div className="relative h-full bg-radius-bg-primary">
         <DragRegion />
@@ -48,7 +64,7 @@ function App() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!hasAuthSignal) {
     return (
       <div className="relative h-full bg-radius-bg-primary">
         <DragRegion />
@@ -59,8 +75,6 @@ function App() {
       </div>
     );
   }
-
-  const selectedMessage = messages.find((m) => m.id === selectedMessageId) ?? null;
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">

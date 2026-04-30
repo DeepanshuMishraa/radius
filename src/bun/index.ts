@@ -7,6 +7,7 @@ import {
   getMessageById,
   getSyncState,
   updateSyncState,
+  updateMessageBodies,
 } from "./db";
 import {
   buildAuthURL,
@@ -16,7 +17,12 @@ import {
   sha256,
   setTokens,
   getRefreshToken,
+  getValidAccessToken,
 } from "./auth";
+import {
+  getMessage as getGmailMessage,
+  extractBodies,
+} from "./gmail";
 import {
   runInitialAndBackgroundSync,
   startIncrementalSyncPolling,
@@ -112,7 +118,32 @@ async function init() {
         },
 
         async getMessage({ id }: { id: string }) {
-          const msg = await getMessageById(id);
+          let msg = await getMessageById(id);
+
+          // On-demand body fetch only when we have no stored body at all.
+          // This keeps the reader fast for already-synced mail while still
+          // healing older cached messages that predate full body extraction.
+          if (msg && msg.bodyHtml == null && msg.bodyText == null) {
+            try {
+              const accessToken = await getValidAccessToken();
+              const gmailMsg = await getGmailMessage(accessToken, id);
+              const bodies = await extractBodies(
+                gmailMsg.payload,
+                accessToken,
+                id
+              );
+
+              if (bodies.html != null || bodies.text != null) {
+                await updateMessageBodies(id, bodies.text, bodies.html);
+                // Re-fetch so the returned shape matches exactly
+                msg = await getMessageById(id);
+              }
+            } catch (err) {
+              console.error(`Failed to fetch body for message ${id}:`, err);
+              // Continue with the DB version (snippet fallback)
+            }
+          }
+
           return msg as unknown as RadiusRPC["bun"]["requests"]["getMessage"]["response"];
         },
 
@@ -132,6 +163,21 @@ async function init() {
             fullSyncCompletedAt: state.fullSyncCompletedAt ?? undefined,
             error: state.error ?? undefined,
           };
+        },
+
+        async openExternalUrl({ url }: { url: string }) {
+          try {
+            const parsed = new URL(url);
+            if (!["http:", "https:", "mailto:", "tel:"].includes(parsed.protocol)) {
+              return { success: false, error: `Unsupported protocol: ${parsed.protocol}` };
+            }
+
+            spawn("open", [parsed.toString()]);
+            return { success: true };
+          } catch (err) {
+            console.error("openExternalUrl error:", err);
+            return { success: false, error: String(err) };
+          }
         },
 
         async startOAuth() {

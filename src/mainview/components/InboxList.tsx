@@ -42,13 +42,13 @@ function EmailRow({
     <div
       onClick={onClick}
       className={`
-        px-5 py-3.5 cursor-pointer select-none transition-colors duration-80
+        h-[104px] px-5 py-3.5 cursor-pointer select-none overflow-hidden transition-colors duration-80
         ${isSelected ? "border-l-[2px] border-l-radius-accent bg-radius-bg-secondary" : "border-l-[2px] border-l-transparent hover:bg-radius-bg-secondary"}
       `}
     >
       {/* Top line: sender + date pill */}
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[13px] font-semibold text-radius-text-primary truncate pr-3 font-[family-name:var(--font-family-sans)]">
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <span className="min-w-0 flex-1 text-[13px] font-semibold text-radius-text-primary truncate pr-3 font-[family-name:var(--font-family-sans)]">
           {senderName}
         </span>
         <span className="shrink-0 text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)] border border-radius-border-subtle rounded-full px-2 py-0.5">
@@ -81,7 +81,8 @@ export function InboxList({
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 84,
+    estimateSize: () => 104,
+    getItemKey: (index) => messages[index]?.id ?? index,
     overscan: 5,
   });
 
@@ -143,6 +144,7 @@ export function InboxList({
                     top: 0,
                     left: 0,
                     width: "100%",
+                    height: `${virtualItem.size}px`,
                     transform: `translateY(${virtualItem.start}px)`,
                   }}
                 >

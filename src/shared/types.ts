@@ -43,6 +43,10 @@ export type RadiusRPC = {
         params: {};
         response: SyncStatus;
       };
+      openExternalUrl: {
+        params: { url: string };
+        response: { success: boolean; error?: string };
+      };
       startOAuth: {
         params: {};
         response: { success: boolean; error?: string };

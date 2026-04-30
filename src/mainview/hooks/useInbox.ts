@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { radiusRpc } from "../lib/rpc";
 
 export interface Message {
@@ -26,7 +26,45 @@ export interface SyncStatus {
   error?: string;
 }
 
-export function useInbox(limit: number = 200, offset: number = 0) {
+function areMessagesEqual(next: Message[], prev: Message[]) {
+  if (next === prev) return true;
+  if (next.length !== prev.length) return false;
+
+  for (let i = 0; i < next.length; i += 1) {
+    const nextMessage = next[i];
+    const prevMessage = prev[i];
+
+    if (
+      nextMessage.id !== prevMessage.id ||
+      nextMessage.internalDate !== prevMessage.internalDate ||
+      nextMessage.from !== prevMessage.from ||
+      nextMessage.subject !== prevMessage.subject ||
+      nextMessage.snippet !== prevMessage.snippet
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function areSyncStatusesEqual(next: SyncStatus, prev: SyncStatus) {
+  return (
+    next.status === prev.status &&
+    next.phase === prev.phase &&
+    next.lastSyncAt === prev.lastSyncAt &&
+    next.fullSyncCompletedAt === prev.fullSyncCompletedAt &&
+    next.error === prev.error &&
+    next.progress?.current === prev.progress?.current &&
+    next.progress?.total === prev.progress?.total
+  );
+}
+
+export function useInbox(
+  limit: number = 200,
+  offset: number = 0,
+  pollMs: number | null = null
+) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -35,8 +73,10 @@ export function useInbox(limit: number = 200, offset: number = 0) {
     setLoading(true);
     try {
       const result = await radiusRpc.request.getInbox({ limit, offset });
-      setMessages(result.messages);
-      setTotal(result.total);
+      setMessages((prev) =>
+        areMessagesEqual(result.messages, prev) ? prev : result.messages
+      );
+      setTotal((prev) => (prev === result.total ? prev : result.total));
     } catch (err) {
       console.error("Failed to fetch inbox:", err);
     } finally {
@@ -46,10 +86,14 @@ export function useInbox(limit: number = 200, offset: number = 0) {
 
   useEffect(() => {
     fetchInbox();
-    // Poll every 2 seconds during sync to stream messages in
-    const interval = setInterval(fetchInbox, 2000);
-    return () => clearInterval(interval);
   }, [fetchInbox]);
+
+  useEffect(() => {
+    if (pollMs === null) return;
+
+    const interval = setInterval(fetchInbox, pollMs);
+    return () => clearInterval(interval);
+  }, [fetchInbox, pollMs]);
 
   return { messages, total, loading, refresh: fetchInbox };
 }
@@ -57,19 +101,41 @@ export function useInbox(limit: number = 200, offset: number = 0) {
 export function useMessage(id: string | null) {
   const [message, setMessage] = useState<Message | null>(null);
   const [loading, setLoading] = useState(false);
+  const cacheRef = useRef(new Map<string, Message | null>());
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
     if (!id) {
       setMessage(null);
+      setLoading(false);
+      return;
+    }
+
+    const cached = cacheRef.current.get(id);
+    if (cached !== undefined) {
+      setMessage(cached);
+      setLoading(false);
       return;
     }
 
     setLoading(true);
     radiusRpc.request
       .getMessage({ id })
-      .then((msg) => setMessage(msg))
+      .then((msg) => {
+        cacheRef.current.set(id, msg);
+        if (requestIdRef.current === requestId) {
+          setMessage(msg);
+        }
+      })
       .catch((err: unknown) => console.error("Failed to fetch message:", err))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (requestIdRef.current === requestId) {
+          setLoading(false);
+        }
+      });
   }, [id]);
 
   return { message, loading };
@@ -80,28 +146,35 @@ export function useSyncStatus() {
 
   useEffect(() => {
     let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     async function poll() {
       try {
         const s = await radiusRpc.request.getSyncStatus({});
-        if (!cancelled) setStatus(s);
+        if (!cancelled) {
+          setStatus((prev) => (areSyncStatusesEqual(s, prev) ? prev : s));
+          const nextPollMs = s.status === "syncing" ? 500 : 3000;
+          timeoutId = setTimeout(poll, nextPollMs);
+        }
       } catch (err) {
         console.error("Sync status poll failed:", err);
+        if (!cancelled) {
+          timeoutId = setTimeout(poll, 3000);
+        }
       }
     }
 
     poll();
-    const interval = setInterval(poll, 500);
 
     const handler = (e: Event) => {
       const data = (e as CustomEvent<SyncStatus>).detail;
-      setStatus(data);
+      setStatus((prev) => (areSyncStatusesEqual(data, prev) ? prev : data));
     };
     window.addEventListener("radius:syncProgress", handler);
 
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      if (timeoutId) clearTimeout(timeoutId);
       window.removeEventListener("radius:syncProgress", handler);
     };
   }, []);
@@ -129,8 +202,6 @@ export function useAuth() {
 
   useEffect(() => {
     checkAuth();
-    const interval = setInterval(checkAuth, 1000);
-    return () => clearInterval(interval);
   }, [checkAuth]);
 
   return { isAuthenticated, startOAuth };
