@@ -1,0 +1,25 @@
+src/components/ui/dialog.tsx
+  64d4e9409be6f4a5 40,62
+src/components/ui/command.tsx
+  64d4e9409be6f4a5 157
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "3d3b1b414c7aacbd74a79e2a535beb1de280cb45",
+  "prompts": {
+    "64d4e9409be6f4a5": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019ddc82-bd67-718f-a3e2-ad69852455a2",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 57,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    }
+  }
+}
