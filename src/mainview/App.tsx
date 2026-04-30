@@ -42,7 +42,7 @@ function App() {
 
   if (isAuthenticated === null) {
     return (
-      <div className="relative h-screen bg-radius-bg-primary">
+      <div className="relative h-full bg-radius-bg-primary">
         <DragRegion />
       </div>
     );
@@ -50,7 +50,7 @@ function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="relative h-screen bg-radius-bg-primary">
+      <div className="relative h-full bg-radius-bg-primary">
         <DragRegion />
         <Onboarding
           onConnect={handleConnect}
@@ -63,7 +63,7 @@ function App() {
   // Show full-screen sync progress on first startup (initial sync only)
   if (syncStatus.phase === "initial") {
     return (
-      <div className="relative h-screen bg-radius-bg-primary">
+      <div className="relative h-full bg-radius-bg-primary">
         <DragRegion />
         <SyncProgress
           current={syncStatus.progress?.current ?? 0}
@@ -76,7 +76,7 @@ function App() {
   const selectedMessage = messages.find((m) => m.id === selectedMessageId) ?? null;
 
   return (
-    <div className="relative flex h-screen bg-radius-bg-primary overflow-hidden">
+    <div className="relative flex h-full bg-radius-bg-primary overflow-hidden">
       <DragRegion />
 
       {/* Sidebar — slides in/out with GPU-accelerated transform only */}

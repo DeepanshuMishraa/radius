@@ -6,7 +6,7 @@ interface OnboardingProps {
 
 export function Onboarding({ onConnect, error, onRetry }: OnboardingProps) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-radius-bg-primary px-6">
+    <div className="flex flex-col items-center justify-center min-h-full bg-radius-bg-primary px-6">
       <div className="flex flex-col items-center max-w-md text-center">
         <div className="w-10 h-10 rounded-2xl bg-radius-accent flex items-center justify-center mb-10">
           <svg

@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --radius-frame-bg: #ebe7e0;
   --radius-bg-primary: #ffffff;
   --radius-bg-secondary: #f7f6f3;
   --radius-bg-tertiary: #efebe5;
@@ -111,6 +112,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --radius-frame-bg: #121110;
     --radius-bg-primary: #1b1a18;
     --radius-bg-secondary: #242320;
     --radius-bg-tertiary: #2e2d2a;
@@ -195,11 +197,34 @@
 
   body {
     font-family: var(--font-family-sans);
-    background-color: var(--color-radius-bg-primary);
+    background-color: var(--radius-frame-bg);
     color: var(--color-radius-text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.2s ease, color 0.2s ease;
+    overflow: hidden;
+    height: 100vh;
+    padding: 7px;
+    box-sizing: border-box;
+  }
+
+  #root {
+    height: 100%;
+  }
+
+  .app-frame {
+    background-color: var(--radius-bg-primary);
+    border-radius: 10px;
+    height: 100%;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+    position: relative;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .app-frame {
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
   }
 
   ::-webkit-scrollbar { width: 4px; }
