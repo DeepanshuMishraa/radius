@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Onboarding } from "./components/Onboarding";
 import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
-import { useAuth, useSyncStatus, useInbox } from "./hooks/useInbox";
+import { useAuth, useSyncStatus, useInbox, useMessage } from "./hooks/useInbox";
 import { CommandK } from "@/components/cmd";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -15,6 +15,7 @@ function App() {
   const { isAuthenticated, startOAuth } = useAuth();
   const syncStatus = useSyncStatus();
   const { messages, total } = useInbox(1000, 0);
+  const { message: fullMessage } = useMessage(selectedMessageId);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -60,7 +61,9 @@ function App() {
     );
   }
 
-  const selectedMessage = messages.find((m) => m.id === selectedMessageId) ?? null;
+  const selectedMessagePreview =
+    messages.find((m) => m.id === selectedMessageId) ?? null;
+  const selectedMessage = fullMessage ?? selectedMessagePreview;
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">

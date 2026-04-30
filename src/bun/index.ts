@@ -120,10 +120,10 @@ async function init() {
         async getMessage({ id }: { id: string }) {
           let msg = await getMessageById(id);
 
-          // On-demand body fetch: if the message is missing its HTML body
-          // (synced before the fix, or Gmail returned attachmentId-only),
-          // fetch the full payload from Gmail, extract bodies, and store.
-          if (msg && !msg.bodyHtml) {
+          // On-demand body fetch only when we have no stored body at all.
+          // This keeps the reader fast for already-synced mail while still
+          // healing older cached messages that predate full body extraction.
+          if (msg && !msg.bodyHtml && !msg.bodyText) {
             try {
               const accessToken = await getValidAccessToken();
               const gmailMsg = await getGmailMessage(accessToken, id);
