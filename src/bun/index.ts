@@ -7,6 +7,7 @@ import {
   getMessageById,
   getSyncState,
   updateSyncState,
+  updateMessageBodies,
 } from "./db";
 import {
   buildAuthURL,
@@ -16,7 +17,12 @@ import {
   sha256,
   setTokens,
   getRefreshToken,
+  getValidAccessToken,
 } from "./auth";
+import {
+  getMessage as getGmailMessage,
+  extractBodies,
+} from "./gmail";
 import {
   runInitialAndBackgroundSync,
   startIncrementalSyncPolling,
@@ -112,7 +118,32 @@ async function init() {
         },
 
         async getMessage({ id }: { id: string }) {
-          const msg = await getMessageById(id);
+          let msg = await getMessageById(id);
+
+          // On-demand body fetch: if the message is missing its HTML body
+          // (synced before the fix, or Gmail returned attachmentId-only),
+          // fetch the full payload from Gmail, extract bodies, and store.
+          if (msg && !msg.bodyHtml) {
+            try {
+              const accessToken = await getValidAccessToken();
+              const gmailMsg = await getGmailMessage(accessToken, id);
+              const bodies = await extractBodies(
+                gmailMsg.payload,
+                accessToken,
+                id
+              );
+
+              if (bodies.html || bodies.text) {
+                await updateMessageBodies(id, bodies.text, bodies.html);
+                // Re-fetch so the returned shape matches exactly
+                msg = await getMessageById(id);
+              }
+            } catch (err) {
+              console.error(`Failed to fetch body for message ${id}:`, err);
+              // Continue with the DB version (snippet fallback)
+            }
+          }
+
           return msg as unknown as RadiusRPC["bun"]["requests"]["getMessage"]["response"];
         },
 

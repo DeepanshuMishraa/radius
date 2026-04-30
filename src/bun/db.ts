@@ -309,6 +309,18 @@ export async function getSyncState(): Promise<{
   };
 }
 
+export async function updateMessageBodies(
+  id: string,
+  bodyText: string | null,
+  bodyHtml: string | null
+): Promise<void> {
+  const db = await getDb();
+  db.run(
+    `UPDATE messages SET body_text = ?, body_html = ? WHERE id = ?`,
+    [bodyText, bodyHtml, id]
+  );
+}
+
 export async function clearMessages(): Promise<void> {
   const db = await getDb();
   db.run("DELETE FROM messages");
