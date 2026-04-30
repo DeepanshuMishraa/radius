@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius-frame-bg: #ebe7e0;
+  --radius-frame-bg: #e0dbd3;
   --radius-bg-primary: #ffffff;
   --radius-bg-secondary: #f7f6f3;
   --radius-bg-tertiary: #efebe5;
@@ -112,7 +112,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --radius-frame-bg: #121110;
+    --radius-frame-bg: #0d0c0b;
     --radius-bg-primary: #1b1a18;
     --radius-bg-secondary: #242320;
     --radius-bg-tertiary: #2e2d2a;
@@ -204,7 +204,7 @@
     transition: background-color 0.2s ease, color 0.2s ease;
     overflow: hidden;
     height: 100vh;
-    padding: 7px;
+    padding: 3px;
     box-sizing: border-box;
   }
 
@@ -217,13 +217,13 @@
     border-radius: 10px;
     height: 100%;
     overflow: hidden;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
     position: relative;
   }
 
   @media (prefers-color-scheme: dark) {
     .app-frame {
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
     }
   }
 
