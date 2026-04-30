@@ -65,6 +65,106 @@ function InboxWidget({
   );
 }
 
+function getDeclaredWidth(value: string | null): number | null {
+  if (!value) return null;
+  const match = value.match(/(\d+(?:\.\d+)?)px/i) ?? value.match(/^(\d+(?:\.\d+)?)$/);
+  if (!match) return null;
+  const parsed = Number.parseFloat(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isRichNode(node: Element): boolean {
+  const element = node as HTMLElement;
+  const tagName = element.tagName.toLowerCase();
+  const style = element.getAttribute("style")?.toLowerCase() ?? "";
+  const textLength = (element.textContent ?? "").replace(/\s+/g, " ").trim().length;
+
+  if (
+    element.hasAttribute("bgcolor") ||
+    element.hasAttribute("background") ||
+    style.includes("background") ||
+    style.includes("box-shadow") ||
+    style.includes("border-radius")
+  ) {
+    return true;
+  }
+
+  if (tagName === "table") {
+    const widthAttr = getDeclaredWidth(element.getAttribute("width"));
+    const styleWidth = getDeclaredWidth(element.style.width);
+    if ((widthAttr ?? 0) >= 320 || (styleWidth ?? 0) >= 320) return true;
+    if (element.querySelectorAll("img").length > 0) return true;
+    if (element.querySelectorAll("tr").length >= 2) return true;
+  }
+
+  if (tagName === "img") {
+    const widthAttr = getDeclaredWidth(element.getAttribute("width"));
+    const styleWidth = getDeclaredWidth(element.style.width);
+    return (widthAttr ?? 0) >= 220 || (styleWidth ?? 0) >= 220;
+  }
+
+  if (tagName === "div" || tagName === "section" || tagName === "article") {
+    if (element.querySelector("table")) return true;
+    if (element.querySelectorAll("img").length >= 2) return true;
+    if (style.includes("border") && textLength < 500) return true;
+  }
+
+  return false;
+}
+
+function splitHtmlIntoSections(html: string): {
+  html: string;
+  hasRichSections: boolean;
+  richSectionCount: number;
+} {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const root = doc.body;
+  if (!root) return { html, hasRichSections: false, richSectionCount: 0 };
+
+  const topLevelNodes = Array.from(root.childNodes).filter((node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return (node.textContent ?? "").trim().length > 0;
+    }
+    return node.nodeType === Node.ELEMENT_NODE;
+  });
+
+  if (topLevelNodes.length === 0) {
+    return { html, hasRichSections: false, richSectionCount: 0 };
+  }
+
+  const firstRichIndex = topLevelNodes.findIndex((node) => {
+    if (node.nodeType !== Node.ELEMENT_NODE) return false;
+    return isRichNode(node as Element);
+  });
+
+  if (firstRichIndex <= 0) {
+    return {
+      html,
+      hasRichSections: firstRichIndex === 0,
+      richSectionCount: firstRichIndex === 0 ? 1 : 0,
+    };
+  }
+
+  const plainWrapper = doc.createElement("div");
+  plainWrapper.className = "email-section email-section--simple";
+
+  const richWrapper = doc.createElement("div");
+  richWrapper.className = "email-section email-section--rich";
+
+  topLevelNodes.forEach((node, index) => {
+    const target = index < firstRichIndex ? plainWrapper : richWrapper;
+    target.appendChild(node);
+  });
+
+  root.replaceChildren(plainWrapper, richWrapper);
+
+  return {
+    html: root.innerHTML,
+    hasRichSections: true,
+    richSectionCount: 1,
+  };
+}
+
 // Comprehensive allowlists for email HTML — tables, inline styles, images,
 // alignment attributes, and common legacy email markup.
 const EMAIL_ALLOWED_TAGS = [
@@ -115,13 +215,39 @@ const EMAIL_ALLOWED_ATTR = [
 
 const EMAIL_BODY_STYLES = `
   .email-body {
-    font-family: var(--font-family-sans), system-ui, -apple-system, sans-serif;
     word-wrap: break-word;
     overflow-wrap: break-word;
   }
-  .email-body * {
-    max-width: 100%;
-    box-sizing: border-box;
+  .email-body * { box-sizing: border-box; }
+  .email-body--simple {
+    font-family: var(--font-family-serif), Georgia, serif;
+    color: var(--radius-text-primary, #292827);
+    background: transparent;
+    font-size: 1.08rem;
+    line-height: 1.85;
+  }
+  .email-body--rich {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #202124;
+    background: #ffffff;
+  }
+  .email-section--simple {
+    font-family: var(--font-family-serif), Georgia, serif;
+    color: var(--radius-text-primary, #292827);
+    font-size: 1.08rem;
+    line-height: 1.85;
+  }
+  .email-section--rich {
+    margin-top: 2.25rem;
+    overflow-x: auto;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--radius-bg-primary, #ffffff) 96%, transparent);
+    padding: 1rem;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+    outline: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  .dark .email-section--rich {
+    background: #fbfbfa;
   }
   .email-body p { margin: 0 0 1em; }
   .email-body p:last-child { margin-bottom: 0; }
@@ -134,11 +260,29 @@ const EMAIL_BODY_STYLES = `
   .email-body a:hover { color: var(--radius-accent-hover, #B56A4D); }
   .email-body h1, .email-body h2, .email-body h3,
   .email-body h4, .email-body h5, .email-body h6 {
-    font-family: var(--font-family-sans), system-ui, sans-serif;
     font-weight: 600;
-    color: var(--radius-text-primary, #292827);
     margin: 1.5em 0 0.6em;
     line-height: 1.25;
+  }
+  .email-section--simple h1, .email-section--simple h2, .email-section--simple h3,
+  .email-section--simple h4, .email-section--simple h5, .email-section--simple h6 {
+    font-family: var(--font-family-serif), Georgia, serif;
+    color: var(--radius-text-primary, #292827);
+  }
+  .email-section--rich h1, .email-section--rich h2, .email-section--rich h3,
+  .email-section--rich h4, .email-section--rich h5, .email-section--rich h6 {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #202124;
+  }
+  .email-body--simple h1, .email-body--simple h2, .email-body--simple h3,
+  .email-body--simple h4, .email-body--simple h5, .email-body--simple h6 {
+    font-family: var(--font-family-serif), Georgia, serif;
+    color: var(--radius-text-primary, #292827);
+  }
+  .email-body--rich h1, .email-body--rich h2, .email-body--rich h3,
+  .email-body--rich h4, .email-body--rich h5, .email-body--rich h6 {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #202124;
   }
   .email-body h1 { font-size: 1.5em; }
   .email-body h2 { font-size: 1.3em; }
@@ -157,10 +301,25 @@ const EMAIL_BODY_STYLES = `
   .email-body dl { margin: 1em 0; }
   .email-body dt { font-weight: 600; margin-top: 0.5em; }
   .email-body dd { margin-left: 1.5em; }
+  .email-section--simple :is(div, span, p, td, th, li, a, strong, em, b, i, font) {
+    color: inherit !important;
+    font-family: inherit !important;
+  }
+  .email-body--simple :is(div, span, p, td, th, li, a, strong, em, b, i, font) {
+    color: inherit !important;
+    font-family: inherit !important;
+  }
+  .email-section--simple img {
+    border-radius: 14px;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--radius-border-subtle, #E5E0D9) 75%, transparent);
+  }
+  .email-body--simple img {
+    border-radius: 14px;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--radius-border-subtle, #E5E0D9) 75%, transparent);
+  }
   .email-body img {
     max-width: 100%;
     height: auto;
-    border-radius: 4px;
     display: inline-block;
   }
   .email-body figure { margin: 1em 0; }
@@ -172,27 +331,33 @@ const EMAIL_BODY_STYLES = `
   }
   .email-body video, .email-body audio {
     max-width: 100%;
-    border-radius: 4px;
     margin: 1em 0;
   }
   .email-body table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 1em 0;
-    font-size: 0.95em;
+    max-width: 100%;
+  }
+  .email-section--simple table {
+    background: color-mix(in srgb, var(--radius-bg-secondary, #F7F6F3) 92%, transparent);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .email-body--simple table {
+    background: color-mix(in srgb, var(--radius-bg-secondary, #F7F6F3) 92%, transparent);
+    border-radius: 16px;
+    overflow: hidden;
   }
   .email-body th, .email-body td {
-    padding: 0.5em 0.75em;
-    border: 1px solid var(--radius-border-subtle, #E5E0D9);
-    text-align: left;
     vertical-align: top;
   }
-  .email-body th {
-    background: var(--radius-bg-secondary, #F7F6F3);
-    font-weight: 600;
+  .email-body--simple td,
+  .email-body--simple th {
+    padding: 0.5em 0.75em;
+  }
+  .email-section--simple td,
+  .email-section--simple th {
+    padding: 0.5em 0.75em;
   }
   .email-body caption {
-    font-weight: 600;
     margin-bottom: 0.5em;
     text-align: left;
   }
@@ -220,13 +385,6 @@ const EMAIL_BODY_STYLES = `
   }
   .email-body center { text-align: center; display: block; }
   .email-body center table { margin-left: auto; margin-right: auto; }
-  .email-body table[align="left"],
-  .email-body table[align="right"] {
-    max-width: 50%;
-  }
-  .email-body > table {
-    table-layout: fixed;
-  }
   .email-body table td img {
     max-width: 100%;
   }
@@ -279,6 +437,13 @@ export const ReaderView = memo(function ReaderView({
       FORCE_BODY: true,
     });
   }, [rawHtml]);
+  const htmlRender = useMemo(
+    () =>
+      sanitizedHtml
+        ? splitHtmlIntoSections(sanitizedHtml)
+        : { html: null, hasRichSections: false, richSectionCount: 0 },
+    [sanitizedHtml]
+  );
 
   if (!message) {
     return (
@@ -307,53 +472,61 @@ export const ReaderView = memo(function ReaderView({
 
   const sender = parseAddress(message.from);
   const recipient = parseAddress(message.to);
+  const hasHtmlBody = Boolean(sanitizedHtml);
 
   return (
     <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-9">
       <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
 
       <div className="flex-1 email-enter" key={message.id}>
-        <article className="max-w-[720px] mx-auto px-6 pt-8 pb-24">
-          {/* Subject */}
-          <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-wide mb-10">
-            {message.subject}
-          </h1>
+        <article className="w-full px-6 pt-8 pb-24">
+          <header className="max-w-[720px] mx-auto">
+            <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-wide mb-10">
+              {message.subject}
+            </h1>
 
-          {/* Metadata */}
-          <div className="mb-10 pb-8 border-b border-radius-border-subtle space-y-2">
-            <div className="flex items-baseline gap-6">
-              <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
-                From
-              </span>
-              <span className="text-[14px] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
-                {sender.name}
-              </span>
+            <div className="mb-10 pb-8 border-b border-radius-border-subtle space-y-2">
+              <div className="flex items-baseline gap-6">
+                <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
+                  From
+                </span>
+                <span className="text-[14px] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
+                  {sender.name}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-6">
+                <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
+                  To
+                </span>
+                <span className="text-[14px] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
+                  {recipient.name}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-6 pt-1">
+                <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]"></span>
+                <time className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-serif)]">
+                  {formatFullDate(message.internalDate)}
+                </time>
+              </div>
             </div>
-            <div className="flex items-baseline gap-6">
-              <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
-                To
-              </span>
-              <span className="text-[14px] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
-                {recipient.name}
-              </span>
-            </div>
-            <div className="flex items-baseline gap-6 pt-1">
-              <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]"></span>
-              <time className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-serif)]">
-                {formatFullDate(message.internalDate)}
-              </time>
-            </div>
-          </div>
+          </header>
 
-          {/* Body */}
-          {sanitizedHtml ? (
-            <div
-              className="email-body text-[15px] leading-[1.7] text-radius-text-primary"
-              onClick={handleBodyClick}
-              dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-            />
+          {hasHtmlBody ? (
+            <div className={`mx-auto ${htmlRender.hasRichSections ? "max-w-[1160px]" : "max-w-[720px]"}`}>
+              <div
+                className={`email-body min-w-0 ${
+                  htmlRender.hasRichSections
+                    ? "text-[15px] leading-[1.6]"
+                    : "email-body--simple"
+                }`}
+                onClick={handleBodyClick}
+                dangerouslySetInnerHTML={{
+                  __html: htmlRender.html ?? sanitizedHtml ?? "",
+                }}
+              />
+            </div>
           ) : (
-            <div className="font-[family-name:var(--font-family-serif)] text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
+            <div className="max-w-[720px] mx-auto font-[family-name:var(--font-family-serif)] text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
               {message.bodyText || message.snippet}
             </div>
           )}
