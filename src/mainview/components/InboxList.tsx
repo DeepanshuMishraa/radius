@@ -70,7 +70,8 @@ function EmailRow({
 }
 
 function SyncIndicator({ syncStatus }: { syncStatus: SyncStatus }) {
-  if (syncStatus.status !== "syncing") return null;
+  // Only show sync UI during initial sync. Background sync is invisible.
+  if (syncStatus.status !== "syncing" || syncStatus.phase !== "initial") return null;
 
   const current = syncStatus.progress?.current ?? 0;
   const total = syncStatus.progress?.total ?? 0;

@@ -126,6 +126,49 @@ export async function insertMessage(message: {
   );
 }
 
+export async function insertMessages(
+  messages: Array<{
+    id: string;
+    threadId: string;
+    historyId: string;
+    internalDate: number;
+    from: string;
+    to: string;
+    subject: string;
+    snippet: string;
+    bodyText: string | null;
+    bodyHtml: string | null;
+  }>
+): Promise<void> {
+  const db = await getDb();
+  db.exec("BEGIN TRANSACTION");
+  try {
+    for (const message of messages) {
+      db.run(
+        `INSERT OR REPLACE INTO messages
+         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          message.id,
+          message.threadId,
+          message.historyId,
+          message.internalDate,
+          message.from,
+          message.to,
+          message.subject,
+          message.snippet,
+          message.bodyText,
+          message.bodyHtml,
+        ]
+      );
+    }
+    db.exec("COMMIT");
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
+  }
+}
+
 export async function getInboxMessages(
   limit: number,
   offset: number

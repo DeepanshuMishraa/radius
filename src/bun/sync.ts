@@ -1,6 +1,6 @@
 import { getValidAccessToken } from "./auth";
 import {
-  insertMessage,
+  insertMessages,
   updateSyncState,
   getSyncState,
   clearMessages,
@@ -361,6 +361,7 @@ export async function doIncrementalSync(): Promise<{
 
       if (addedIds.size > 0) {
         const ids = Array.from(addedIds);
+        const allNewMessages: GmailMessage[] = [];
 
         for (let i = 0; i < ids.length; i += FETCH_BATCH_SIZE) {
           const batch = ids.slice(i, i + FETCH_BATCH_SIZE);
@@ -371,9 +372,13 @@ export async function doIncrementalSync(): Promise<{
           );
 
           const valid = fetched.filter((m): m is GmailMessage => m !== null);
-          await flushInsertBuffer(valid);
+          allNewMessages.push(...valid);
           newCount += valid.length;
           await Bun.sleep(0);
+        }
+
+        if (allNewMessages.length > 0) {
+          await flushInsertBuffer(allNewMessages);
         }
       }
 
@@ -408,11 +413,11 @@ export async function doIncrementalSync(): Promise<{
 }
 
 async function flushInsertBuffer(messages: GmailMessage[]): Promise<void> {
-  for (const msg of messages) {
+  const toInsert = messages.map((msg) => {
     const bodies = extractBodies(msg.payload);
     const headers = parseHeaders(msg.payload.headers);
 
-    await insertMessage({
+    return {
       id: msg.id,
       threadId: msg.threadId,
       historyId: msg.historyId,
@@ -423,8 +428,10 @@ async function flushInsertBuffer(messages: GmailMessage[]): Promise<void> {
       snippet: msg.snippet,
       bodyText: bodies.text,
       bodyHtml: bodies.html,
-    });
-  }
+    };
+  });
+
+  await insertMessages(toInsert);
 }
 
 export async function startIncrementalSyncPolling(

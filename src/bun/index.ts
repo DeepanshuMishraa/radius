@@ -73,7 +73,9 @@ async function handleOAuthCallback(code: string): Promise<void> {
       lastSyncAt: Date.now(),
       error: null,
     });
-    console.log("✅ Authenticated — opening inbox, streaming messages in background");
+    console.log(
+      "✅ Authenticated — opening inbox, streaming messages in background",
+    );
 
     // Start sync in the background — don't block the callback
     runInitialAndBackgroundSync().catch((err) => {
@@ -119,7 +121,9 @@ async function init() {
           return {
             status:
               state.status as RadiusRPC["bun"]["requests"]["getSyncStatus"]["response"]["status"],
-            phase: (state.phase as "initial" | "background" | undefined) ?? undefined,
+            phase:
+              (state.phase as "initial" | "background" | undefined) ??
+              undefined,
             progress:
               state.progressCurrent !== null && state.progressTotal !== null
                 ? { current: state.progressCurrent, total: state.progressTotal }
@@ -190,7 +194,7 @@ async function init() {
   const mainWindow = new BrowserWindow<typeof rpc>({
     title: "Radius",
     url,
-    frame: { width: 1300, height: 800, x: 200, y: 200 },
+    frame: { width: 1300, height: 800, x: 600, y: 500 },
     titleBarStyle: "hiddenInset",
     renderer: "cef",
     rpc,

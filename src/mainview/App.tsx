@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Onboarding } from "./components/Onboarding";
 import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
+import { SyncProgress } from "./components/SyncProgress";
 import { useAuth, useSyncStatus, useInbox } from "./hooks/useInbox";
 import { CommandDemo } from "@/components/cmd";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -59,6 +60,19 @@ function App() {
     );
   }
 
+  // Show full-screen sync progress on first startup (initial sync only)
+  if (syncStatus.phase === "initial") {
+    return (
+      <div className="relative h-screen bg-radius-bg-primary">
+        <DragRegion />
+        <SyncProgress
+          current={syncStatus.progress?.current ?? 0}
+          total={syncStatus.progress?.total ?? 0}
+        />
+      </div>
+    );
+  }
+
   const selectedMessage = messages.find((m) => m.id === selectedMessageId) ?? null;
 
   return (
@@ -90,7 +104,7 @@ function App() {
 
       {/* Command Palette */}
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen}>
-        <DialogContent className="w-full max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none">
+        <DialogContent className="w-full max-w-xl p-0 overflow-hidden border-0 bg-transparent shadow-none">
           <CommandDemo />
         </DialogContent>
       </Dialog>
