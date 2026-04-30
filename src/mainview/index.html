@@ -16,9 +16,9 @@
     <script>
       (function() {
         const mq = window.matchMedia('(prefers-color-scheme: dark)');
-        document.body.style.backgroundColor = mq.matches ? '#0d0c0b' : '#e0dbd3';
+        document.body.style.backgroundColor = mq.matches ? '#000000' : '#e0dbd3';
         mq.addEventListener('change', function(e) {
-          document.body.style.backgroundColor = e.matches ? '#0d0c0b' : '#e0dbd3';
+          document.body.style.backgroundColor = e.matches ? '#000000' : '#e0dbd3';
         });
       })();
     </script>

@@ -112,7 +112,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --radius-frame-bg: #0d0c0b;
+    --radius-frame-bg: #000000;
     --radius-bg-primary: #1b1a18;
     --radius-bg-secondary: #242320;
     --radius-bg-tertiary: #2e2d2a;
@@ -218,12 +218,14 @@
     height: 100%;
     overflow: hidden;
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     position: relative;
   }
 
   @media (prefers-color-scheme: dark) {
     .app-frame {
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.10);
     }
   }
 

@@ -194,7 +194,7 @@ async function init() {
   const mainWindow = new BrowserWindow<typeof rpc>({
     title: "Radius",
     url,
-    frame: { width: 1300, height: 800, x: 600, y: 500 },
+    frame: { width: 1300, height: 800, x: 100, y: 70 },
     titleBarStyle: "hiddenInset",
     renderer: "cef",
     rpc,
