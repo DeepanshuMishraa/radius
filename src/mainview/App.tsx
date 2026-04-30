@@ -1,16 +1,33 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, useDeferredValue } from "react";
 import { Onboarding } from "./components/Onboarding";
 import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
-import { useAuth, useSyncStatus, useInbox, useMessage } from "./hooks/useInbox";
+import { useAuth, useSyncStatus, useInbox, useInboxSearch, useMessage } from "./hooks/useInbox";
 import { CommandK } from "@/components/cmd";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ThemeProvider } from "@/components/theme-provider";
+import { MagnifyingGlassIcon, ArrowBendDownLeftIcon, XIcon } from "@phosphor-icons/react";
+
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedValue(value);
+    }, delayMs);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [delayMs, value]);
+
+  return debouncedValue;
+}
 
 function App() {
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchDraft, setSearchDraft] = useState("");
 
   const { isAuthenticated, startOAuth } = useAuth();
   const syncStatus = useSyncStatus();
@@ -19,11 +36,21 @@ function App() {
     0,
     syncStatus.status === "syncing" ? 2000 : 15000
   );
+  const debouncedSearchQuery = useDebouncedValue(searchDraft, 120);
+  const deferredSearchQuery = useDeferredValue(debouncedSearchQuery);
+  const searchActive = searchOpen && deferredSearchQuery.trim().length > 0;
+  const {
+    messages: searchedMessages,
+    total: searchedTotal,
+    loading: searchLoading,
+  } = useInboxSearch(searchActive ? deferredSearchQuery : "", 250, 0);
   const { message: fullMessage } = useMessage(selectedMessageId);
   const hasAuthSignal = isAuthenticated === true || Boolean(syncStatus.lastSyncAt);
+  const visibleMessages = searchActive ? searchedMessages : messages;
+  const visibleTotal = searchActive ? searchedTotal : total;
   const messagesById = useMemo(() => {
-    return new Map(messages.map((message) => [message.id, message]));
-  }, [messages]);
+    return new Map(visibleMessages.map((message) => [message.id, message]));
+  }, [visibleMessages]);
   const selectedMessagePreview = selectedMessageId
     ? messagesById.get(selectedMessageId) ?? null
     : null;
@@ -37,6 +64,7 @@ function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setCmdOpen((prev) => !prev);
+        setSearchOpen(false);
       }
     };
     window.addEventListener("keydown", handler);
@@ -55,6 +83,34 @@ function App() {
   const handleOpenSidebar = useCallback(() => {
     setSidebarOpen(true);
   }, []);
+
+  const handleOpenSearch = useCallback(() => {
+    setCmdOpen(false);
+    setSearchOpen(true);
+    setSidebarOpen(true);
+  }, []);
+
+  const handleCloseSearch = useCallback(() => {
+    setSearchOpen(false);
+    setSearchDraft("");
+  }, []);
+
+  const handleSubmitSearch = useCallback(() => {
+    if (searchedMessages.length > 0) {
+      setSelectedMessageId(searchedMessages[0].id);
+      setSidebarOpen(false);
+      setSearchOpen(false);
+    }
+  }, [searchedMessages]);
+
+  const searchMeta = useMemo(() => {
+    const trimmedQuery = deferredSearchQuery.trim();
+    if (!searchOpen) return null;
+    if (!trimmedQuery) return "Search sender, subject, snippet, or body text";
+    if (searchLoading) return `Searching for “${trimmedQuery}”`;
+    if (searchedTotal === 0) return `No emails match “${trimmedQuery}”`;
+    return `${searchedTotal.toLocaleString()} result${searchedTotal === 1 ? "" : "s"} for “${trimmedQuery}”`;
+  }, [deferredSearchQuery, searchLoading, searchOpen, searchedTotal]);
 
   if (isAuthenticated === null && !hasAuthSignal) {
     return (
@@ -85,11 +141,19 @@ function App() {
         data-open={sidebarOpen}
       >
         <InboxList
-          messages={messages}
-          total={total}
+          messages={visibleMessages}
+          total={visibleTotal}
           selectedId={selectedMessageId}
           onSelect={handleSelectMessage}
           syncStatus={syncStatus}
+          heading={searchActive ? "Search Results" : "Inbox"}
+          detail={searchMeta ?? undefined}
+          loading={searchLoading}
+          emptyMessage={
+            searchActive
+              ? `No emails match “${deferredSearchQuery.trim()}”`
+              : undefined
+          }
         />
       </aside>
       <main className="flex-1 min-w-0 h-full">
@@ -101,14 +165,118 @@ function App() {
       </main>
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen}>
         <DialogContent className="w-full max-w-xl p-0 overflow-hidden border-0 bg-transparent shadow-none">
-          <CommandK />
+          <DialogTitle className="sr-only">Command palette</DialogTitle>
+          <DialogDescription className="sr-only">
+            Search for commands and actions in Radius.
+          </DialogDescription>
+          <CommandK onSearchEmails={handleOpenSearch} />
         </DialogContent>
       </Dialog>
+      <EmailSearchSpotlight
+        open={searchOpen}
+        query={searchDraft}
+        resultCount={searchedTotal}
+        loading={searchLoading}
+        onChangeQuery={setSearchDraft}
+        onClose={handleCloseSearch}
+        onSubmit={handleSubmitSearch}
+      />
 
       {/* Minimal sync indicator — bottom left, never blocks */}
       <SyncPill syncStatus={syncStatus} />
       </div>
     </ThemeProvider>
+  );
+}
+
+function EmailSearchSpotlight({
+  open,
+  query,
+  resultCount,
+  loading,
+  onChangeQuery,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  query: string;
+  resultCount: number;
+  loading: boolean;
+  onChangeQuery: (value: string) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = window.setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 20);
+
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-[52px] z-50 flex justify-center px-4">
+      <div className="pointer-events-auto w-full max-w-[500px] rounded-[16px] border border-radius-border-subtle bg-radius-bg-primary/94 shadow-[0_14px_36px_rgba(0,0,0,0.10)] supports-backdrop-filter:backdrop-blur-md">
+        <div className="flex items-center gap-3 px-3.5 py-3">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-radius-bg-secondary text-radius-text-muted">
+            <MagnifyingGlassIcon size={13} weight="bold" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(event) => onChangeQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
+                  event.preventDefault();
+                  inputRef.current?.select();
+                }
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  onClose();
+                }
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  onSubmit();
+                }
+              }}
+              placeholder="Search email"
+              className="w-full bg-transparent text-[16px] leading-none text-radius-text-primary outline-none placeholder:text-radius-text-muted/85 font-[family-name:var(--font-family-serif)]"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
+            aria-label="Close email search"
+          >
+            <XIcon size={13} />
+          </button>
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t border-radius-border-subtle px-3.5 py-2 text-[10px] uppercase tracking-[0.08em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+          <div className="min-w-0 truncate">
+            {!query.trim()
+              ? "Local inbox search"
+              : loading
+                ? "Searching..."
+                : `${resultCount.toLocaleString()} result${resultCount === 1 ? "" : "s"}`}
+          </div>
+          <div className="shrink-0 inline-flex items-center gap-3">
+            <span className="inline-flex items-center gap-1">
+              <ArrowBendDownLeftIcon size={10} />
+              Open
+            </span>
+            <span>Esc</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

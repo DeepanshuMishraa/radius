@@ -6,6 +6,7 @@ import {
   getInboxMessages,
   getMessageById,
   getSyncState,
+  searchInboxMessages,
   updateSyncState,
   updateMessageBodies,
 } from "./db";
@@ -113,6 +114,23 @@ async function init() {
           return {
             messages:
               result.messages as unknown as RadiusRPC["bun"]["requests"]["getInbox"]["response"]["messages"],
+            total: result.total,
+          };
+        },
+
+        async searchInbox({
+          query,
+          limit,
+          offset,
+        }: {
+          query: string;
+          limit: number;
+          offset: number;
+        }) {
+          const result = await searchInboxMessages(query, limit, offset);
+          return {
+            messages:
+              result.messages as unknown as RadiusRPC["bun"]["requests"]["searchInbox"]["response"]["messages"],
             total: result.total,
           };
         },

@@ -8,6 +8,10 @@ interface InboxListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   syncStatus: SyncStatus;
+  heading?: string;
+  detail?: string;
+  loading?: boolean;
+  emptyMessage?: string;
 }
 
 function formatDateShort(timestamp: number): string {
@@ -75,6 +79,10 @@ export function InboxList({
   selectedId,
   onSelect,
   syncStatus,
+  heading = "Inbox",
+  detail,
+  loading = false,
+  emptyMessage,
 }: InboxListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -97,12 +105,24 @@ export function InboxList({
     <div className="flex flex-col h-full bg-radius-bg-primary pt-9">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-radius-border-subtle">
-        <span className="text-[11px] font-semibold text-radius-text-muted uppercase tracking-[1px] font-[family-name:var(--font-family-sans)]">
-          Inbox
-        </span>
-        <span className="text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-          {total.toLocaleString()}
-        </span>
+        <div className="min-w-0">
+          <span className="block text-[11px] font-semibold text-radius-text-muted uppercase tracking-[1px] font-[family-name:var(--font-family-sans)]">
+            {heading}
+          </span>
+          {detail ? (
+            <span className="block mt-1 text-[11px] text-radius-text-muted/90 truncate font-[family-name:var(--font-family-sans)]">
+              {detail}
+            </span>
+          ) : null}
+        </div>
+        <div className="shrink-0 flex items-center gap-2">
+          {loading ? (
+            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-radius-accent animate-pulse" />
+          ) : null}
+          <span className="text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+            {total.toLocaleString()}
+          </span>
+        </div>
       </div>
 
       {messages.length === 0 ? (
@@ -122,7 +142,7 @@ export function InboxList({
             </svg>
           </div>
           <p className="text-[13px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-            {syncStatus.status === "syncing" ? "Fetching your emails" : "No messages"}
+            {emptyMessage ?? (syncStatus.status === "syncing" ? "Fetching your emails" : "No messages")}
           </p>
         </div>
       ) : (

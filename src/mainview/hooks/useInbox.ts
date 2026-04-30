@@ -98,6 +98,55 @@ export function useInbox(
   return { messages, total, loading, refresh: fetchInbox };
 }
 
+export function useInboxSearch(
+  query: string,
+  limit: number = 200,
+  offset: number = 0
+) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const requestIdRef = useRef(0);
+
+  useEffect(() => {
+    const trimmedQuery = query.trim();
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
+    if (!trimmedQuery) {
+      setMessages([]);
+      setTotal(0);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    radiusRpc.request
+      .searchInbox({ query: trimmedQuery, limit, offset })
+      .then((result) => {
+        if (requestIdRef.current !== requestId) return;
+        setMessages((prev) =>
+          areMessagesEqual(result.messages, prev) ? prev : result.messages
+        );
+        setTotal((prev) => (prev === result.total ? prev : result.total));
+      })
+      .catch((err: unknown) => {
+        if (requestIdRef.current !== requestId) return;
+        console.error("Failed to search inbox:", err);
+        setMessages([]);
+        setTotal(0);
+      })
+      .finally(() => {
+        if (requestIdRef.current === requestId) {
+          setLoading(false);
+        }
+      });
+  }, [limit, offset, query]);
+
+  return { messages, total, loading };
+}
+
 export function useMessage(id: string | null) {
   const [message, setMessage] = useState<Message | null>(null);
   const [loading, setLoading] = useState(false);

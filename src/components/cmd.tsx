@@ -1,11 +1,5 @@
 import * as React from "react";
-import {
-  Calculator,
-  CreditCard,
-  Settings,
-  Smile,
-  User,
-} from "lucide-react";
+import { Calculator, CreditCard, Settings, User } from "lucide-react";
 
 import {
   Command,
@@ -18,9 +12,16 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { useTheme } from "./theme-provider";
-import { SunDimIcon } from "@phosphor-icons/react/dist/ssr";
+import {
+  SunDimIcon,
+  MagnifyingGlassIcon,
+} from "@phosphor-icons/react/dist/ssr";
 
-export function CommandK() {
+interface CommandKProps {
+  onSearchEmails: () => void;
+}
+
+export function CommandK({ onSearchEmails }: CommandKProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const { setTheme, theme } = useTheme();
 
@@ -53,13 +54,15 @@ export function CommandK() {
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Suggestions">
-          <CommandItem onSelect={() => setTheme(theme === "dark" ? "light" : "dark")}>
+          <CommandItem
+            onSelect={() => setTheme(theme === "dark" ? "light" : "dark")}
+          >
             <SunDimIcon />
             <span>Toggle Theme</span>
           </CommandItem>
-          <CommandItem>
-            <Smile />
-            <span>Search Emoji</span>
+          <CommandItem onSelect={onSearchEmails}>
+            <MagnifyingGlassIcon />
+            <span>Search Emails</span>
           </CommandItem>
           <CommandItem disabled>
             <Calculator />

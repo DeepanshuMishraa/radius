@@ -41,6 +41,15 @@ export async function createSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_messages_date ON messages(internal_date DESC);
     CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(thread_id);
 
+    CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+      id UNINDEXED,
+      from_addr,
+      to_addr,
+      subject,
+      snippet,
+      body_text
+    );
+
     CREATE TABLE IF NOT EXISTS sync_state (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       history_id TEXT,
@@ -90,8 +99,47 @@ export async function createSchema(): Promise<void> {
     db.exec("ALTER TABLE sync_state ADD COLUMN error TEXT");
   }
 
+  const messageCountRow = db.query("SELECT COUNT(*) as count FROM messages").get() as {
+    count: number;
+  };
+  const ftsCountRow = db.query("SELECT COUNT(*) as count FROM messages_fts").get() as {
+    count: number;
+  };
+
+  if (ftsCountRow.count !== messageCountRow.count) {
+    db.exec("DELETE FROM messages_fts");
+    db.exec(`
+      INSERT INTO messages_fts (id, from_addr, to_addr, subject, snippet, body_text)
+      SELECT id, COALESCE(from_addr, ''), COALESCE(to_addr, ''), COALESCE(subject, ''),
+             COALESCE(snippet, ''), COALESCE(body_text, '')
+      FROM messages
+    `);
+  }
+
   // Reset any stale 'syncing' state from a previous crashed run
   db.run("UPDATE sync_state SET status = 'idle', phase = NULL, progress_current = NULL, progress_total = NULL WHERE status = 'syncing'");
+}
+
+function upsertMessageSearchIndex(db: Database, id: string) {
+  db.run("DELETE FROM messages_fts WHERE id = ?", [id]);
+  db.run(
+    `INSERT INTO messages_fts (id, from_addr, to_addr, subject, snippet, body_text)
+     SELECT id, COALESCE(from_addr, ''), COALESCE(to_addr, ''), COALESCE(subject, ''),
+            COALESCE(snippet, ''), COALESCE(body_text, '')
+     FROM messages
+     WHERE id = ?`,
+    [id]
+  );
+}
+
+function buildFtsQuery(query: string): string {
+  return query
+    .trim()
+    .split(/\s+/)
+    .map((token) => token.replace(/"/g, '""'))
+    .filter(Boolean)
+    .map((token) => `"${token}"*`)
+    .join(" AND ");
 }
 
 export async function insertMessage(message: {
@@ -124,6 +172,7 @@ export async function insertMessage(message: {
       message.bodyHtml,
     ]
   );
+  upsertMessageSearchIndex(db, message.id);
 }
 
 export async function insertMessages(
@@ -161,6 +210,7 @@ export async function insertMessages(
           message.bodyHtml,
         ]
       );
+      upsertMessageSearchIndex(db, message.id);
     }
     db.exec("COMMIT");
   } catch (err) {
@@ -206,6 +256,49 @@ export async function getMessageById(
     )
     .get(id) as Record<string, unknown> | null;
   return row;
+}
+
+export async function searchInboxMessages(
+  query: string,
+  limit: number,
+  offset: number
+): Promise<{ messages: Array<Record<string, unknown>>; total: number }> {
+  const db = await getDb();
+  const trimmedQuery = query.trim();
+
+  if (!trimmedQuery) {
+    return getInboxMessages(limit, offset);
+  }
+
+  const ftsQuery = buildFtsQuery(trimmedQuery);
+
+  const totalRow = db
+    .query(
+      `SELECT COUNT(*) as count
+       FROM messages_fts
+       WHERE messages_fts MATCH ?`
+    )
+    .get(ftsQuery) as { count: number };
+
+  const rows = db
+    .query(
+      `SELECT m.id,
+              m.thread_id as threadId,
+              m.history_id as historyId,
+              m.internal_date as internalDate,
+              m.from_addr as \`from\`,
+              m.to_addr as \`to\`,
+              m.subject,
+              m.snippet
+       FROM messages_fts f
+       JOIN messages m ON m.id = f.id
+       WHERE messages_fts MATCH ?
+       ORDER BY bm25(messages_fts), m.internal_date DESC
+       LIMIT ? OFFSET ?`
+    )
+    .all(ftsQuery, limit, offset) as Array<Record<string, unknown>>;
+
+  return { messages: rows, total: totalRow.count };
 }
 
 export async function updateSyncState(state: {
@@ -319,9 +412,11 @@ export async function updateMessageBodies(
     `UPDATE messages SET body_text = ?, body_html = ? WHERE id = ?`,
     [bodyText, bodyHtml, id]
   );
+  upsertMessageSearchIndex(db, id);
 }
 
 export async function clearMessages(): Promise<void> {
   const db = await getDb();
   db.run("DELETE FROM messages");
+  db.run("DELETE FROM messages_fts");
 }

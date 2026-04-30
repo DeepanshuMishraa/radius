@@ -35,6 +35,10 @@ export type RadiusRPC = {
         params: { limit: number; offset: number };
         response: { messages: Message[]; total: number };
       };
+      searchInbox: {
+        params: { query: string; limit: number; offset: number };
+        response: { messages: Message[]; total: number };
+      };
       getMessage: {
         params: { id: string };
         response: Message | null;
