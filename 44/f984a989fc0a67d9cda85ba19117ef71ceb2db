@@ -1,0 +1,33 @@
+src/mainview/App.tsx
+  64d4e9409be6f4a5 5,63-75,107
+src/components/ui/command.tsx
+  64d4e9409be6f4a5 66-69,74,88
+src/mainview/components/InboxList.tsx
+  64d4e9409be6f4a5 73-74
+src/bun/sync.ts
+  64d4e9409be6f4a5 3,364,375,379-382,416,420,431-434
+src/bun/db.ts
+  64d4e9409be6f4a5 129-171
+src/components/cmd.tsx
+  64d4e9409be6f4a5 1,23-40,42-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "44f984a989fc0a67d9cda85ba19117ef71ceb2db",
+  "prompts": {
+    "64d4e9409be6f4a5": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019ddc82-bd67-718f-a3e2-ad69852455a2",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 104,
+      "total_deletions": 15,
+      "accepted_lines": 104,
+      "overriden_lines": 0
+    }
+  }
+}
