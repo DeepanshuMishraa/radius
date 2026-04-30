@@ -109,12 +109,10 @@
 @keyframes dialog-content-in {
   from {
     opacity: 0;
-    margin-top: 12px;
-    transform: translate(-50%, -50%) scale(0.96);
+    transform: translate(-50%, calc(-50% + 10px)) scale(0.97);
   }
   to {
     opacity: 1;
-    margin-top: 0;
     transform: translate(-50%, -50%) scale(1);
   }
 }
@@ -122,13 +120,11 @@
 @keyframes dialog-content-out {
   from {
     opacity: 1;
-    margin-top: 0;
     transform: translate(-50%, -50%) scale(1);
   }
   to {
     opacity: 0;
-    margin-top: -4px;
-    transform: translate(-50%, -50%) scale(0.98);
+    transform: translate(-50%, calc(-50% - 6px)) scale(0.98);
   }
 }
 
