@@ -15,11 +15,8 @@
   <body>
     <script>
       (function() {
-        const mq = window.matchMedia('(prefers-color-scheme: dark)');
-        document.body.style.backgroundColor = mq.matches ? '#000000' : '#e0dbd3';
-        mq.addEventListener('change', function(e) {
-          document.body.style.backgroundColor = e.matches ? '#000000' : '#e0dbd3';
-        });
+        const theme = localStorage.getItem('vite-ui-theme') || 'dark';
+        document.documentElement.classList.add(theme === 'system' ? 'dark' : theme);
       })();
     </script>
     <div id="root"></div>

@@ -1,12 +1,11 @@
-import * as React from "react"
+import * as React from "react";
 import {
   Calculator,
-  Calendar,
   CreditCard,
   Settings,
   Smile,
   User,
-} from "lucide-react"
+} from "lucide-react";
 
 import {
   Command,
@@ -17,29 +16,35 @@ import {
   CommandList,
   CommandSeparator,
   CommandShortcut,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
+import { useTheme } from "./theme-provider";
+import { SunDimIcon } from "@phosphor-icons/react/dist/ssr";
 
-export function CommandDemo() {
-  const inputRef = React.useRef<HTMLInputElement>(null)
+export function CommandK() {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const { setTheme, theme } = useTheme();
 
   React.useEffect(() => {
     // Ensure the input is focused when the dialog opens
     const timer = setTimeout(() => {
-      inputRef.current?.focus()
-    }, 0)
-    return () => clearTimeout(timer)
-  }, [])
+      inputRef.current?.focus();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleKeyDown = React.useCallback((e: React.KeyboardEvent) => {
     // Explicitly handle Cmd+A / Ctrl+A to select all text in the input
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
-      e.preventDefault()
-      inputRef.current?.select()
+      e.preventDefault();
+      inputRef.current?.select();
     }
-  }, [])
+  }, []);
 
   return (
-    <Command className="w-full max-w-xl rounded-lg border" onKeyDown={handleKeyDown}>
+    <Command
+      className="w-full max-w-xl rounded-lg border"
+      onKeyDown={handleKeyDown}
+    >
       <CommandInput
         ref={inputRef}
         placeholder="Type a command or search..."
@@ -48,9 +53,9 @@ export function CommandDemo() {
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Suggestions">
-          <CommandItem>
-            <Calendar />
-            <span>Calendar</span>
+          <CommandItem onSelect={() => setTheme(theme === "dark" ? "light" : "dark")}>
+            <SunDimIcon />
+            <span>Toggle Theme</span>
           </CommandItem>
           <CommandItem>
             <Smile />
@@ -81,5 +86,5 @@ export function CommandDemo() {
         </CommandGroup>
       </CommandList>
     </Command>
-  )
+  );
 }

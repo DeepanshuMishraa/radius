@@ -4,8 +4,9 @@ import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
 import { SyncProgress } from "./components/SyncProgress";
 import { useAuth, useSyncStatus, useInbox } from "./hooks/useInbox";
-import { CommandDemo } from "@/components/cmd";
+import {  CommandK } from "@/components/cmd";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ThemeProvider } from "@/components/theme-provider";
 
 function App() {
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
@@ -76,10 +77,9 @@ function App() {
   const selectedMessage = messages.find((m) => m.id === selectedMessageId) ?? null;
 
   return (
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
     <div className="relative flex h-full bg-radius-bg-primary overflow-hidden">
       <DragRegion />
-
-      {/* Sidebar — slides in/out with GPU-accelerated transform only */}
       <aside
         className="sidebar-panel h-full border-r border-radius-border-subtle bg-radius-bg-primary will-change-transform"
         data-open={sidebarOpen}
@@ -92,8 +92,6 @@ function App() {
           syncStatus={syncStatus}
         />
       </aside>
-
-      {/* Reader view — fills remaining space */}
       <main className="flex-1 min-w-0 h-full">
         <ReaderView
           message={selectedMessage}
@@ -101,14 +99,13 @@ function App() {
           onOpenSidebar={handleOpenSidebar}
         />
       </main>
-
-      {/* Command Palette */}
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen}>
         <DialogContent className="w-full max-w-xl p-0 overflow-hidden border-0 bg-transparent shadow-none">
-          <CommandDemo />
+          <CommandK />
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </ThemeProvider>
   );
 }
 
