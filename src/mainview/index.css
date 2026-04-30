@@ -183,7 +183,7 @@
 
   --font-family-display: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --font-family-sans: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-family-serif: "Lora", Georgia, serif;
+  --font-family-serif: "Playfair Display", Georgia, serif;
 
   --transition-duration-80: 80ms;
 }

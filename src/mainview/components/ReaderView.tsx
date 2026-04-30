@@ -160,7 +160,7 @@ export function ReaderView({
       <div className="flex-1 email-enter" key={message.id}>
         <article className="max-w-[720px] mx-auto px-6 pt-8 pb-24">
           {/* Subject — large display heading in Lora */}
-          <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-[-0.02em] mb-10">
+          <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-wide mb-10">
             {message.subject}
           </h1>
 
