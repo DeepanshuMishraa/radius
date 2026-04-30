@@ -165,6 +165,21 @@ async function init() {
           };
         },
 
+        async openExternalUrl({ url }: { url: string }) {
+          try {
+            const parsed = new URL(url);
+            if (!["http:", "https:", "mailto:", "tel:"].includes(parsed.protocol)) {
+              return { success: false, error: `Unsupported protocol: ${parsed.protocol}` };
+            }
+
+            spawn("open", [parsed.toString()]);
+            return { success: true };
+          } catch (err) {
+            console.error("openExternalUrl error:", err);
+            return { success: false, error: String(err) };
+          }
+        },
+
         async startOAuth() {
           try {
             codeVerifier = generateCodeVerifier();

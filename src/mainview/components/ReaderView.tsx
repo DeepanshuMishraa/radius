@@ -1,7 +1,9 @@
 import DOMPurify from "dompurify";
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
+import type { MouseEvent } from "react";
 import type { Message } from "../hooks/useInbox";
 import { ListIcon } from "@phosphor-icons/react";
+import { radiusRpc } from "../lib/rpc";
 
 interface ReaderViewProps {
   message: Message | null;
@@ -239,6 +241,49 @@ export const ReaderView = memo(function ReaderView({
   sidebarOpen,
   onOpenSidebar,
 }: ReaderViewProps) {
+  const handleBodyClick = useCallback(async (event: MouseEvent<HTMLDivElement>) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const link = target.closest("a[href]");
+    if (!(link instanceof HTMLAnchorElement)) return;
+
+    const rawHref = link.getAttribute("href");
+    if (!rawHref) return;
+
+    let resolvedUrl: string;
+    try {
+      resolvedUrl = new URL(rawHref, window.location.href).toString();
+    } catch {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    try {
+      const result = await radiusRpc.request.openExternalUrl({ url: resolvedUrl });
+      if (!result.success) {
+        console.error("Failed to open external URL:", result.error);
+      }
+    } catch (err) {
+      console.error("Failed to open external URL:", err);
+    }
+  }, []);
+
+  const rawHtml = message?.bodyHtml ?? null;
+
+  const sanitizedHtml = useMemo(() => {
+    if (!rawHtml) return null;
+
+    return DOMPurify.sanitize(rawHtml, {
+      ALLOWED_TAGS: EMAIL_ALLOWED_TAGS,
+      ALLOWED_ATTR: EMAIL_ALLOWED_ATTR,
+      ALLOW_DATA_ATTR: false,
+      FORCE_BODY: true,
+    });
+  }, [rawHtml]);
+
   if (!message) {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-radius-bg-primary relative pt-9">
@@ -263,19 +308,6 @@ export const ReaderView = memo(function ReaderView({
       </div>
     );
   }
-
-  const rawHtml = message.bodyHtml;
-
-  const sanitizedHtml = useMemo(() => {
-    if (!rawHtml) return null;
-
-    return DOMPurify.sanitize(rawHtml, {
-        ALLOWED_TAGS: EMAIL_ALLOWED_TAGS,
-        ALLOWED_ATTR: EMAIL_ALLOWED_ATTR,
-        ALLOW_DATA_ATTR: false,
-        FORCE_BODY: true,
-      });
-  }, [rawHtml]);
 
   const sender = parseAddress(message.from);
   const recipient = parseAddress(message.to);
@@ -321,6 +353,7 @@ export const ReaderView = memo(function ReaderView({
           {sanitizedHtml ? (
             <div
               className="email-body text-[15px] leading-[1.7] text-radius-text-primary"
+              onClick={handleBodyClick}
               dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
             />
           ) : (
