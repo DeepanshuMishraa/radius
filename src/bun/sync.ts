@@ -57,8 +57,32 @@ type SyncPhase = "initial" | "background";
 
 const INITIAL_SYNC_TARGET = 1000;
 const PAGE_SIZE = 500;
-const FETCH_BATCH_SIZE = 5;
+const FETCH_CONCURRENCY = 15;
 const INSERT_BATCH_SIZE = 50;
+
+async function fetchMessagesPool(
+  ids: string[],
+  accessToken: string,
+  concurrency: number
+): Promise<GmailMessage[]> {
+  const results: GmailMessage[] = [];
+  let index = 0;
+
+  async function worker(): Promise<void> {
+    while (index < ids.length) {
+      const id = ids[index++];
+      try {
+        const msg = await withRetry(() => getMessage(accessToken, id));
+        results.push(msg);
+      } catch (err) {
+        console.error(`Failed to fetch message ${id}:`, err);
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  return results;
+}
 
 interface SyncRunOptions {
   phase: SyncPhase;
@@ -148,36 +172,24 @@ async function runSyncPass({
     const messagesToFetch =
       limit === undefined ? pageMessages : pageMessages.slice(0, remaining);
 
-    for (let i = 0; i < messagesToFetch.length; i += FETCH_BATCH_SIZE) {
-      const batch = messagesToFetch.slice(i, i + FETCH_BATCH_SIZE);
-      const fetched = await Promise.all(
-        batch.map((m) =>
-          withRetry(() => getMessage(accessToken, m.id)).catch((err) => {
-            console.error(`Failed to fetch message ${m.id}:`, err);
-            return null;
-          })
-        )
-      );
+    const ids = messagesToFetch.map((m) => m.id);
+    const fetched = await fetchMessagesPool(ids, accessToken, FETCH_CONCURRENCY);
 
-      const valid = fetched.filter((m): m is GmailMessage => m !== null);
-      if (!latestHistoryId && valid.length > 0) {
-        latestHistoryId = valid[0].historyId;
-      }
-      insertBuffer.push(...valid);
+    if (!latestHistoryId && fetched.length > 0) {
+      latestHistoryId = fetched[0].historyId;
+    }
 
-      if (insertBuffer.length >= INSERT_BATCH_SIZE) {
-        await flushInsertBuffer(insertBuffer);
-        processed += insertBuffer.length;
-        insertBuffer = [];
+    for (let i = 0; i < fetched.length; i += INSERT_BATCH_SIZE) {
+      const chunk = fetched.slice(i, i + INSERT_BATCH_SIZE);
+      await flushInsertBuffer(chunk);
+      processed += chunk.length;
 
-        const progress = {
-          current: Math.min(processed, progressTotal),
-          total: progressTotal,
-        };
-        await pushSyncProgress(phase, progress, latestHistoryId);
-        onProgress?.(progress);
-        await Bun.sleep(0);
-      }
+      const progress = {
+        current: Math.min(processed, progressTotal),
+        total: progressTotal,
+      };
+      await pushSyncProgress(phase, progress, latestHistoryId);
+      onProgress?.(progress);
     }
 
     pageToken = page.nextPageToken;
@@ -363,19 +375,9 @@ export async function doIncrementalSync(): Promise<{
         const ids = Array.from(addedIds);
         const allNewMessages: GmailMessage[] = [];
 
-        for (let i = 0; i < ids.length; i += FETCH_BATCH_SIZE) {
-          const batch = ids.slice(i, i + FETCH_BATCH_SIZE);
-          const fetched = await Promise.all(
-            batch.map((id) =>
-              withRetry(() => getMessage(accessToken, id)).catch(() => null)
-            )
-          );
-
-          const valid = fetched.filter((m): m is GmailMessage => m !== null);
-          allNewMessages.push(...valid);
-          newCount += valid.length;
-          await Bun.sleep(0);
-        }
+        const fetched = await fetchMessagesPool(ids, accessToken, FETCH_CONCURRENCY);
+        allNewMessages.push(...fetched);
+        newCount += fetched.length;
 
         if (allNewMessages.length > 0) {
           await flushInsertBuffer(allNewMessages);

@@ -14,7 +14,7 @@ function App() {
 
   const { isAuthenticated, startOAuth } = useAuth();
   const syncStatus = useSyncStatus();
-  const { messages, total } = useInbox(200, 0);
+  const { messages, total } = useInbox(1000, 0);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

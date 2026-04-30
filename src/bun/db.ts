@@ -183,7 +183,7 @@ export async function getInboxMessages(
     .query(
       `SELECT id, thread_id as threadId, history_id as historyId,
               internal_date as internalDate, from_addr as \`from\`, to_addr as \`to\`,
-              subject, snippet, body_text as bodyText, body_html as bodyHtml
+              subject, snippet
        FROM messages
        ORDER BY internal_date DESC
        LIMIT ? OFFSET ?`
