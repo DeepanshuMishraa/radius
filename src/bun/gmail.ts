@@ -168,7 +168,7 @@ function decodeBase64(data: string): string {
   // Gmail uses URL-safe base64
   const normalized = data.replace(/-/g, "+").replace(/_/g, "/");
   try {
-    return atob(normalized);
+    return Buffer.from(normalized, "base64").toString("utf-8");
   } catch {
     return "";
   }
