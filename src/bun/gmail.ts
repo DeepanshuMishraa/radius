@@ -194,22 +194,35 @@ export async function extractBodies(
   let html: string | null = null;
   const inlineImages: InlineImage[] = [];
 
-  async function traverse(part: GmailMessagePart): Promise<void> {
-    const mimeType = part.mimeType;
+  async function traverse(part: GmailMessagePart, depth = 0): Promise<void> {
+    // Normalize: "text/html; charset=utf-8" → "text/html"
+    const rawMime = part.mimeType ?? "(none)";
+    const mimeType = rawMime.split(";")[0].trim().toLowerCase();
+    const indent = "  ".repeat(depth);
 
     if (mimeType === "text/plain") {
       if (part.body?.data) {
         text = decodeBase64UrlToString(part.body.data);
+        console.log(`${indent}[body] text/plain — inline data (${part.body.size ?? "?"} bytes) → text=${text ? text.length : 0} chars`);
       } else if (part.body?.attachmentId) {
+        console.log(`${indent}[body] text/plain — attachmentId=${part.body.attachmentId.slice(0, 16)}…`);
         const raw = await getAttachment(accessToken, messageId, part.body.attachmentId);
         text = decodeBase64UrlToString(raw);
+        console.log(`${indent}[body] text/plain — fetched attachment → text=${text ? text.length : 0} chars`);
+      } else {
+        console.log(`${indent}[body] text/plain — no data/attachmentId`);
       }
     } else if (mimeType === "text/html") {
       if (part.body?.data) {
         html = decodeBase64UrlToString(part.body.data);
+        console.log(`${indent}[body] text/html — inline data (${part.body.size ?? "?"} bytes) → html=${html ? html.length : 0} chars`);
       } else if (part.body?.attachmentId) {
+        console.log(`${indent}[body] text/html — attachmentId=${part.body.attachmentId.slice(0, 16)}…`);
         const raw = await getAttachment(accessToken, messageId, part.body.attachmentId);
         html = decodeBase64UrlToString(raw);
+        console.log(`${indent}[body] text/html — fetched attachment → html=${html ? html.length : 0} chars`);
+      } else {
+        console.log(`${indent}[body] text/html — no data/attachmentId`);
       }
     } else if (mimeType?.startsWith("image/") && part.body?.attachmentId) {
       const contentId = part.headers?.find(
@@ -227,13 +240,18 @@ export async function extractBodies(
     }
 
     if (part.parts) {
+      console.log(`${indent}[container] ${rawMime} — ${part.parts.length} sub-part(s)`);
       for (const sub of part.parts) {
-        await traverse(sub);
+        await traverse(sub, depth + 1);
       }
     }
   }
 
   await traverse(payload);
+
+  const textLen = text ? (text as unknown as string).length : 0;
+  const htmlLen = html ? (html as unknown as string).length : 0;
+  console.log(`[extractBodies] ${messageId.slice(0, 16)}… → text=${textLen}, html=${htmlLen}, images=${inlineImages.length}`);
 
   // Replace cid: references in HTML with embedded data URLs
   if (html && inlineImages.length > 0) {

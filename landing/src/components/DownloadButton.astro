@@ -1,0 +1,96 @@
+---
+---
+
+<div id="download-root" class="flex flex-col items-center gap-4">
+  <a
+    id="primary-download"
+    href="#"
+    class="group inline-flex items-center gap-2.5 px-7 py-3.5 text-[13px] font-medium text-radius-text-inverse bg-radius-accent hover:bg-radius-accent-hover rounded-full transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radius-accent focus-visible:ring-offset-2 focus-visible:ring-offset-radius-bg-primary active:scale-[0.97]"
+  >
+    <span id="download-icon" class="text-radius-text-inverse/80"></span>
+    <span id="download-label">Download</span>
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="opacity-60 group-hover:translate-y-0.5 transition-transform duration-200"
+    >
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" x2="12" y1="15" y2="3" />
+    </svg>
+  </a>
+
+  <div id="alt-downloads" class="flex items-center gap-4 text-[11px] text-radius-text-muted">
+    <!-- Populated by JS -->
+  </div>
+</div>
+
+<script>
+  type OS = "mac" | "windows" | "linux" | "unknown";
+
+  function detectOS(): OS {
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes("mac") && !ua.includes("iphone") && !ua.includes("ipad")) return "mac";
+    if (ua.includes("win")) return "windows";
+    if (ua.includes("linux")) return "linux";
+    return "unknown";
+  }
+
+  const downloads: Record<OS, { label: string; icon: string; href: string; filename: string }> = {
+    mac: {
+      label: "Download for macOS",
+      icon: "Apple",
+      href: "https://github.com/dipxsy/radius/releases/download/v1.0.0/Radius-macOS.dmg",
+      filename: "Radius-macOS.dmg",
+    },
+    windows: {
+      label: "Download for Windows",
+      icon: "Windows",
+      href: "https://github.com/dipxsy/radius/releases/download/v1.0.0/Radius-Windows.exe",
+      filename: "Radius-Windows.exe",
+    },
+    linux: {
+      label: "Download for Linux",
+      icon: "Linux",
+      href: "https://github.com/dipxsy/radius/releases/download/v1.0.0/Radius-Linux.AppImage",
+      filename: "Radius-Linux.AppImage",
+    },
+    unknown: {
+      label: "Download",
+      icon: "",
+      href: "https://github.com/dipxsy/radius/releases",
+      filename: "",
+    },
+  };
+
+  const os = detectOS();
+  const primary = downloads[os] ?? downloads.unknown;
+
+  const btn = document.getElementById("primary-download") as HTMLAnchorElement;
+  const label = document.getElementById("download-label")!;
+  const icon = document.getElementById("download-icon")!;
+
+  if (btn) {
+    btn.href = primary.href;
+    if (primary.filename) btn.setAttribute("download", primary.filename);
+  }
+  if (label) label.textContent = primary.label;
+  if (icon) icon.textContent = primary.icon;
+
+  // Show alt OS links
+  const altContainer = document.getElementById("alt-downloads");
+  if (altContainer && os !== "unknown") {
+    const alts = (["mac", "windows", "linux"] as OS[]).filter((o) => o !== os);
+    altContainer.innerHTML = alts
+      .map(
+        (o) => `<a href="${downloads[o].href}" class="hover:text-radius-text-secondary transition-colors duration-150 underline underline-offset-2">${downloads[o].icon}</a>`
+      )
+      .join('<span class="text-radius-border">·</span>');
+  }
+</script>
