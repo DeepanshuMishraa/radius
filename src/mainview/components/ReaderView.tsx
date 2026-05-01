@@ -126,20 +126,15 @@ const CATEGORY_META: Record<
 
 function MessageStatusWidget({ message }: { message: Message }) {
   const meta = CATEGORY_META[message.category];
-  const isRegular = message.category === "regular";
 
   return (
-    <div className="inline-flex items-center gap-2 text-[11px] font-[family-name:var(--font-family-sans)]">
+    <div className="inline-flex items-center gap-[5px] text-[11px] font-medium font-[family-name:var(--font-family-sans)]">
       <span
-        className="inline-flex items-center rounded-full px-2.5 py-1"
-        style={{
-          backgroundColor: isRegular ? "var(--radius-bg-primary)" : meta.bg,
-          color: isRegular ? "var(--radius-text-muted)" : meta.text,
-          border: `1px solid ${isRegular ? "var(--radius-border-subtle)" : meta.border}`,
-        }}
-        title="Mail category"
-      >
-        {isRegular ? "Regular" : meta.label}
+        className="inline-block rounded-full"
+        style={{ width: 4, height: 4, backgroundColor: meta.text }}
+      />
+      <span style={{ color: meta.text }}>
+        {meta.label}
       </span>
     </div>
   );
