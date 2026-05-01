@@ -33,9 +33,15 @@ bun run build:canary
 
 ## Security
 
-- The Google OAuth Client ID is hardcoded in `src/bun/auth.ts`.
+- The Google OAuth Client ID and Client Secret are hardcoded in `src/bun/auth.ts`.
 - User tokens live in the system keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service).
-- No client secret is bundled — PKCE is used for the OAuth flow.
+- PKCE is used for the OAuth authorization flow.
+
+### Why the Client Secret is shipped
+
+Google's Desktop app OAuth client type issues a `client_secret`, but for installed desktop applications this is effectively a pseudo-secret. The OAuth 2.0 spec for public native clients (RFC 8252) expects that installed apps cannot keep secrets confidential. Google's Desktop client type is designed with this reality in mind — the secret is meant to be embedded in the binary. PKCE (the `code_verifier`) is what actually secures the flow, not the client secret.
+
+This is the same approach used by well-known open-source desktop apps (e.g., Thunderbird's Gmail integration). For a desktop OSS app, shipping the secret and acknowledging it in the README is the honest and standard approach.
 
 ## Project structure
 
