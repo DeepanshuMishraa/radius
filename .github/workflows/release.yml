@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: macos
+            arch: arm64
+          - os: macos-15-intel
+            platform: macos
+            arch: x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+          - os: windows-latest
+            platform: win
+            arch: x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build app
+        run: bun run build:stable
+
+      - name: Rename artifact
+        id: artifact
+        shell: bash
+        run: |
+          VERSION=${{ github.event.release.tag_name }}
+
+          if [ "${{ matrix.platform }}" = "macos" ] && [ "${{ matrix.arch }}" = "arm64" ]; then
+            SUFFIX="silicon.dmg"
+          elif [ "${{ matrix.platform }}" = "macos" ] && [ "${{ matrix.arch }}" = "x64" ]; then
+            SUFFIX="intel.dmg"
+          elif [ "${{ matrix.platform }}" = "win" ]; then
+            SUFFIX="windows.zip"
+          else
+            SUFFIX="linux.tar.gz"
+          fi
+
+          if [ "${{ matrix.platform }}" = "macos" ]; then
+            SRC=$(ls artifacts/stable-macos-${{ matrix.arch }}-*.dmg | head -n 1)
+          elif [ "${{ matrix.platform }}" = "win" ]; then
+            SRC=$(ls artifacts/stable-win-${{ matrix.arch }}-*.zip | head -n 1)
+          else
+            SRC=$(ls artifacts/stable-linux-${{ matrix.arch }}-*.tar.gz | head -n 1)
+          fi
+
+          DST="artifacts/radius-${VERSION}-${SUFFIX}"
+          cp "$SRC" "$DST"
+          echo "file=$DST" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.artifact.outputs.file }}
+          tag_name: ${{ github.event.release.tag_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
