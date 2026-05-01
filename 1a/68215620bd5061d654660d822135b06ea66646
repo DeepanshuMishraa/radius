@@ -1,0 +1,27 @@
+landing/src/pages/index.astro
+  413776ea16728818 930-938
+landing/src/pages/privacy.astro
+  413776ea16728818 1-252
+landing/src/pages/terms.astro
+  413776ea16728818 1-256
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "1a68215620bd5061d654660d822135b06ea66646",
+  "prompts": {
+    "413776ea16728818": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019de2f8-37da-744d-b047-2a6460548f20",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 518,
+      "total_deletions": 0,
+      "accepted_lines": 518,
+      "overriden_lines": 0
+    }
+  }
+}
