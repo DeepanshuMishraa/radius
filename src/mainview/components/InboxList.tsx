@@ -178,11 +178,12 @@ export function InboxList({
       onReachEnd &&
       lastVirtualItem &&
       messages.length < total &&
+      !loading &&
       lastVirtualItem.index >= messages.length - 20
     ) {
       onReachEnd();
     }
-  }, [lastVirtualItem, messages.length, onReachEnd, total]);
+  }, [lastVirtualItem?.index, loading, messages.length, onReachEnd, total]);
 
   return (
     <div className="flex flex-col h-full bg-radius-bg-primary pt-9">
