@@ -11,6 +11,8 @@ export type EmailCategory =
   | "personal"
   | "regular";
 
+export type SyncMode = "recent" | "all";
+
 export interface Message {
   id: string;
   threadId: string;
@@ -36,6 +38,8 @@ export interface SyncStatus {
   lastSyncAt?: number;
   initialSyncCompletedAt?: number;
   fullSyncCompletedAt?: number;
+  syncMode?: SyncMode;
+  fullSyncPending?: boolean;
   error?: string;
 }
 
@@ -64,11 +68,11 @@ export type RadiusRPC = {
         response: { success: boolean; error?: string };
       };
       startOAuth: {
-        params: {};
+        params: { syncMode: SyncMode };
         response: { success: boolean; error?: string };
       };
       startSync: {
-        params: {};
+        params: { syncMode?: SyncMode };
         response: { success: boolean; error?: string };
       };
       markMessageRead: {

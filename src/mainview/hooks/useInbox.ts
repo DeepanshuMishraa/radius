@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { radiusRpc } from "../lib/rpc";
+import type { SyncMode } from "../../shared/types";
 
 export type EmailCategory =
   | "important"
@@ -34,7 +35,10 @@ export interface SyncStatus {
     total: number;
   };
   lastSyncAt?: number;
+  initialSyncCompletedAt?: number;
   fullSyncCompletedAt?: number;
+  syncMode?: SyncMode;
+  fullSyncPending?: boolean;
   error?: string;
 }
 
@@ -67,7 +71,10 @@ function areSyncStatusesEqual(next: SyncStatus, prev: SyncStatus) {
     next.status === prev.status &&
     next.phase === prev.phase &&
     next.lastSyncAt === prev.lastSyncAt &&
+    next.initialSyncCompletedAt === prev.initialSyncCompletedAt &&
     next.fullSyncCompletedAt === prev.fullSyncCompletedAt &&
+    next.syncMode === prev.syncMode &&
+    next.fullSyncPending === prev.fullSyncPending &&
     next.error === prev.error &&
     next.progress?.current === prev.progress?.current &&
     next.progress?.total === prev.progress?.total
@@ -267,8 +274,8 @@ export function useAuth() {
     }
   }, []);
 
-  const startOAuth = useCallback(async () => {
-    const result = await radiusRpc.request.startOAuth({});
+  const startOAuth = useCallback(async (syncMode: SyncMode) => {
+    const result = await radiusRpc.request.startOAuth({ syncMode });
     return result.success;
   }, []);
 

@@ -1,5 +1,9 @@
+import type { SyncMode } from "../../shared/types";
+
 interface OnboardingProps {
-  onConnect: () => void;
+  onConnect: (mode: SyncMode) => void;
+  selectedMode: SyncMode | null;
+  onSelectMode: (mode: SyncMode) => void;
   error?: string;
   onRetry?: () => void;
 }
@@ -45,10 +49,18 @@ function RadiusMark({ className }: { className?: string }) {
   );
 }
 
-export function Onboarding({ onConnect, error, onRetry }: OnboardingProps) {
+export function Onboarding({
+  onConnect,
+  selectedMode,
+  onSelectMode,
+  error,
+  onRetry,
+}: OnboardingProps) {
+  const isReadyToConnect = selectedMode !== null;
+
   return (
     <div className="flex flex-col items-center justify-center min-h-full bg-radius-bg-primary px-6 onboarding-enter">
-      <div className="flex flex-col items-center text-center">
+      <div className="flex w-full max-w-[520px] flex-col items-center text-center">
         {/* Mark */}
         <div className="relative mb-12">
           <RadiusMark className="w-12 h-12 text-radius-accent" />
@@ -73,9 +85,76 @@ export function Onboarding({ onConnect, error, onRetry }: OnboardingProps) {
           </div>
         )}
 
+        <div className="mb-8 grid w-full gap-3 text-left">
+          <button
+            type="button"
+            onClick={() => onSelectMode("recent")}
+            className={`rounded-[24px] border px-5 py-4 transition-colors duration-200 ${
+              selectedMode === "recent"
+                ? "border-radius-accent bg-radius-bg-secondary"
+                : "border-radius-border-subtle bg-radius-bg-primary hover:bg-radius-bg-secondary/60"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+                  Fetch 3,000 emails
+                </p>
+                <p className="mt-1 text-[11px] leading-[1.55] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                  Clean migration. Fastest setup. Radius brings in your latest 3,000 emails and gets you reading quickly.
+                </p>
+              </div>
+              <span
+                className={`mt-1 inline-flex h-4 w-4 shrink-0 rounded-full border ${
+                  selectedMode === "recent"
+                    ? "border-radius-accent bg-radius-accent"
+                    : "border-radius-border-subtle"
+                }`}
+              />
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSelectMode("all")}
+            className={`rounded-[24px] border px-5 py-4 transition-colors duration-200 ${
+              selectedMode === "all"
+                ? "border-radius-accent bg-radius-bg-secondary"
+                : "border-radius-border-subtle bg-radius-bg-primary hover:bg-radius-bg-secondary/60"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+                  Fetch all emails
+                </p>
+                <p className="mt-1 text-[11px] leading-[1.55] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                  Takes longer. Radius fetches your first 3,000 upfront, then keeps pulling older mail in batches while the app is open.
+                </p>
+              </div>
+              <span
+                className={`mt-1 inline-flex h-4 w-4 shrink-0 rounded-full border ${
+                  selectedMode === "all"
+                    ? "border-radius-accent bg-radius-accent"
+                    : "border-radius-border-subtle"
+                }`}
+              />
+            </div>
+          </button>
+        </div>
+
         {/* Action */}
         <button
-          onClick={onRetry ?? onConnect}
+          onClick={() => {
+            if (onRetry) {
+              onRetry();
+              return;
+            }
+            if (selectedMode) {
+              onConnect(selectedMode);
+            }
+          }}
+          disabled={!isReadyToConnect}
           className="
             group
             relative
@@ -89,6 +168,7 @@ export function Onboarding({ onConnect, error, onRetry }: OnboardingProps) {
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radius-accent focus-visible:ring-offset-2 focus-visible:ring-offset-radius-bg-primary
             font-[family-name:var(--font-family-sans)]
             active:scale-[0.97]
+            disabled:bg-radius-bg-secondary disabled:text-radius-text-muted disabled:hover:bg-radius-bg-secondary disabled:cursor-not-allowed disabled:active:scale-100
           "
         >
           <span className="relative z-10 flex items-center gap-2">
@@ -114,7 +194,7 @@ export function Onboarding({ onConnect, error, onRetry }: OnboardingProps) {
 
         {/* Footnote — almost invisible */}
         <p className="mt-10 text-[10px] text-radius-text-muted/60 tracking-wide font-[family-name:var(--font-family-sans)]">
-          Read-only. We never touch your mail.
+          Read-only. We never touch your mail. Full migrations continue gently in the background.
         </p>
       </div>
 
