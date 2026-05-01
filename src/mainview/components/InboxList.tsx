@@ -1,6 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useCallback } from "react";
-import type { Message, SyncStatus } from "../hooks/useInbox";
+import type { Message, SyncStatus, EmailCategory } from "../hooks/useInbox";
 
 interface InboxListProps {
   messages: Message[];
@@ -31,6 +31,52 @@ function formatDateShort(timestamp: number): string {
   }
 }
 
+const CATEGORY_DOT: Record<EmailCategory, string> = {
+  important: "#c4a35a",
+  promotional: "#a35ac4",
+  social: "#5a7dc4",
+  updates: "#5a8c6f",
+  forums: "#c47d5a",
+  spam: "#c45a5a",
+  personal: "#5aa8c4",
+  regular: "transparent",
+};
+
+function CategoryDot({ category }: { category: EmailCategory }) {
+  const color = CATEGORY_DOT[category];
+  if (color === "transparent") return null;
+  return (
+    <span
+      className="inline-block rounded-full shrink-0"
+      style={{
+        width: 5,
+        height: 5,
+        backgroundColor: color,
+        marginRight: 6,
+        marginBottom: 1,
+      }}
+      title={category}
+    />
+  );
+}
+
+function ReadIndicator({ isRead }: { isRead: boolean }) {
+  if (isRead) return null;
+
+  return (
+    <span
+      className="inline-block rounded-full shrink-0 bg-radius-accent"
+      style={{
+        width: 7,
+        height: 7,
+        marginLeft: 8,
+      }}
+      title="Unread"
+      aria-label="Unread"
+    />
+  );
+}
+
 function EmailRow({
   message,
   isSelected,
@@ -48,12 +94,21 @@ function EmailRow({
       className={`
         h-[104px] px-5 py-3.5 cursor-pointer select-none overflow-hidden transition-colors duration-80
         ${isSelected ? "border-l-[2px] border-l-radius-accent bg-radius-bg-secondary" : "border-l-[2px] border-l-transparent hover:bg-radius-bg-secondary"}
+        ${!message.isRead ? "bg-radius-bg-secondary/40" : ""}
       `}
     >
       {/* Top line: sender + date pill */}
       <div className="flex items-center justify-between gap-3 mb-1">
-        <span className="min-w-0 flex-1 text-[13px] font-semibold text-radius-text-primary truncate pr-3 font-[family-name:var(--font-family-sans)]">
-          {senderName}
+        <span
+          className={`min-w-0 flex flex-1 items-center text-[13px] truncate pr-3 font-[family-name:var(--font-family-sans)] ${
+            message.isRead
+              ? "font-medium text-radius-text-primary"
+              : "font-semibold text-radius-text-primary"
+          }`}
+        >
+          <CategoryDot category={message.category} />
+          <span className="truncate">{senderName}</span>
+          <ReadIndicator isRead={message.isRead} />
         </span>
         <span className="shrink-0 text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)] border border-radius-border-subtle rounded-full px-2 py-0.5">
           {formatDateShort(message.internalDate)}
@@ -61,12 +116,24 @@ function EmailRow({
       </div>
 
       {/* Subject */}
-      <p className="text-[13px] text-radius-text-primary truncate mb-0.5 font-[family-name:var(--font-family-sans)]">
+      <p
+        className={`text-[13px] truncate mb-0.5 font-[family-name:var(--font-family-sans)] ${
+          message.isRead
+            ? "text-radius-text-primary/88 font-normal"
+            : "text-radius-text-primary font-semibold"
+        }`}
+      >
         {message.subject}
       </p>
 
       {/* Snippet */}
-      <p className="text-[12px] text-radius-text-muted truncate leading-[1.4] font-[family-name:var(--font-family-sans)]">
+      <p
+        className={`text-[12px] truncate leading-[1.4] font-[family-name:var(--font-family-sans)] ${
+          message.isRead
+            ? "text-radius-text-muted"
+            : "text-radius-text-secondary"
+        }`}
+      >
         {message.snippet}
       </p>
     </div>

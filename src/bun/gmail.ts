@@ -22,11 +22,48 @@ export interface GmailMessage {
   labelIds: string[];
 }
 
+export type EmailCategory =
+  | "important"
+  | "promotional"
+  | "social"
+  | "updates"
+  | "forums"
+  | "spam"
+  | "personal"
+  | "regular";
+
+/**
+ * Classify an email from Gmail's native labelIds.
+ * Gmail already categorizes mail — we just map their labels to friendly names.
+ * Zero API cost, happens during sync.
+ */
+export function classifyFromLabels(labelIds: string[] | undefined): EmailCategory {
+  if (!labelIds || labelIds.length === 0) return "regular";
+
+  const labels = new Set(labelIds.map((l) => l.toUpperCase()));
+
+  if (labels.has("SPAM")) return "spam";
+  if (labels.has("CATEGORY_PROMOTIONS")) return "promotional";
+  if (labels.has("CATEGORY_SOCIAL")) return "social";
+  if (labels.has("CATEGORY_UPDATES")) return "updates";
+  if (labels.has("CATEGORY_FORUMS")) return "forums";
+  if (labels.has("CATEGORY_PERSONAL")) return "personal";
+  if (labels.has("IMPORTANT")) return "important";
+
+  return "regular";
+}
+
 export interface GmailHistoryItem {
   id: string;
   messagesAdded?: Array<{ message: { id: string } }>;
   labelsAdded?: Array<{ message: { id: string } }>;
   labelsRemoved?: Array<{ message: { id: string } }>;
+}
+
+export interface ModifyMessageLabelsResponse {
+  id: string;
+  threadId: string;
+  labelIds: string[];
 }
 
 export interface ListMessagesResponse {
@@ -123,6 +160,25 @@ export async function getMessage(
   return (await res.json()) as GmailMessage;
 }
 
+export async function getMessageMetadata(
+  accessToken: string,
+  messageId: string
+): Promise<GmailMessage> {
+  const params = new URLSearchParams({
+    format: "metadata",
+    metadataHeaders: "From",
+  });
+  params.append("metadataHeaders", "To");
+  params.append("metadataHeaders", "Subject");
+
+  const res = await fetchWithRetry(
+    `${GMAIL_API_BASE}/messages/${messageId}?${params.toString()}`,
+    { headers: getAuthHeaders(accessToken) }
+  );
+
+  return (await res.json()) as GmailMessage;
+}
+
 export async function getAttachment(
   accessToken: string,
   messageId: string,
@@ -139,13 +195,24 @@ export async function getAttachment(
 
 export async function getHistory(
   accessToken: string,
-  startHistoryId: string
+  startHistoryId: string,
+  options: {
+    pageToken?: string;
+    historyTypes?: string[];
+  } = {}
 ): Promise<GetHistoryResponse> {
   const params = new URLSearchParams();
   params.set("startHistoryId", startHistoryId);
   params.set("labelId", "INBOX");
-  params.set("historyTypes", "messageAdded");
   params.set("maxResults", "100");
+  if (options.pageToken) params.set("pageToken", options.pageToken);
+  for (const historyType of options.historyTypes ?? [
+    "messageAdded",
+    "labelAdded",
+    "labelRemoved",
+  ]) {
+    params.append("historyTypes", historyType);
+  }
 
   const res = await fetch(`${GMAIL_API_BASE}/history?${params.toString()}`, {
     headers: getAuthHeaders(accessToken),
@@ -160,6 +227,28 @@ export async function getHistory(
   }
 
   return (await res.json()) as GetHistoryResponse;
+}
+
+export function isReadFromLabels(labelIds: string[] | undefined): boolean {
+  if (!labelIds || labelIds.length === 0) return true;
+  return !labelIds.some((label) => label.toUpperCase() === "UNREAD");
+}
+
+export async function modifyMessageLabels(
+  accessToken: string,
+  messageId: string,
+  payload: {
+    addLabelIds?: string[];
+    removeLabelIds?: string[];
+  }
+): Promise<ModifyMessageLabelsResponse> {
+  const res = await fetchWithRetry(`${GMAIL_API_BASE}/messages/${messageId}/modify`, {
+    method: "POST",
+    headers: getAuthHeaders(accessToken),
+    body: JSON.stringify(payload),
+  });
+
+  return (await res.json()) as ModifyMessageLabelsResponse;
 }
 
 export class GmailAPIError extends Error {

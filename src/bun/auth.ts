@@ -11,7 +11,7 @@ function getEnv(name: string): string {
 const CLIENT_ID = getEnv("GOOGLE_CLIENT_ID");
 const CLIENT_SECRET = getEnv("GOOGLE_CLIENT_SECRET");
 const REDIRECT_URI = "http://localhost:3333/oauth/callback";
-const SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+const SCOPE = "https://www.googleapis.com/auth/gmail.modify";
 
 export interface TokenData {
   access_token: string;

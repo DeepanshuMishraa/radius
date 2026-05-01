@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { radiusRpc } from "../lib/rpc";
 
+export type EmailCategory =
+  | "important"
+  | "promotional"
+  | "social"
+  | "updates"
+  | "forums"
+  | "spam"
+  | "personal"
+  | "regular";
+
 export interface Message {
   id: string;
   threadId: string;
@@ -12,6 +22,8 @@ export interface Message {
   snippet: string;
   bodyText: string | null;
   bodyHtml: string | null;
+  category: EmailCategory;
+  isRead: boolean;
 }
 
 export interface SyncStatus {
@@ -39,7 +51,9 @@ function areMessagesEqual(next: Message[], prev: Message[]) {
       nextMessage.internalDate !== prevMessage.internalDate ||
       nextMessage.from !== prevMessage.from ||
       nextMessage.subject !== prevMessage.subject ||
-      nextMessage.snippet !== prevMessage.snippet
+      nextMessage.snippet !== prevMessage.snippet ||
+      nextMessage.category !== prevMessage.category ||
+      nextMessage.isRead !== prevMessage.isRead
     ) {
       return false;
     }

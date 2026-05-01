@@ -1,7 +1,7 @@
 import DOMPurify from "dompurify";
 import { memo, useCallback, useMemo } from "react";
 import type { MouseEvent } from "react";
-import type { Message } from "../hooks/useInbox";
+import type { Message, EmailCategory } from "../hooks/useInbox";
 import { ListIcon } from "@phosphor-icons/react";
 import { radiusRpc } from "../lib/rpc";
 
@@ -34,6 +34,90 @@ function parseAddress(addr: string | null | undefined): {
     };
   }
   return { name: addr, email: addr };
+}
+
+const CATEGORY_META: Record<
+  EmailCategory,
+  { label: string; bg: string; text: string; border: string }
+> = {
+  important: {
+    label: "Important",
+    bg: "rgba(196, 163, 90, 0.12)",
+    text: "#c4a35a",
+    border: "rgba(196, 163, 90, 0.25)",
+  },
+  promotional: {
+    label: "Promotional",
+    bg: "rgba(163, 90, 196, 0.12)",
+    text: "#a35ac4",
+    border: "rgba(163, 90, 196, 0.25)",
+  },
+  social: {
+    label: "Social",
+    bg: "rgba(90, 125, 196, 0.12)",
+    text: "#5a7dc4",
+    border: "rgba(90, 125, 196, 0.25)",
+  },
+  updates: {
+    label: "Updates",
+    bg: "rgba(90, 140, 111, 0.12)",
+    text: "#5a8c6f",
+    border: "rgba(90, 140, 111, 0.25)",
+  },
+  forums: {
+    label: "Forums",
+    bg: "rgba(196, 125, 90, 0.12)",
+    text: "#c47d5a",
+    border: "rgba(196, 125, 90, 0.25)",
+  },
+  spam: {
+    label: "Spam",
+    bg: "rgba(196, 90, 90, 0.12)",
+    text: "#c45a5a",
+    border: "rgba(196, 90, 90, 0.25)",
+  },
+  personal: {
+    label: "Personal",
+    bg: "rgba(90, 168, 196, 0.12)",
+    text: "#5aa8c4",
+    border: "rgba(90, 168, 196, 0.25)",
+  },
+  regular: {
+    label: "Regular",
+    bg: "transparent",
+    text: "var(--radius-text-muted)",
+    border: "transparent",
+  },
+};
+
+function MessageStatusWidget({ message }: { message: Message }) {
+  const meta = CATEGORY_META[message.category];
+  const isRegular = message.category === "regular";
+
+  return (
+    <div className="inline-flex items-center gap-2 rounded-2xl border border-radius-border-subtle bg-radius-bg-secondary/70 px-3 py-2 text-[11px] font-[family-name:var(--font-family-sans)]">
+      <span
+        className={`inline-flex items-center rounded-full px-2 py-0.5 ${
+          message.isRead
+            ? "bg-radius-bg-primary text-radius-text-muted"
+            : "bg-radius-accent/14 text-radius-accent"
+        }`}
+      >
+        {message.isRead ? "Read" : "Unread"}
+      </span>
+      <span className="text-radius-text-muted">•</span>
+      <span
+        className="inline-flex items-center rounded-full px-2 py-0.5"
+        style={{
+          backgroundColor: isRegular ? "var(--radius-bg-primary)" : meta.bg,
+          color: isRegular ? "var(--radius-text-muted)" : meta.text,
+          border: `1px solid ${isRegular ? "var(--radius-border-subtle)" : meta.border}`,
+        }}
+      >
+        {isRegular ? "Regular" : meta.label}
+      </span>
+    </div>
+  );
 }
 
 function InboxWidget({
@@ -481,9 +565,13 @@ export const ReaderView = memo(function ReaderView({
       <div className="flex-1 email-enter" key={message.id}>
         <article className="w-full px-6 pt-8 pb-24">
           <header className="max-w-[720px] mx-auto">
-            <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-wide mb-10">
+            <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-wide mb-4">
               {message.subject}
             </h1>
+
+            <div className="mb-8">
+              <MessageStatusWidget message={message} />
+            </div>
 
             <div className="mb-10 pb-8 border-b border-radius-border-subtle space-y-2">
               <div className="flex items-baseline gap-6">

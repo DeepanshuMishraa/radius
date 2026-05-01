@@ -35,6 +35,8 @@ export async function createSchema(): Promise<void> {
       snippet TEXT,
       body_text TEXT,
       body_html TEXT,
+      category TEXT DEFAULT 'regular',
+      is_read INTEGER NOT NULL DEFAULT 1,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
@@ -60,7 +62,8 @@ export async function createSchema(): Promise<void> {
       phase TEXT,
       progress_current INTEGER,
       progress_total INTEGER,
-      error TEXT
+      error TEXT,
+      metadata_schema_version INTEGER NOT NULL DEFAULT 0
     );
 
     INSERT OR IGNORE INTO sync_state (id) VALUES (1);
@@ -76,6 +79,12 @@ export async function createSchema(): Promise<void> {
   const existingMessageColumns = new Set(messageColumns.map((c) => c.name));
   if (!existingMessageColumns.has("to_addr")) {
     db.exec("ALTER TABLE messages ADD COLUMN to_addr TEXT");
+  }
+  if (!existingMessageColumns.has("category")) {
+    db.exec("ALTER TABLE messages ADD COLUMN category TEXT DEFAULT 'regular'");
+  }
+  if (!existingMessageColumns.has("is_read")) {
+    db.exec("ALTER TABLE messages ADD COLUMN is_read INTEGER NOT NULL DEFAULT 1");
   }
 
   const existingColumns = new Set(syncStateColumns.map((column) => column.name));
@@ -97,6 +106,11 @@ export async function createSchema(): Promise<void> {
   }
   if (!existingColumns.has("error")) {
     db.exec("ALTER TABLE sync_state ADD COLUMN error TEXT");
+  }
+  if (!existingColumns.has("metadata_schema_version")) {
+    db.exec(
+      "ALTER TABLE sync_state ADD COLUMN metadata_schema_version INTEGER NOT NULL DEFAULT 0"
+    );
   }
 
   const messageCountRow = db.query("SELECT COUNT(*) as count FROM messages").get() as {
@@ -153,12 +167,14 @@ export async function insertMessage(message: {
   snippet: string;
   bodyText: string | null;
   bodyHtml: string | null;
+  category: string;
+  isRead: boolean;
 }): Promise<void> {
   const db = await getDb();
   db.run(
     `INSERT OR REPLACE INTO messages
-     (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, category, is_read)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       message.id,
       message.threadId,
@@ -170,6 +186,8 @@ export async function insertMessage(message: {
       message.snippet,
       message.bodyText,
       message.bodyHtml,
+      message.category,
+      message.isRead ? 1 : 0,
     ]
   );
   upsertMessageSearchIndex(db, message.id);
@@ -187,6 +205,8 @@ export async function insertMessages(
     snippet: string;
     bodyText: string | null;
     bodyHtml: string | null;
+    category: string;
+    isRead: boolean;
   }>
 ): Promise<void> {
   const db = await getDb();
@@ -195,8 +215,8 @@ export async function insertMessages(
     for (const message of messages) {
       db.run(
         `INSERT OR REPLACE INTO messages
-         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, category, is_read)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           message.id,
           message.threadId,
@@ -208,6 +228,8 @@ export async function insertMessages(
           message.snippet,
           message.bodyText,
           message.bodyHtml,
+          message.category,
+          message.isRead ? 1 : 0,
         ]
       );
       upsertMessageSearchIndex(db, message.id);
@@ -233,7 +255,7 @@ export async function getInboxMessages(
     .query(
       `SELECT id, thread_id as threadId, history_id as historyId,
               internal_date as internalDate, from_addr as \`from\`, to_addr as \`to\`,
-              subject, snippet
+              subject, snippet, category, CAST(COALESCE(is_read, 1) AS INTEGER) as isRead
        FROM messages
        ORDER BY internal_date DESC
        LIMIT ? OFFSET ?`
@@ -251,7 +273,8 @@ export async function getMessageById(
     .query(
       `SELECT id, thread_id as threadId, history_id as historyId,
               internal_date as internalDate, from_addr as \`from\`, to_addr as \`to\`,
-              subject, snippet, body_text as bodyText, body_html as bodyHtml
+              subject, snippet, body_text as bodyText, body_html as bodyHtml, category,
+              CAST(COALESCE(is_read, 1) AS INTEGER) as isRead
        FROM messages WHERE id = ?`
     )
     .get(id) as Record<string, unknown> | null;
@@ -289,7 +312,9 @@ export async function searchInboxMessages(
               m.from_addr as \`from\`,
               m.to_addr as \`to\`,
               m.subject,
-              m.snippet
+              m.snippet,
+              m.category,
+              CAST(COALESCE(m.is_read, 1) AS INTEGER) as isRead
        FROM messages_fts f
        JOIN messages m ON m.id = f.id
        WHERE messages_fts MATCH ?
@@ -311,6 +336,7 @@ export async function updateSyncState(state: {
   progressCurrent?: number | null;
   progressTotal?: number | null;
   error?: string | null;
+  metadataSchemaVersion?: number;
 }): Promise<void> {
   const db = await getDb();
   const sets: string[] = [];
@@ -352,6 +378,10 @@ export async function updateSyncState(state: {
     sets.push("error = ?");
     vals.push(state.error);
   }
+  if (state.metadataSchemaVersion !== undefined) {
+    sets.push("metadata_schema_version = ?");
+    vals.push(state.metadataSchemaVersion);
+  }
 
   if (sets.length > 0) {
     db.run(`UPDATE sync_state SET ${sets.join(", ")} WHERE id = 1`, vals);
@@ -368,13 +398,14 @@ export async function getSyncState(): Promise<{
   progressCurrent: number | null;
   progressTotal: number | null;
   error: string | null;
+  metadataSchemaVersion: number;
 }> {
   const db = await getDb();
   const row = db
     .query(
       `SELECT history_id, last_sync_at, initial_sync_completed_at,
               full_sync_completed_at, status, phase, progress_current,
-              progress_total, error
+              progress_total, error, metadata_schema_version
        FROM sync_state WHERE id = 1`
     )
     .get() as {
@@ -387,6 +418,7 @@ export async function getSyncState(): Promise<{
     progress_current: number | null;
     progress_total: number | null;
     error: string | null;
+    metadata_schema_version: number | null;
   } | null;
 
   return {
@@ -399,7 +431,95 @@ export async function getSyncState(): Promise<{
     progressCurrent: row?.progress_current ?? null,
     progressTotal: row?.progress_total ?? null,
     error: row?.error ?? null,
+    metadataSchemaVersion: row?.metadata_schema_version ?? 0,
   };
+}
+
+export async function upsertMessageMetadata(
+  messages: Array<{
+    id: string;
+    threadId: string;
+    historyId: string;
+    internalDate: number;
+    from: string;
+    to: string;
+    subject: string;
+    snippet: string;
+    category: string;
+    isRead: boolean;
+  }>
+): Promise<void> {
+  if (messages.length === 0) return;
+
+  const db = await getDb();
+  db.exec("BEGIN TRANSACTION");
+  try {
+    for (const message of messages) {
+      db.run(
+        `INSERT INTO messages
+         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, category, is_read)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           thread_id = excluded.thread_id,
+           history_id = excluded.history_id,
+           internal_date = excluded.internal_date,
+           from_addr = excluded.from_addr,
+           to_addr = excluded.to_addr,
+           subject = excluded.subject,
+           snippet = excluded.snippet,
+           category = excluded.category,
+           is_read = excluded.is_read`,
+        [
+          message.id,
+          message.threadId,
+          message.historyId,
+          message.internalDate,
+          message.from,
+          message.to,
+          message.subject,
+          message.snippet,
+          message.category,
+          message.isRead ? 1 : 0,
+        ]
+      );
+      upsertMessageSearchIndex(db, message.id);
+    }
+    db.exec("COMMIT");
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
+  }
+}
+
+export async function setMessageReadState(
+  id: string,
+  isRead: boolean
+): Promise<void> {
+  const db = await getDb();
+  db.run(`UPDATE messages SET is_read = ? WHERE id = ?`, [isRead ? 1 : 0, id]);
+}
+
+export async function listMessageIds(
+  limit: number,
+  offset: number
+): Promise<string[]> {
+  const db = await getDb();
+  return (db
+    .query(
+      `SELECT id
+       FROM messages
+       ORDER BY internal_date DESC
+       LIMIT ? OFFSET ?`
+    )
+    .all(limit, offset) as Array<{ id: string }>).map((row) => row.id);
+}
+
+export async function getMessageCount(): Promise<number> {
+  const db = await getDb();
+  const row = db.query("SELECT COUNT(*) as count FROM messages").get() as {
+    count: number;
+  };
+  return row.count;
 }
 
 export async function updateMessageBodies(

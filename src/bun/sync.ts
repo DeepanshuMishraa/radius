@@ -4,13 +4,19 @@ import {
   updateSyncState,
   getSyncState,
   clearMessages,
+  getMessageCount,
+  listMessageIds,
+  upsertMessageMetadata,
 } from "./db";
 import {
   listMessages,
   getMessage,
+  getMessageMetadata,
   getHistory,
   extractBodies,
   parseHeaders,
+  classifyFromLabels,
+  isReadFromLabels,
   GmailAPIError,
   HistoryGapError,
   type GmailMessage,
@@ -59,6 +65,8 @@ const INITIAL_SYNC_TARGET = 1000;
 const PAGE_SIZE = 500;
 const FETCH_CONCURRENCY = 15;
 const INSERT_BATCH_SIZE = 50;
+const MESSAGE_METADATA_BATCH_SIZE = 250;
+const CURRENT_METADATA_SCHEMA_VERSION = 1;
 
 let syncLock = false;
 
@@ -75,7 +83,8 @@ async function withSyncLock<T>(fn: () => Promise<T>): Promise<T | "locked"> {
 async function fetchMessagesPool(
   ids: string[],
   accessToken: string,
-  concurrency: number
+  concurrency: number,
+  fetcher: (accessToken: string, messageId: string) => Promise<GmailMessage> = getMessage
 ): Promise<GmailMessage[]> {
   const results: GmailMessage[] = [];
   let index = 0;
@@ -84,7 +93,7 @@ async function fetchMessagesPool(
     while (index < ids.length) {
       const id = ids[index++];
       try {
-        const msg = await withRetry(() => getMessage(accessToken, id));
+        const msg = await withRetry(() => fetcher(accessToken, id));
         results.push(msg);
       } catch (err) {
         console.error(`Failed to fetch message ${id}:`, err);
@@ -94,6 +103,23 @@ async function fetchMessagesPool(
 
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
   return results;
+}
+
+function toStoredMessageMetadata(msg: GmailMessage) {
+  const headers = parseHeaders(msg.payload.headers ?? []);
+
+  return {
+    id: msg.id,
+    threadId: msg.threadId,
+    historyId: msg.historyId,
+    internalDate: parseInt(msg.internalDate, 10),
+    from: headers["from"] ?? "",
+    to: headers["to"] ?? "",
+    subject: headers["subject"] ?? "",
+    snippet: msg.snippet,
+    category: classifyFromLabels(msg.labelIds),
+    isRead: isReadFromLabels(msg.labelIds),
+  };
 }
 
 interface SyncRunOptions {
@@ -276,6 +302,7 @@ async function runInitialAndBackgroundSyncUnlocked(
     if (!hasMoreToSync) {
       await updateSyncState({
         fullSyncCompletedAt: initialCompletedAt,
+        metadataSchemaVersion: CURRENT_METADATA_SCHEMA_VERSION,
         status: "idle",
         phase: null,
       });
@@ -295,6 +322,7 @@ async function runInitialAndBackgroundSyncUnlocked(
       historyId: backgroundResult.latestHistoryId,
       lastSyncAt: Date.now(),
       fullSyncCompletedAt: Date.now(),
+      metadataSchemaVersion: CURRENT_METADATA_SCHEMA_VERSION,
       progressCurrent: backgroundResult.processed,
       progressTotal: backgroundResult.totalEstimate,
       status: "idle",
@@ -345,6 +373,7 @@ export async function runBackgroundCatchupSync(): Promise<void> {
         historyId: backgroundResult.latestHistoryId,
         lastSyncAt: Date.now(),
         fullSyncCompletedAt: Date.now(),
+        metadataSchemaVersion: CURRENT_METADATA_SCHEMA_VERSION,
         progressCurrent: backgroundResult.processed,
         progressTotal: backgroundResult.totalEstimate,
         status: "idle",
@@ -392,16 +421,34 @@ export async function doIncrementalSync(): Promise<{
       let needsFullResync = false;
 
       try {
-        const history = await withRetry(() =>
-          getHistory(accessToken, state.historyId!)
-        );
-
         const addedIds = new Set<string>();
-        for (const item of history.history ?? []) {
-          for (const added of item.messagesAdded ?? []) {
-            addedIds.add(added.message.id);
+        const relabeledIds = new Set<string>();
+        let nextPageToken: string | undefined;
+        let latestHistoryId = state.historyId;
+
+        do {
+          const history = await withRetry(() =>
+            getHistory(accessToken, state.historyId!, { pageToken: nextPageToken })
+          );
+
+          if (history.historyId) {
+            latestHistoryId = history.historyId;
           }
-        }
+
+          for (const item of history.history ?? []) {
+            for (const added of item.messagesAdded ?? []) {
+              addedIds.add(added.message.id);
+            }
+            for (const relabeled of item.labelsAdded ?? []) {
+              relabeledIds.add(relabeled.message.id);
+            }
+            for (const relabeled of item.labelsRemoved ?? []) {
+              relabeledIds.add(relabeled.message.id);
+            }
+          }
+
+          nextPageToken = history.nextPageToken;
+        } while (nextPageToken);
 
         if (addedIds.size > 0) {
           const ids = Array.from(addedIds);
@@ -414,10 +461,28 @@ export async function doIncrementalSync(): Promise<{
           newCount += fetched.length;
         }
 
-        if (history.historyId) {
+        const metadataOnlyIds = Array.from(relabeledIds).filter(
+          (id) => !addedIds.has(id)
+        );
+        if (metadataOnlyIds.length > 0) {
+          const fetchedMetadata = await fetchMessagesPool(
+            metadataOnlyIds,
+            accessToken,
+            FETCH_CONCURRENCY,
+            getMessageMetadata
+          );
+          if (fetchedMetadata.length > 0) {
+            await upsertMessageMetadata(
+              fetchedMetadata.map(toStoredMessageMetadata)
+            );
+          }
+        }
+
+        if (latestHistoryId) {
           await updateSyncState({
-            historyId: history.historyId,
+            historyId: latestHistoryId,
             lastSyncAt: Date.now(),
+            metadataSchemaVersion: CURRENT_METADATA_SCHEMA_VERSION,
             phase: null,
             progressCurrent: null,
             progressTotal: null,
@@ -463,6 +528,84 @@ export async function doIncrementalSync(): Promise<{
   return { newMessages: lockResult.newMessages, hadGap: lockResult.hadGap };
 }
 
+export async function runMessageMetadataBackfillIfNeeded(): Promise<void> {
+  const state = await getSyncState();
+  if (state.metadataSchemaVersion >= CURRENT_METADATA_SCHEMA_VERSION) {
+    return;
+  }
+
+  const totalMessages = await getMessageCount();
+  if (totalMessages === 0) {
+    await updateSyncState({
+      metadataSchemaVersion: CURRENT_METADATA_SCHEMA_VERSION,
+    });
+    return;
+  }
+
+  const result = await withSyncLock(async () => {
+    await updateSyncState({
+      status: "syncing",
+      phase: "background",
+      progressCurrent: 0,
+      progressTotal: totalMessages,
+      error: null,
+    });
+
+    try {
+      const accessToken = await getValidAccessToken();
+      let processed = 0;
+
+      for (
+        let offset = 0;
+        offset < totalMessages;
+        offset += MESSAGE_METADATA_BATCH_SIZE
+      ) {
+        const ids = await listMessageIds(MESSAGE_METADATA_BATCH_SIZE, offset);
+        if (ids.length === 0) break;
+
+        const fetchedMetadata = await fetchMessagesPool(
+          ids,
+          accessToken,
+          FETCH_CONCURRENCY,
+          getMessageMetadata
+        );
+        if (fetchedMetadata.length > 0) {
+          await upsertMessageMetadata(
+            fetchedMetadata.map(toStoredMessageMetadata)
+          );
+        }
+
+        processed += ids.length;
+        await updateSyncState({
+          status: "syncing",
+          phase: "background",
+          progressCurrent: Math.min(processed, totalMessages),
+          progressTotal: totalMessages,
+          error: null,
+        });
+      }
+
+      await updateSyncState({
+        lastSyncAt: Date.now(),
+        metadataSchemaVersion: CURRENT_METADATA_SCHEMA_VERSION,
+        status: "idle",
+        phase: null,
+        progressCurrent: null,
+        progressTotal: null,
+        error: null,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await updateSyncState({ status: "error", phase: null, error: message });
+      throw err;
+    }
+  });
+
+  if (result === "locked") {
+    console.log("Sync already in progress — skipping metadata backfill");
+  }
+}
+
 async function flushInsertBuffer(
   messages: GmailMessage[],
   accessToken: string
@@ -483,6 +626,8 @@ async function flushInsertBuffer(
         snippet: msg.snippet,
         bodyText: bodies.text,
         bodyHtml: bodies.html,
+        category: classifyFromLabels(msg.labelIds),
+        isRead: isReadFromLabels(msg.labelIds),
       };
     })
   );

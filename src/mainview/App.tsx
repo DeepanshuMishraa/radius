@@ -3,10 +3,12 @@ import { Onboarding } from "./components/Onboarding";
 import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
 import { useAuth, useSyncStatus, useInbox, useInboxSearch, useMessage } from "./hooks/useInbox";
+import type { Message } from "./hooks/useInbox";
 import { CommandK } from "@/components/cmd";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ThemeProvider } from "@/components/theme-provider";
 import { MagnifyingGlassIcon, ArrowBendDownLeftIcon, XIcon } from "@phosphor-icons/react";
+import { radiusRpc } from "./lib/rpc";
 
 function useDebouncedValue<T>(value: T, delayMs: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -28,6 +30,11 @@ function App() {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchDraft, setSearchDraft] = useState("");
+  const [messageOverrides, setMessageOverrides] = useState<
+    Record<string, Partial<Message>>
+  >({});
+  const pendingReadRef = useRef(new Set<string>());
+  const failedReadRef = useRef(new Set<string>());
 
   const { isAuthenticated, startOAuth } = useAuth();
   const syncStatus = useSyncStatus();
@@ -44,9 +51,26 @@ function App() {
     total: searchedTotal,
     loading: searchLoading,
   } = useInboxSearch(searchActive ? deferredSearchQuery : "", 250, 0);
+  const applyMessageOverrides = useCallback(
+    (items: Message[]) =>
+      items.map((message) =>
+        messageOverrides[message.id]
+          ? { ...message, ...messageOverrides[message.id] }
+          : message
+      ),
+    [messageOverrides]
+  );
+  const mergedInboxMessages = useMemo(
+    () => applyMessageOverrides(messages),
+    [applyMessageOverrides, messages]
+  );
+  const mergedSearchMessages = useMemo(
+    () => applyMessageOverrides(searchedMessages),
+    [applyMessageOverrides, searchedMessages]
+  );
   const { message: fullMessage } = useMessage(selectedMessageId);
   const hasAuthSignal = isAuthenticated === true || Boolean(syncStatus.lastSyncAt);
-  const visibleMessages = searchActive ? searchedMessages : messages;
+  const visibleMessages = searchActive ? mergedSearchMessages : mergedInboxMessages;
   const visibleTotal = searchActive ? searchedTotal : total;
   const messagesById = useMemo(() => {
     return new Map(visibleMessages.map((message) => [message.id, message]));
@@ -54,10 +78,16 @@ function App() {
   const selectedMessagePreview = selectedMessageId
     ? messagesById.get(selectedMessageId) ?? null
     : null;
-  const selectedMessage =
-    fullMessage && fullMessage.id === selectedMessageId
-      ? fullMessage
-      : selectedMessagePreview;
+  const selectedMessage = useMemo(() => {
+    const baseMessage =
+      fullMessage && fullMessage.id === selectedMessageId
+        ? fullMessage
+        : selectedMessagePreview;
+    if (!baseMessage) return null;
+
+    const override = messageOverrides[baseMessage.id];
+    return override ? { ...baseMessage, ...override } : baseMessage;
+  }, [fullMessage, messageOverrides, selectedMessageId, selectedMessagePreview]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -79,6 +109,42 @@ function App() {
     setSelectedMessageId(id);
     setSidebarOpen(false);
   }, []);
+
+  useEffect(() => {
+    if (!selectedMessage || selectedMessage.isRead) return;
+    if (pendingReadRef.current.has(selectedMessage.id)) return;
+    if (failedReadRef.current.has(selectedMessage.id)) return;
+
+    pendingReadRef.current.add(selectedMessage.id);
+    setMessageOverrides((prev) => ({
+      ...prev,
+      [selectedMessage.id]: {
+        ...(prev[selectedMessage.id] ?? {}),
+        isRead: true,
+      },
+    }));
+
+    radiusRpc.request
+      .markMessageRead({ id: selectedMessage.id })
+      .then((result) => {
+        if (!result.success) {
+          throw new Error(result.error ?? "Failed to mark message read");
+        }
+        failedReadRef.current.delete(selectedMessage.id);
+      })
+      .catch((err) => {
+        console.error("Failed to mark message read:", err);
+        failedReadRef.current.add(selectedMessage.id);
+        setMessageOverrides((prev) => {
+          const next = { ...prev };
+          delete next[selectedMessage.id];
+          return next;
+        });
+      })
+      .finally(() => {
+        pendingReadRef.current.delete(selectedMessage.id);
+      });
+  }, [selectedMessage]);
 
   const handleOpenSidebar = useCallback(() => {
     setSidebarOpen(true);

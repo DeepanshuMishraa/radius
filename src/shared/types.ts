@@ -1,6 +1,16 @@
 // Shared RPC types for Electrobun's defineRPC
 // Imported by both main process (Bun) and renderer (browser)
 
+export type EmailCategory =
+  | "important"
+  | "promotional"
+  | "social"
+  | "updates"
+  | "forums"
+  | "spam"
+  | "personal"
+  | "regular";
+
 export interface Message {
   id: string;
   threadId: string;
@@ -12,6 +22,8 @@ export interface Message {
   snippet: string;
   bodyText: string | null;
   bodyHtml: string | null;
+  category: EmailCategory;
+  isRead: boolean;
 }
 
 export interface SyncStatus {
@@ -57,6 +69,10 @@ export type RadiusRPC = {
       };
       startSync: {
         params: {};
+        response: { success: boolean; error?: string };
+      };
+      markMessageRead: {
+        params: { id: string };
         response: { success: boolean; error?: string };
       };
     };

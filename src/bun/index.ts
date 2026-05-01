@@ -9,6 +9,7 @@ import {
   searchInboxMessages,
   updateSyncState,
   updateMessageBodies,
+  setMessageReadState,
 } from "./db";
 import {
   buildAuthURL,
@@ -23,11 +24,13 @@ import {
 import {
   getMessage as getGmailMessage,
   extractBodies,
+  modifyMessageLabels,
 } from "./gmail";
 import {
   runInitialAndBackgroundSync,
   startIncrementalSyncPolling,
   doIncrementalSync,
+  runMessageMetadataBackfillIfNeeded,
 } from "./sync";
 
 const DEV_SERVER_PORT = 5173;
@@ -51,6 +54,25 @@ async function getMainViewUrl(): Promise<string> {
 let codeVerifier: string | null = null;
 let authServer: ReturnType<typeof Bun.serve> | null = null;
 let stopPolling: (() => void) | null = null;
+
+function normalizeMessageRecord(
+  message: Record<string, unknown> | null
+): Record<string, unknown> | null {
+  if (!message) return null;
+
+  return {
+    ...message,
+    category:
+      typeof message.category === "string" ? message.category : "regular",
+    isRead: Boolean(message.isRead),
+  };
+}
+
+function normalizeMessageListRecord(
+  message: Record<string, unknown>
+): Record<string, unknown> {
+  return normalizeMessageRecord(message) ?? message;
+}
 
 async function handleOAuthCallback(code: string): Promise<void> {
   if (!code || !codeVerifier) {
@@ -113,7 +135,9 @@ async function init() {
           const result = await getInboxMessages(limit, offset);
           return {
             messages:
-              result.messages as unknown as RadiusRPC["bun"]["requests"]["getInbox"]["response"]["messages"],
+              result.messages.map((message) =>
+                normalizeMessageListRecord(message)
+              ) as unknown as RadiusRPC["bun"]["requests"]["getInbox"]["response"]["messages"],
             total: result.total,
           };
         },
@@ -130,7 +154,9 @@ async function init() {
           const result = await searchInboxMessages(query, limit, offset);
           return {
             messages:
-              result.messages as unknown as RadiusRPC["bun"]["requests"]["searchInbox"]["response"]["messages"],
+              result.messages.map((message) =>
+                normalizeMessageListRecord(message)
+              ) as unknown as RadiusRPC["bun"]["requests"]["searchInbox"]["response"]["messages"],
             total: result.total,
           };
         },
@@ -162,7 +188,9 @@ async function init() {
             }
           }
 
-          return msg as unknown as RadiusRPC["bun"]["requests"]["getMessage"]["response"];
+          return normalizeMessageRecord(
+            msg
+          ) as RadiusRPC["bun"]["requests"]["getMessage"]["response"];
         },
 
         async getSyncStatus() {
@@ -250,6 +278,29 @@ async function init() {
             return { success: false, error: String(err) };
           }
         },
+
+        async markMessageRead({ id }: { id: string }) {
+          try {
+            const message = await getMessageById(id);
+            if (!message) {
+              return { success: false, error: `Message not found: ${id}` };
+            }
+
+            if (Boolean(message.isRead)) {
+              return { success: true };
+            }
+
+            const accessToken = await getValidAccessToken();
+            await modifyMessageLabels(accessToken, id, {
+              removeLabelIds: ["UNREAD"],
+            });
+            await setMessageReadState(id, true);
+            return { success: true };
+          } catch (err) {
+            console.error("markMessageRead error:", err);
+            return { success: false, error: String(err) };
+          }
+        },
       },
       messages: {},
     },
@@ -269,6 +320,12 @@ async function init() {
   const state = await getSyncState();
 
   if (state.fullSyncCompletedAt) {
+    try {
+      await runMessageMetadataBackfillIfNeeded();
+    } catch (err) {
+      console.error("❌ Metadata backfill failed:", err);
+    }
+
     // User has synced before — catch up immediately then poll
     doIncrementalSync()
       .then((result) => {
