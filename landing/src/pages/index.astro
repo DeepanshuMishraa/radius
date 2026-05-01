@@ -57,29 +57,60 @@ import "../styles/global.css";
           </p>
 
           <!-- Unsigned app notice -->
-          <div class="unsigned-notice max-w-sm w-full mb-8 rounded-lg border border-radius-border-subtle bg-radius-bg-secondary/60 px-4 py-3 text-left">
-            <div class="flex items-start gap-2 mb-2">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-radius-accent mt-0.5 shrink-0">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" x2="12" y1="9" y2="13"/>
-                <line x1="12" x2="12.01" y1="17" y2="17"/>
-              </svg>
-              <p class="text-[11px] text-radius-text-muted leading-relaxed">
-                This app is not code-signed. You may need to allow it manually.
-              </p>
-            </div>
-            <div class="space-y-1.5 pl-5">
-              <div class="flex items-start gap-2">
-                <span class="text-[10px] text-radius-text-muted/70 shrink-0 mt-0.5 w-12">macOS</span>
-                <code class="text-[10px] font-mono text-radius-text-secondary bg-radius-bg-primary/80 rounded px-1.5 py-0.5 break-all">
-                  sudo xattr -rd com.apple.quarantine /Applications/Radius.app
-                </code>
+          <div class="unsigned-notice w-full max-w-[28rem] mb-10 text-left">
+            <div class="rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50 overflow-hidden">
+              <!-- Header -->
+              <div class="flex items-center gap-2 px-4 py-3 border-b border-radius-border-subtle/60">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-radius-accent shrink-0">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" x2="12" y1="9" y2="13"/>
+                  <line x1="12" x2="12.01" y1="17" y2="17"/>
+                </svg>
+                <p class="text-[11px] text-radius-text-muted leading-relaxed">
+                  This app is not code-signed. First-time install requires a quick manual step.
+                </p>
               </div>
-              <div class="flex items-start gap-2">
-                <span class="text-[10px] text-radius-text-muted/70 shrink-0 mt-0.5 w-12">Windows</span>
-                <span class="text-[10px] text-radius-text-secondary leading-relaxed">
-                  Click <span class="text-radius-text-primary">More info</span> → <span class="text-radius-text-primary">Run anyway</span>
-                </span>
+
+              <!-- macOS -->
+              <div class="px-4 py-3 border-b border-radius-border-subtle/40">
+                <div class="flex items-center gap-1.5 mb-2">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="text-radius-text-muted/70">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.21-1.98 1.07-3.11-1.05.05-2.31.7-3.06 1.55-.67.76-1.26 1.99-1.1 3.13 1.17.09 2.36-.66 3.09-1.57z"/>
+                  </svg>
+                  <span class="text-[11px] font-medium text-radius-text-primary">macOS</span>
+                </div>
+                <div class="flex items-stretch gap-1.5">
+                  <code id="mac-cmd" class="flex-1 min-w-0 text-[11px] font-mono text-radius-text-secondary bg-radius-bg-primary/70 rounded-md px-3 py-2 leading-relaxed break-all">
+                    sudo xattr -rd com.apple.quarantine /Applications/Radius.app
+                  </code>
+                  <button
+                    type="button"
+                    data-copy-target="mac-cmd"
+                    class="copy-btn shrink-0 inline-flex items-center justify-center w-9 rounded-md bg-radius-bg-primary/70 text-radius-text-muted hover:text-radius-text-primary hover:bg-radius-bg-primary transition-all duration-150"
+                    aria-label="Copy command"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  </button>
+                </div>
+                <p class="mt-2 text-[10px] text-radius-text-muted/70 leading-relaxed">
+                  Paste into Terminal after dragging Radius to Applications.
+                </p>
+              </div>
+
+              <!-- Windows -->
+              <div class="px-4 py-3">
+                <div class="flex items-center gap-1.5 mb-1.5">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="text-radius-text-muted/70">
+                    <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
+                  </svg>
+                  <span class="text-[11px] font-medium text-radius-text-primary">Windows</span>
+                </div>
+                <p class="text-[11px] text-radius-text-secondary leading-relaxed">
+                  When SmartScreen appears, click <span class="text-radius-text-primary font-medium">More info</span> then <span class="text-radius-text-primary font-medium">Run anyway</span>.
+                </p>
               </div>
             </div>
           </div>
@@ -676,6 +707,32 @@ import "../styles/global.css";
         color: var(--color-radius-text-secondary);
       }
 
+      /* Copy button */
+      .copy-btn {
+        transition: background-color var(--duration-fast) var(--ease-out),
+                    color var(--duration-fast) var(--ease-out),
+                    transform 100ms var(--ease-out);
+      }
+      .copy-btn:active {
+        transform: scale(0.93);
+      }
+
+      /* Unsigned notice entrance */
+      .unsigned-notice {
+        opacity: 0;
+        animation: fade-up 500ms var(--ease-out-expo) 400ms forwards;
+      }
+
+      /* Responsive nav */
+      @media (max-width: 400px) {
+        nav .flex.items-center.gap-6 {
+          gap: 1rem;
+        }
+        nav .nav-link {
+          font-size: 11px;
+        }
+      }
+
       /* Reduced motion */
       @media (prefers-reduced-motion: reduce) {
         .hero-mark,
@@ -684,6 +741,7 @@ import "../styles/global.css";
         .hero-body,
         .hero-download,
         .hero-version,
+        .unsigned-notice,
         .preview-frame,
         .section-header,
         .feature-card,
@@ -703,6 +761,37 @@ import "../styles/global.css";
         }
       }
     </style>
+
+    <!-- Copy button -->
+    <script>
+      document.querySelectorAll("[data-copy-target]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const targetId = btn.getAttribute("data-copy-target");
+          const code = document.getElementById(targetId)?.textContent?.trim();
+          if (!code) return;
+
+          try {
+            await navigator.clipboard.writeText(code);
+            const original = btn.innerHTML;
+            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+            btn.classList.add("text-radius-success");
+            setTimeout(() => {
+              btn.innerHTML = original;
+              btn.classList.remove("text-radius-success");
+            }, 1500);
+          } catch {
+            // Fallback: select the text
+            const el = document.getElementById(targetId);
+            if (el) {
+              const range = document.createRange();
+              range.selectNode(el);
+              window.getSelection()?.removeAllRanges();
+              window.getSelection()?.addRange(range);
+            }
+          }
+        });
+      });
+    </script>
 
     <!-- Intersection Observer for scroll-triggered animations -->
     <script>
