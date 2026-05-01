@@ -9,7 +9,7 @@
     "hmr": "vite --port 5173",
     "build:canary": "vite build && electrobun build --env=canary",
     "build:dev": "bun install && electrobun build",
-    "build:stable": "electrobun build --env=stable"
+    "build:stable": "vite build && electrobun build --env=stable"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",
