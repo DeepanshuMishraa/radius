@@ -3,14 +3,13 @@
   "version": "1.0.0",
   "description": "A Minimal and Clean Distraction Free Client",
   "scripts": {
-    "generate:oauth-config": "bun run scripts/generate-oauth-config.ts",
     "start": "vite build && electrobun dev",
     "dev": "electrobun dev --watch",
     "dev:hmr": "concurrently \"bun run hmr\" \"bun run start\"",
     "hmr": "vite --port 5173",
-    "build:canary": "bun run generate:oauth-config && vite build && electrobun build --env=canary",
-    "build:dev": "bun install && bun run generate:oauth-config && electrobun build",
-    "build:stable": "bun run generate:oauth-config && vite build && electrobun build --env=stable"
+    "build:canary": "vite build && electrobun build --env=canary",
+    "build:dev": "bun install && electrobun build",
+    "build:stable": "vite build && electrobun build --env=stable"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",

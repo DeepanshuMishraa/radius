@@ -31,12 +31,11 @@ bun run dev
 bun run build:canary
 ```
 
-## Release OAuth config
+## Security
 
-- The Google OAuth Client ID is hardcoded in `scripts/generate-oauth-config.ts`.
-- The build step generates `build/oauth-config.json` and Electrobun copies that file into the packaged app resources.
-- Finder-launched apps do not inherit your shell environment, so the packaged app reads that bundled JSON.
+- The Google OAuth Client ID is hardcoded in `src/bun/auth.ts`.
 - User tokens live in the system keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service).
+- No client secret is bundled — PKCE is used for the OAuth flow.
 
 ## Project structure
 
