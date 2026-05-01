@@ -1,0 +1,256 @@
+---
+import RadiusMark from "../components/RadiusMark.astro";
+import "../styles/global.css";
+---
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+            name="description"
+            content="Radius Terms of Service — agreement for using the Radius email client."
+        />
+        <meta name="theme-color" content="#e0dbd3" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <title>Terms of Service — Radius</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+
+    <body class="min-h-screen">
+        <!-- Navigation -->
+        <nav class="fixed top-0 left-0 right-0 z-50 px-6 py-4">
+            <div class="max-w-5xl mx-auto flex items-center justify-between">
+                <a
+                    href="/"
+                    class="nav-logo flex items-center gap-2.5 text-radius-text-primary"
+                >
+                    <RadiusMark class="w-5 h-5 text-radius-accent" />
+                    <span class="text-[13px] font-medium tracking-tight"
+                        >Radius</span
+                    >
+                </a>
+                <div class="flex items-center gap-6">
+                    <a
+                        href="/"
+                        class="nav-link text-[12px] text-radius-text-secondary transition-colors duration-150"
+                        >Home</a
+                    >
+                    <a
+                        href="https://github.com/DeepanshuMishraa/radius"
+                        target="_blank"
+                        rel="noopener"
+                        class="nav-link text-[12px] text-radius-text-secondary transition-colors duration-150"
+                        >GitHub</a
+                    >
+                </div>
+            </div>
+        </nav>
+
+        <!-- Content -->
+        <main class="pt-24 pb-24 px-6">
+            <div class="max-w-2xl mx-auto">
+                <div class="mb-12">
+                    <h1
+                        class="font-serif text-[36px] md:text-[44px] font-semibold text-radius-text-primary leading-[1.1] tracking-tight mb-4"
+                    >
+                        Terms of Service
+                    </h1>
+                    <p class="text-[13px] text-radius-text-muted">
+                        Last updated: May 1, 2026
+                    </p>
+                </div>
+
+                <div class="legal-content space-y-10 text-[13px] text-radius-text-secondary leading-[1.8]">
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            1. Agreement to Terms
+                        </h2>
+                        <p>
+                            By downloading, installing, or using Radius ("the Software"), you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use the Software. Radius is an open-source desktop email client for Gmail, distributed under the MIT License.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            2. Description of Service
+                        </h2>
+                        <p class="mb-3">
+                            Radius is a minimal, read-only desktop email client that connects to your Gmail account via OAuth. The Software provides:
+                        </p>
+                        <ul class="list-disc pl-5 space-y-1.5">
+                            <li>Local caching of your Gmail inbox via SQLite</li>
+                            <li>A distraction-free email reading interface</li>
+                            <li>Background incremental sync via the Gmail API</li>
+                        </ul>
+                        <p class="mt-3">
+                            Radius is <strong class="text-radius-text-primary">read-only</strong>. It does not send, delete, archive, or modify emails in any way.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            3. Account and Authentication
+                        </h2>
+                        <p class="mb-3">
+                            To use Radius, you must:
+                        </p>
+                        <ul class="list-disc pl-5 space-y-1.5 mb-3">
+                            <li>Have a valid Gmail account</li>
+                            <li>Authenticate via Google's OAuth 2.0 service</li>
+                            <li>Grant Radius read-only access to your Gmail data</li>
+                        </ul>
+                        <p>
+                            You are responsible for maintaining the security of your Google account credentials. Radius does not store your Google password. OAuth tokens are stored in your device's system keychain.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            4. Acceptable Use
+                        </h2>
+                        <p class="mb-3">
+                            You agree not to use Radius to:
+                        </p>
+                        <ul class="list-disc pl-5 space-y-1.5">
+                            <li>Violate any applicable laws or regulations</li>
+                            <li>Infringe on the rights of others</li>
+                            <li>Reverse engineer, decompile, or disassemble the Software except as permitted by the MIT License</li>
+                            <li>Use the Software to distribute malware or harmful code</li>
+                            <li>Attempt to bypass or circumvent any security features</li>
+                            <li>Scrape, mine, or extract data from Gmail in violation of Google's Terms of Service</li>
+                        </ul>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            5. Data Ownership
+                        </h2>
+                        <p>
+                            Your email data belongs to you. Radius claims no ownership over any content accessed through the Software. All data fetched from Gmail is stored locally on your device. You may export, modify, or delete this data at any time.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            6. Intellectual Property
+                        </h2>
+                        <p class="mb-3">
+                            Radius is open-source software licensed under the <a href="https://github.com/DeepanshuMishraa/radius/blob/main/LICENSE" target="_blank" rel="noopener" class="text-radius-accent hover:underline">MIT License</a>.
+                        </p>
+                        <p>
+                            The Radius name, logo, and associated branding are the property of the project maintainers. The source code is freely available for use, modification, and distribution under the terms of the MIT License.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            7. Disclaimer of Warranties
+                        </h2>
+                        <p>
+                            <strong class="text-radius-text-primary">THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.</strong> This includes but is not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement. The authors and contributors of Radius make no guarantees that the Software will be error-free, secure, or available at all times.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            8. Limitation of Liability
+                        </h2>
+                        <p>
+                            <strong class="text-radius-text-primary">IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE</strong> for any claim, damages, or other liability, whether in an action of contract, tort, or otherwise, arising from, out of, or in connection with the Software or the use or other dealings in the Software. This limitation applies even if advised of the possibility of such damages.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            9. Third-Party Services
+                        </h2>
+                        <p>
+                            Radius relies on Google's Gmail API and OAuth services. Your use of Radius is also subject to <a href="https://policies.google.com/terms" target="_blank" rel="noopener" class="text-radius-accent hover:underline">Google's Terms of Service</a> and <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" class="text-radius-accent hover:underline">Privacy Policy</a>. We are not responsible for any changes, outages, or policies implemented by Google.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            10. Termination
+                        </h2>
+                        <p>
+                            You may stop using Radius at any time by uninstalling the Software. You may also revoke Radius's access to your Gmail account via your <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener" class="text-radius-accent hover:underline">Google Account settings</a>. Upon revocation, Radius will no longer be able to access your Gmail data.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            11. Modifications to Terms
+                        </h2>
+                        <p>
+                            We may update these Terms of Service from time to time. Changes will be posted on this page with an updated effective date. Your continued use of Radius after changes constitutes acceptance of the revised terms.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            12. Governing Law
+                        </h2>
+                        <p>
+                            These Terms shall be governed by and construed in accordance with the laws applicable to open-source software distributed under the MIT License. Any disputes arising from these Terms shall be resolved in the jurisdiction most favorable to the principles of open-source software distribution.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            13. Contact
+                        </h2>
+                        <p>
+                            For questions about these Terms of Service, please open an issue on our <a href="https://github.com/DeepanshuMishraa/radius/issues" target="_blank" rel="noopener" class="text-radius-accent hover:underline">GitHub repository</a>.
+                        </p>
+                    </section>
+
+                    <section class="pt-6 border-t border-radius-border-subtle">
+                        <p class="text-[11px] text-radius-text-muted">
+                            Radius is an open-source project released under the MIT License. These terms are provided for informational purposes and do not constitute legal advice. Please consult a qualified attorney if you have specific legal questions.
+                        </p>
+                    </section>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="px-6 py-8 border-t border-radius-border-subtle">
+            <div
+                class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4"
+            >
+                <div class="flex items-center gap-2 text-radius-text-muted">
+                    <RadiusMark class="w-4 h-4" />
+                    <span class="text-[12px]">Radius</span>
+                    <span class="text-[11px] text-radius-border">&middot;</span>
+                    <span class="text-[11px]">MIT License</span>
+                </div>
+                <div class="flex items-center gap-5">
+                    <a
+                        href="/privacy"
+                        class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150"
+                        >Privacy</a
+                    >
+                    <a
+                        href="/terms"
+                        class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150"
+                        >Terms</a
+                    >
+                    <a
+                        href="https://github.com/DeepanshuMishraa/radius"
+                        target="_blank"
+                        rel="noopener"
+                        class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150"
+                        >GitHub</a
+                    >
+                </div>
+            </div>
+        </footer>
+    </body>
+</html>

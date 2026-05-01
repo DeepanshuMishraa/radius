@@ -927,6 +927,16 @@ import "../styles/global.css";
                 </div>
                 <div class="flex items-center gap-5">
                     <a
+                        href="/privacy"
+                        class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150"
+                        >Privacy</a
+                    >
+                    <a
+                        href="/terms"
+                        class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150"
+                        >Terms</a
+                    >
+                    <a
                         href="https://github.com/DeepanshuMishraa/radius"
                         target="_blank"
                         rel="noopener"
@@ -1267,7 +1277,7 @@ import "../styles/global.css";
                 btn.addEventListener("click", async () => {
                     const targetId = btn.getAttribute("data-copy-target");
                     const code = document
-                        .getElementById(targetId)
+                        .getElementById(targetId as string)
                         ?.textContent?.trim();
                     if (!code) return;
 
@@ -1282,7 +1292,7 @@ import "../styles/global.css";
                         }, 1500);
                     } catch {
                         // Fallback: select the text
-                        const el = document.getElementById(targetId);
+                        const el = document.getElementById(targetId as string);
                         if (el) {
                             const range = document.createRange();
                             range.selectNode(el);

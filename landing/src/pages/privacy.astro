@@ -1,0 +1,252 @@
+---
+import RadiusMark from "../components/RadiusMark.astro";
+import "../styles/global.css";
+---
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+            name="description"
+            content="Radius Privacy Policy — how we handle your data."
+        />
+        <meta name="theme-color" content="#e0dbd3" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <title>Privacy Policy — Radius</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+
+    <body class="min-h-screen">
+        <!-- Navigation -->
+        <nav class="fixed top-0 left-0 right-0 z-50 px-6 py-4">
+            <div class="max-w-5xl mx-auto flex items-center justify-between">
+                <a
+                    href="/"
+                    class="nav-logo flex items-center gap-2.5 text-radius-text-primary"
+                >
+                    <RadiusMark class="w-5 h-5 text-radius-accent" />
+                    <span class="text-[13px] font-medium tracking-tight"
+                        >Radius</span
+                    >
+                </a>
+                <div class="flex items-center gap-6">
+                    <a
+                        href="/"
+                        class="nav-link text-[12px] text-radius-text-secondary transition-colors duration-150"
+                        >Home</a
+                    >
+                    <a
+                        href="https://github.com/DeepanshuMishraa/radius"
+                        target="_blank"
+                        rel="noopener"
+                        class="nav-link text-[12px] text-radius-text-secondary transition-colors duration-150"
+                        >GitHub</a
+                    >
+                </div>
+            </div>
+        </nav>
+
+        <!-- Content -->
+        <main class="pt-24 pb-24 px-6">
+            <div class="max-w-2xl mx-auto">
+                <div class="mb-12">
+                    <h1
+                        class="font-serif text-[36px] md:text-[44px] font-semibold text-radius-text-primary leading-[1.1] tracking-tight mb-4"
+                    >
+                        Privacy Policy
+                    </h1>
+                    <p class="text-[13px] text-radius-text-muted">
+                        Last updated: May 1, 2026
+                    </p>
+                </div>
+
+                <div class="legal-content space-y-10 text-[13px] text-radius-text-secondary leading-[1.8]">
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            1. Overview
+                        </h2>
+                        <p>
+                            Radius is a minimal, open-source desktop email client for Gmail. This Privacy Policy explains what data Radius accesses, how it is used, and how it is protected. We believe privacy is not a feature — it is the foundation.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            2. Data We Access
+                        </h2>
+                        <p class="mb-3">
+                            Radius connects to your Gmail account using OAuth 2.0 with a <strong class="text-radius-text-primary">read-only scope</strong>. This means Radius can:
+                        </p>
+                        <ul class="list-disc pl-5 space-y-1.5 mb-3">
+                            <li>Read your email messages (subject, sender, body, attachments metadata)</li>
+                            <li>Read your Gmail labels and folder structure</li>
+                            <li>Sync your inbox to a local database on your device</li>
+                        </ul>
+                        <p class="mb-3">
+                            Radius <strong class="text-radius-text-primary">cannot and does not</strong>:
+                        </p>
+                        <ul class="list-disc pl-5 space-y-1.5">
+                            <li>Send, delete, or modify emails</li>
+                            <li>Access your Google Contacts, Calendar, or Drive</li>
+                            <li>Share your data with any third party</li>
+                        </ul>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            3. How Your Data Is Stored
+                        </h2>
+                        <p class="mb-3">
+                            All data accessed by Radius is stored <strong class="text-radius-text-primary">locally on your device</strong>:
+                        </p>
+                        <ul class="list-disc pl-5 space-y-1.5 mb-3">
+                            <li>Your emails are cached in a local SQLite database on your machine</li>
+                            <li>Your OAuth access token is stored in your system keychain (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux)</li>
+                            <li>No data is transmitted to or stored on any server operated by Radius</li>
+                        </ul>
+                        <p>
+                            You can delete all locally cached data at any time by uninstalling Radius or clearing the application data folder.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            4. Data We Do Not Collect
+                        </h2>
+                        <p class="mb-3">
+                            Radius is designed to collect as little data as possible. We do <strong class="text-radius-text-primary">not</strong>:
+                        </p>
+                        <ul class="list-disc pl-5 space-y-1.5">
+                            <li>Track usage analytics or behavior</li>
+                            <li>Send crash reports or telemetry</li>
+                            <li>Use cookies or web beacons</li>
+                            <li>Display advertisements</li>
+                            <li>Sell or share any user data</li>
+                            <li>Store data in the cloud</li>
+                        </ul>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            5. Third-Party Services
+                        </h2>
+                        <p class="mb-3">
+                            Radius communicates directly with Google's Gmail API. Your data passes through:
+                        </p>
+                        <ul class="list-disc pl-5 space-y-1.5">
+                            <li><strong class="text-radius-text-primary">Google Gmail API</strong> — for fetching and syncing your emails. Governed by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" class="text-radius-accent hover:underline">Google's Privacy Policy</a>.</li>
+                        </ul>
+                        <p class="mt-3">
+                            No other third-party services are used. There are no analytics providers, advertising networks, or cloud storage services integrated into Radius.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            6. Security
+                        </h2>
+                        <p class="mb-3">
+                            We take the following measures to protect your data:
+                        </p>
+                        <ul class="list-disc pl-5 space-y-1.5">
+                            <li>OAuth tokens are never written to disk in plain text — they are stored in your OS keychain</li>
+                            <li>All communication with Gmail's API uses HTTPS/TLS encryption</li>
+                            <li>HTML email bodies are sanitized before rendering to prevent XSS attacks</li>
+                            <li>The application is open source, allowing independent security audits</li>
+                        </ul>
+                        <p class="mt-3">
+                            However, no system is 100% secure. You are responsible for keeping your device and operating system secure.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            7. Your Rights
+                        </h2>
+                        <p class="mb-3">
+                            Because all your data stays on your device, you have full control:
+                        </p>
+                        <ul class="list-disc pl-5 space-y-1.5">
+                            <li><strong class="text-radius-text-primary">Access</strong> — Your data is always accessible in the local SQLite database</li>
+                            <li><strong class="text-radius-text-primary">Deletion</strong> — Uninstall Radius or delete the app data folder to remove all cached data</li>
+                            <li><strong class="text-radius-text-primary">Revocation</strong> — Revoke Radius's access anytime via your <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener" class="text-radius-accent hover:underline">Google Account permissions</a></li>
+                            <li><strong class="text-radius-text-primary">Portability</strong> — Export your local SQLite database at any time</li>
+                        </ul>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            8. Children's Privacy
+                        </h2>
+                        <p>
+                            Radius is not intended for use by children under the age of 13. We do not knowingly collect data from children under 13. If you believe a child under 13 has used Radius, please contact us so we can assist with removing access.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            9. Changes to This Policy
+                        </h2>
+                        <p>
+                            We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated effective date. Since Radius is a desktop application, we recommend checking this page periodically for updates.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-[15px] font-semibold text-radius-text-primary mb-3">
+                            10. Contact Us
+                        </h2>
+                        <p>
+                            If you have questions about this Privacy Policy or how Radius handles your data, please open an issue on our <a href="https://github.com/DeepanshuMishraa/radius/issues" target="_blank" rel="noopener" class="text-radius-accent hover:underline">GitHub repository</a>.
+                        </p>
+                    </section>
+
+                    <section class="pt-6 border-t border-radius-border-subtle">
+                        <p class="text-[11px] text-radius-text-muted">
+                            Radius is an open-source project released under the MIT License. This privacy policy is provided for informational purposes. For jurisdiction-specific privacy rights (GDPR, CCPA, etc.), please consult a qualified privacy attorney.
+                        </p>
+                    </section>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="px-6 py-8 border-t border-radius-border-subtle">
+            <div
+                class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4"
+            >
+                <div class="flex items-center gap-2 text-radius-text-muted">
+                    <RadiusMark class="w-4 h-4" />
+                    <span class="text-[12px]">Radius</span>
+                    <span class="text-[11px] text-radius-border">&middot;</span>
+                    <span class="text-[11px]">MIT License</span>
+                </div>
+                <div class="flex items-center gap-5">
+                    <a
+                        href="/privacy"
+                        class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150"
+                        >Privacy</a
+                    >
+                    <a
+                        href="/terms"
+                        class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150"
+                        >Terms</a
+                    >
+                    <a
+                        href="https://github.com/DeepanshuMishraa/radius"
+                        target="_blank"
+                        rel="noopener"
+                        class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150"
+                        >GitHub</a
+                    >
+                </div>
+            </div>
+        </footer>
+    </body>
+</html>
