@@ -80,6 +80,14 @@ export type RadiusRPC = {
           localStateApplied?: boolean;
         };
       };
+      requestNotificationPermission: {
+        params: {};
+        response: { success: boolean; error?: string };
+      };
+      openNotificationSettings: {
+        params: {};
+        response: { success: boolean; error?: string };
+      };
     };
     messages: {
       ready: {};

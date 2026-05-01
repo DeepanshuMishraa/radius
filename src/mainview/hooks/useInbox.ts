@@ -109,6 +109,17 @@ export function useInbox(
     return () => clearInterval(interval);
   }, [fetchInbox, pollMs]);
 
+  useEffect(() => {
+    const handleNewMail = () => {
+      void fetchInbox();
+    };
+
+    radiusRpc.addMessageListener("newMail", handleNewMail);
+    return () => {
+      radiusRpc.removeMessageListener("newMail", handleNewMail);
+    };
+  }, [fetchInbox]);
+
   return { messages, total, loading, refresh: fetchInbox };
 }
 

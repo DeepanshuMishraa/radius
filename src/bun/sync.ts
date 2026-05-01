@@ -67,6 +67,10 @@ const FETCH_CONCURRENCY = 15;
 const INSERT_BATCH_SIZE = 50;
 const MESSAGE_METADATA_BATCH_SIZE = 250;
 const CURRENT_METADATA_SCHEMA_VERSION = 2;
+const FAST_POLL_INTERVAL_MS = 4000;
+const IDLE_POLL_INTERVAL_MS = 10000;
+const ERROR_POLL_INTERVAL_MS = 15000;
+const EMPTY_POLLS_BEFORE_IDLE = 12;
 
 let syncLock = false;
 
@@ -402,12 +406,13 @@ export async function runBackgroundCatchupSync(): Promise<void> {
 export async function doIncrementalSync(): Promise<{
   newMessages: number;
   hadGap: boolean;
+  messages: GmailMessage[];
 }> {
   const state = await getSyncState();
   if (!state.historyId) {
     console.log("No historyId — running full sync instead");
     await runInitialAndBackgroundSync();
-    return { newMessages: 0, hadGap: false };
+    return { newMessages: 0, hadGap: false, messages: [] };
   }
 
   const lockResult = await withSyncLock(async () => {
@@ -424,6 +429,7 @@ export async function doIncrementalSync(): Promise<{
       let hadGap = false;
       let newCount = 0;
       let needsFullResync = false;
+      const newMessages: GmailMessage[] = [];
 
       try {
         const addedIds = new Set<string>();
@@ -462,6 +468,7 @@ export async function doIncrementalSync(): Promise<{
 
           if (fetched.length > 0) {
             await flushInsertBuffer(fetched, accessToken);
+            newMessages.push(...fetched);
           }
           newCount += fetched.length;
         }
@@ -512,7 +519,12 @@ export async function doIncrementalSync(): Promise<{
         }
       }
 
-      return { newMessages: newCount, hadGap, needsFullResync };
+      return {
+        newMessages: newCount,
+        hadGap,
+        needsFullResync,
+        messages: newMessages,
+      };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await updateSyncState({ status: "error", phase: null, error: message });
@@ -521,16 +533,20 @@ export async function doIncrementalSync(): Promise<{
   });
 
   if (lockResult === "locked") {
-    return { newMessages: 0, hadGap: false };
+    return { newMessages: 0, hadGap: false, messages: [] };
   }
 
   if (lockResult.needsFullResync) {
     await clearMessages();
     await runInitialAndBackgroundSync();
-    return { newMessages: 0, hadGap: true };
+    return { newMessages: 0, hadGap: true, messages: [] };
   }
 
-  return { newMessages: lockResult.newMessages, hadGap: lockResult.hadGap };
+  return {
+    newMessages: lockResult.newMessages,
+    hadGap: lockResult.hadGap,
+    messages: lockResult.messages,
+  };
 }
 
 export async function runMessageMetadataBackfillIfNeeded(): Promise<void> {
@@ -650,6 +666,8 @@ export async function startIncrementalSyncPolling(
   _onNewMail?: (message: GmailMessage) => void
 ): Promise<() => void> {
   let running = true;
+  let emptyPolls = 0;
+  let nextDelayMs = FAST_POLL_INTERVAL_MS;
 
   async function poll() {
     while (running) {
@@ -657,14 +675,23 @@ export async function startIncrementalSyncPolling(
         const result = await doIncrementalSync();
         if (result.newMessages > 0) {
           console.log(`Incremental sync: ${result.newMessages} new messages`);
+          for (const message of result.messages) {
+            _onNewMail?.(message);
+          }
+          emptyPolls = 0;
+          nextDelayMs = FAST_POLL_INTERVAL_MS;
+        } else {
+          emptyPolls += 1;
+          if (emptyPolls >= EMPTY_POLLS_BEFORE_IDLE) {
+            nextDelayMs = IDLE_POLL_INTERVAL_MS;
+          }
         }
       } catch (err) {
         console.error("Incremental sync failed:", err);
+        nextDelayMs = ERROR_POLL_INTERVAL_MS;
       }
 
-      for (let i = 0; i < 30 && running; i++) {
-        await Bun.sleep(1000);
-      }
+      await Bun.sleep(nextDelayMs);
     }
   }
 

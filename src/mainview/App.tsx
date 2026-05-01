@@ -11,6 +11,18 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { MagnifyingGlassIcon, ArrowBendDownLeftIcon, XIcon } from "@phosphor-icons/react";
 import { radiusRpc } from "./lib/rpc";
 
+function parseAddressLabel(address: string | null | undefined) {
+  if (!address) return { name: "Radius", email: "" };
+  const match = address.match(/^"?([^"<]+)"?\s*(?:<([^>]+)>)?$/);
+  if (match) {
+    return {
+      name: match[1].trim() || match[2]?.trim() || "Radius",
+      email: match[2]?.trim() || "",
+    };
+  }
+  return { name: address, email: "" };
+}
+
 function useDebouncedValue<T>(value: T, delayMs: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -37,13 +49,19 @@ function App() {
   const pendingReadRef = useRef(new Set<string>());
   const failedReadRef = useRef(new Set<string>());
   const [gmailSyncNotice, setGmailSyncNotice] = useState<string | null>(null);
+  const [notificationPromptVisible, setNotificationPromptVisible] = useState(false);
+  const [notificationPromptMode, setNotificationPromptMode] = useState<
+    "default" | "followup"
+  >("default");
+  const [newMailToast, setNewMailToast] = useState<Message | null>(null);
+  const newMailToastTimeoutRef = useRef<number | null>(null);
 
   const { isAuthenticated, startOAuth } = useAuth();
   const syncStatus = useSyncStatus();
   const { messages, total } = useInbox(
     1000,
     0,
-    syncStatus.status === "syncing" ? 2000 : 15000
+    syncStatus.status === "syncing" ? 2000 : 8000
   );
   const debouncedSearchQuery = useDebouncedValue(searchDraft, 120);
   const deferredSearchQuery = useDeferredValue(debouncedSearchQuery);
@@ -101,6 +119,102 @@ function App() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  useEffect(() => {
+    const handleNewMail = (incomingMessage: Message) => {
+      setNewMailToast(incomingMessage);
+    };
+
+    radiusRpc.addMessageListener("newMail", handleNewMail);
+    return () => {
+      radiusRpc.removeMessageListener("newMail", handleNewMail);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!newMailToast) {
+      if (newMailToastTimeoutRef.current !== null) {
+        window.clearTimeout(newMailToastTimeoutRef.current);
+        newMailToastTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    if (newMailToastTimeoutRef.current !== null) {
+      window.clearTimeout(newMailToastTimeoutRef.current);
+    }
+
+    newMailToastTimeoutRef.current = window.setTimeout(() => {
+      setNewMailToast(null);
+      newMailToastTimeoutRef.current = null;
+    }, 6500);
+
+    return () => {
+      if (newMailToastTimeoutRef.current !== null) {
+        window.clearTimeout(newMailToastTimeoutRef.current);
+        newMailToastTimeoutRef.current = null;
+      }
+    };
+  }, [newMailToast]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const nativeNotificationsEnabled =
+      window.localStorage.getItem("radius.notifications.enabled") === "true";
+    const browserPermission =
+      "Notification" in window ? window.Notification.permission : "default";
+    setNotificationPromptVisible(
+      !nativeNotificationsEnabled && browserPermission !== "granted"
+    );
+  }, []);
+
+  const openNotificationSettings = useCallback(async () => {
+    try {
+      const result = await radiusRpc.request.openNotificationSettings({});
+      if (!result.success) {
+        throw new Error(result.error ?? "Failed to open notification settings");
+      }
+    } catch (error) {
+      console.error("Open notification settings failed:", error);
+    }
+  }, []);
+
+  const requestNotificationPermission = useCallback(async () => {
+    try {
+      const platform =
+        typeof window !== "undefined"
+          ? (
+              window.navigator as Navigator & {
+                userAgentData?: { platform?: string };
+              }
+            ).userAgentData?.platform ?? window.navigator.platform ?? ""
+          : "";
+      const isMacOS = /mac/i.test(platform);
+      const result = await radiusRpc.request.requestNotificationPermission({});
+      if (!result.success) {
+        throw new Error(result.error ?? "Failed to request notifications");
+      }
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("radius.notifications.enabled", "true");
+      }
+      if (isMacOS) {
+        setNotificationPromptMode("followup");
+        setNotificationPromptVisible(true);
+        await openNotificationSettings();
+        return;
+      }
+      setNotificationPromptVisible(false);
+    } catch (error) {
+      console.error("Notification permission request failed:", error);
+      setNotificationPromptMode("followup");
+      setNotificationPromptVisible(true);
+    }
+  }, [openNotificationSettings]);
+
+  const dismissNotificationPrompt = useCallback(() => {
+    setNotificationPromptVisible(false);
   }, []);
 
   const handleConnect = useCallback(async () => {
@@ -162,6 +276,17 @@ function App() {
     setSearchOpen(false);
     setSearchDraft("");
   }, []);
+
+  const dismissNewMailToast = useCallback(() => {
+    setNewMailToast(null);
+  }, []);
+
+  const handleOpenNewMailToast = useCallback(() => {
+    if (!newMailToast) return;
+    setSelectedMessageId(newMailToast.id);
+    setSidebarOpen(false);
+    setNewMailToast(null);
+  }, [newMailToast]);
 
   const handleSubmitSearch = useCallback(() => {
     if (searchedMessages.length > 0) {
@@ -251,6 +376,20 @@ function App() {
       />
 
       {/* Minimal sync indicator — bottom left, never blocks */}
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
+        <InAppNewMailToast
+          message={newMailToast}
+          onOpen={handleOpenNewMailToast}
+          onDismiss={dismissNewMailToast}
+        />
+        <NotificationPermissionPrompt
+          visible={notificationPromptVisible}
+          mode={notificationPromptMode}
+          onRequestPermission={requestNotificationPermission}
+          onOpenSettings={openNotificationSettings}
+          onDismiss={dismissNotificationPrompt}
+        />
+      </div>
       <SyncPill syncStatus={syncStatus} notice={gmailSyncNotice} />
       </div>
     </ThemeProvider>
@@ -362,6 +501,147 @@ function DragRegion() {
   );
 }
 
+function NotificationPermissionPrompt({
+  visible,
+  mode,
+  onRequestPermission,
+  onOpenSettings,
+  onDismiss,
+}: {
+  visible: boolean;
+  mode: "default" | "followup";
+  onRequestPermission: () => void | Promise<void>;
+  onOpenSettings: () => void | Promise<void>;
+  onDismiss: () => void;
+}) {
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <div className="pointer-events-auto max-w-[280px] rounded-2xl border border-radius-border-subtle bg-radius-bg-primary/94 px-4 py-3 shadow-[0_16px_36px_rgba(0,0,0,0.12)] backdrop-blur-md">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-radius-bg-secondary text-radius-accent">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
+            <path d="M10 17a2 2 0 0 0 4 0" />
+          </svg>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+              Turn on new mail alerts
+            </p>
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="mt-[-2px] inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
+              aria-label="Dismiss notification prompt"
+            >
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          </div>
+          <p className="mt-1 text-[11px] leading-[1.5] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+            {mode === "followup"
+              ? "If alerts only land in Notification Center, open Notifications settings and set Radius to Banners so new mail pops up while the app is open."
+              : "Enable native alerts so Radius can notify you when new email arrives while the app is open."}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                void onRequestPermission();
+              }}
+              className="inline-flex items-center rounded-full bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover"
+            >
+              {mode === "followup" ? "Try again" : "Enable alerts"}
+            </button>
+            {mode === "followup" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  void onOpenSettings();
+                }}
+                className="inline-flex items-center rounded-full border border-radius-border-subtle bg-radius-bg-secondary px-3 py-1.5 text-[11px] font-medium text-radius-text-primary transition-colors hover:border-radius-border hover:bg-radius-bg-primary"
+              >
+                Open settings
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InAppNewMailToast({
+  message,
+  onOpen,
+  onDismiss,
+}: {
+  message: Message | null;
+  onOpen: () => void;
+  onDismiss: () => void;
+}) {
+  if (!message) {
+    return null;
+  }
+
+  const sender = parseAddressLabel(message.from);
+
+  return (
+    <div className="pointer-events-auto w-[320px] rounded-[22px] border border-radius-border-subtle bg-radius-bg-primary/96 p-3 shadow-[0_18px_40px_rgba(0,0,0,0.18)] backdrop-blur-md transition-all duration-300 ease-out">
+      <div className="flex items-start gap-3">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="min-w-0 flex-1 rounded-[18px] bg-radius-bg-secondary/70 px-3 py-3 text-left transition-colors duration-200 hover:bg-radius-bg-secondary"
+        >
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.08em] text-radius-accent font-[family-name:var(--font-family-sans)]">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-radius-accent" />
+            New mail
+          </div>
+          <p className="mt-2 truncate text-[14px] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
+            {sender.name}
+          </p>
+          <p className="mt-1 truncate text-[12px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
+            {message.subject || message.snippet || "Open to read"}
+          </p>
+        </button>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
+          aria-label="Dismiss new mail alert"
+        >
+          <XIcon size={12} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function SyncPill({
   syncStatus,
   notice,
@@ -376,7 +656,7 @@ function SyncPill({
   const pct = total > 0 ? Math.min(Math.round((current / total) * 100), 100) : 0;
 
   return (
-    <div className="fixed bottom-4 left-4 z-40 flex items-center gap-2 px-3 py-1.5 rounded-full bg-radius-bg-secondary/90 backdrop-blur-sm border border-radius-border-subtle shadow-sm">
+    <div className="fixed bottom-4 left-4 z-40 flex items-center gap-2 rounded-full border border-radius-border-subtle bg-radius-bg-secondary/90 px-3 py-1.5 shadow-sm backdrop-blur-sm">
       {syncStatus.status === "syncing" ? (
         <svg
           className="animate-spin text-radius-text-muted shrink-0"

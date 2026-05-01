@@ -16,7 +16,7 @@ export default {
     // Ignore Vite output in watch mode — HMR handles view rebuilds separately
     watchIgnore: ["dist/**"],
     mac: {
-      bundleCEF: true,
+      bundleCEF: false,
     },
     linux: {
       bundleCEF: false,

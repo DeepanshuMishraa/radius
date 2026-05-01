@@ -36,6 +36,40 @@ function parseAddress(addr: string | null | undefined): {
   return { name: addr, email: addr };
 }
 
+function AddressReveal({
+  name,
+  email,
+}: {
+  name: string;
+  email: string;
+}) {
+  const primaryLabel = name || email || "Unknown";
+  const secondaryLabel = email || primaryLabel;
+  const canReveal = secondaryLabel !== primaryLabel;
+
+  return (
+    <span
+      className="group/address relative inline-grid min-h-[1.35rem] max-w-full text-[14px] font-[family-name:var(--font-family-serif)] text-radius-text-primary"
+      title={secondaryLabel}
+    >
+      <span
+        className={`col-start-1 row-start-1 truncate transition-all duration-300 ease-out ${
+          canReveal
+            ? "group-hover/address:translate-y-[-3px] group-hover/address:opacity-0"
+            : ""
+        }`}
+      >
+        {primaryLabel}
+      </span>
+      {canReveal ? (
+        <span className="pointer-events-none col-start-1 row-start-1 truncate text-radius-text-secondary opacity-0 translate-y-1 transition-all duration-300 ease-out group-hover/address:translate-y-0 group-hover/address:opacity-100">
+          {secondaryLabel}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 const CATEGORY_META: Record<
   EmailCategory,
   { label: string; bg: string; text: string; border: string }
@@ -581,21 +615,17 @@ export const ReaderView = memo(function ReaderView({
             </div>
 
             <div className="mb-10 pb-8 border-b border-radius-border-subtle space-y-2">
-              <div className="flex items-baseline gap-6">
+              <div className="flex items-start gap-6">
                 <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
                   From
                 </span>
-                <span className="text-[14px] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
-                  {sender.name}
-                </span>
+                <AddressReveal name={sender.name} email={sender.email} />
               </div>
-              <div className="flex items-baseline gap-6">
+              <div className="flex items-start gap-6">
                 <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
                   To
                 </span>
-                <span className="text-[14px] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
-                  {recipient.name}
-                </span>
+                <AddressReveal name={recipient.name} email={recipient.email} />
               </div>
               <div className="flex items-baseline gap-6 pt-1">
                 <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]"></span>

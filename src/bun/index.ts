@@ -1,4 +1,4 @@
-import { BrowserWindow, BrowserView } from "electrobun/bun";
+import { BrowserWindow, BrowserView, Utils } from "electrobun/bun";
 import { spawn } from "node:child_process";
 import type { RadiusRPC } from "../shared/types";
 import {
@@ -26,6 +26,9 @@ import {
   extractBodies,
   modifyMessageLabels,
   GmailAPIError,
+  parseHeaders,
+  classifyMessageNature,
+  isReadFromLabels,
 } from "./gmail";
 import {
   runInitialAndBackgroundSync,
@@ -55,6 +58,44 @@ async function getMainViewUrl(): Promise<string> {
 let codeVerifier: string | null = null;
 let authServer: ReturnType<typeof Bun.serve> | null = null;
 let stopPolling: (() => void) | null = null;
+let emitNewMailToRenderer: (message: Awaited<ReturnType<typeof getGmailMessage>>) => void =
+  () => {};
+
+function toRpcMessage(gmailMessage: Awaited<ReturnType<typeof getGmailMessage>>) {
+  const headers = parseHeaders(gmailMessage.payload.headers ?? []);
+
+  return {
+    id: gmailMessage.id,
+    threadId: gmailMessage.threadId,
+    historyId: gmailMessage.historyId,
+    internalDate: parseInt(gmailMessage.internalDate, 10),
+    from: headers["from"] ?? "",
+    to: headers["to"] ?? "",
+    subject: headers["subject"] ?? "",
+    snippet: gmailMessage.snippet,
+    bodyText: null,
+    bodyHtml: null,
+    category: classifyMessageNature({
+      labelIds: gmailMessage.labelIds,
+      from: headers["from"],
+      subject: headers["subject"],
+      snippet: gmailMessage.snippet,
+    }),
+    isRead: isReadFromLabels(gmailMessage.labelIds),
+  } satisfies RadiusRPC["bun"]["requests"]["getMessage"]["response"];
+}
+
+function showNewMailNotification(message: RadiusRPC["bun"]["requests"]["getMessage"]["response"]) {
+  if (!message || message.isRead) return;
+
+  const sender = message.from?.split("<")[0].trim() || message.from || "Radius";
+  Utils.showNotification({
+    title: sender,
+    subtitle: "New mail in Radius",
+    body: message.subject || message.snippet || "You received a new email",
+    silent: false,
+  });
+}
 
 function normalizeMessageRecord(
   message: Record<string, unknown> | null
@@ -115,7 +156,9 @@ async function handleOAuthCallback(code: string): Promise<void> {
     });
 
     // Start incremental polling
-    stopPolling = await startIncrementalSyncPolling();
+    stopPolling = await startIncrementalSyncPolling((message) => {
+      emitNewMailToRenderer(message);
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("❌ OAuth callback error:", message);
@@ -215,7 +258,7 @@ async function init() {
         async openExternalUrl({ url }: { url: string }) {
           try {
             const parsed = new URL(url);
-            if (!["http:", "https:", "mailto:", "tel:"].includes(parsed.protocol)) {
+            if (!["http:", "https:", "mailto:", "tel:", "x-apple.systempreferences:"].includes(parsed.protocol)) {
               return { success: false, error: `Unsupported protocol: ${parsed.protocol}` };
             }
 
@@ -321,10 +364,43 @@ async function init() {
             };
           }
         },
+
+        async requestNotificationPermission() {
+          try {
+            Utils.showNotification({
+              title: "Radius notifications enabled",
+              subtitle: "New mail alerts",
+              body: "Radius will let you know when new email arrives while the app is open.",
+              silent: false,
+            });
+            return { success: true };
+          } catch (err) {
+            console.error("requestNotificationPermission error:", err);
+            return { success: false, error: String(err) };
+          }
+        },
+
+        async openNotificationSettings() {
+          try {
+            spawn("open", [
+              "x-apple.systempreferences:com.apple.Notifications-Settings.extension",
+            ]);
+            return { success: true };
+          } catch (err) {
+            console.error("openNotificationSettings error:", err);
+            return { success: false, error: String(err) };
+          }
+        },
       },
       messages: {},
     },
   });
+
+  emitNewMailToRenderer = (message) => {
+    const rpcMessage = toRpcMessage(message);
+    showNewMailNotification(rpcMessage);
+    rpc.send.newMail(rpcMessage);
+  };
 
   const mainWindow = new BrowserWindow<typeof rpc>({
     title: "Radius",
@@ -361,7 +437,9 @@ async function init() {
         console.error("❌ Startup catch-up failed:", err);
       });
 
-    stopPolling = await startIncrementalSyncPolling();
+    stopPolling = await startIncrementalSyncPolling((message) => {
+      emitNewMailToRenderer(message);
+    });
   } else {
     // No full sync on record — check if user is authenticated but
     // initial sync never completed (crash, quit mid-sync, etc.)
