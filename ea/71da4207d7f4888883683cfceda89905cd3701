@@ -1,0 +1,27 @@
+README.md
+  413776ea16728818 36,38-39
+.env.example
+  413776ea16728818 1-2
+scripts/generate-oauth-config.ts
+  413776ea16728818 6-8,13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "ea71da4207d7f4888883683cfceda89905cd3701",
+  "prompts": {
+    "413776ea16728818": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019de2f8-37da-744d-b047-2a6460548f20",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 9,
+      "total_deletions": 25,
+      "accepted_lines": 14,
+      "overriden_lines": 3
+    }
+  }
+}
