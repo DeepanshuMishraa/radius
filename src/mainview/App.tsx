@@ -8,7 +8,7 @@ import type { Message } from "./hooks/useInbox";
 import { CommandK } from "@/components/cmd";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ThemeProvider } from "@/components/theme-provider";
-import { MagnifyingGlassIcon, ArrowBendDownLeftIcon, XIcon } from "@phosphor-icons/react";
+import { XIcon } from "@phosphor-icons/react";
 import { radiusRpc } from "./lib/rpc";
 
 function parseAddressLabel(address: string | null | undefined) {
@@ -356,7 +356,7 @@ function App() {
           onOpenSidebar={handleOpenSidebar}
         />
       </main>
-      <Dialog open={cmdOpen} onOpenChange={setCmdOpen}>
+      <Dialog open={cmdOpen} onOpenChange={setCmdOpen} modal={false}>
         <DialogContent className="w-full max-w-xl p-0 overflow-hidden border-0 bg-transparent shadow-none">
           <DialogTitle className="sr-only">Command palette</DialogTitle>
           <DialogDescription className="sr-only">
@@ -428,59 +428,46 @@ function EmailSearchSpotlight({
   if (!open) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-[52px] z-50 flex justify-center px-4">
-      <div className="pointer-events-auto w-full max-w-[500px] rounded-[16px] border border-radius-border-subtle bg-radius-bg-primary/94 shadow-[0_14px_36px_rgba(0,0,0,0.10)] supports-backdrop-filter:backdrop-blur-md">
-        <div className="flex items-center gap-3 px-3.5 py-3">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-radius-bg-secondary text-radius-text-muted">
-            <MagnifyingGlassIcon size={13} weight="bold" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={(event) => onChangeQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
-                  event.preventDefault();
-                  inputRef.current?.select();
-                }
-                if (event.key === "Escape") {
-                  event.preventDefault();
-                  onClose();
-                }
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  onSubmit();
-                }
-              }}
-              placeholder="Search email"
-              className="w-full bg-transparent text-[16px] leading-none text-radius-text-primary outline-none placeholder:text-radius-text-muted/85 font-[family-name:var(--font-family-serif)]"
-            />
-          </div>
+    <div className="pointer-events-none fixed inset-x-0 top-9 z-50 flex justify-center px-4">
+      <div className="pointer-events-auto w-full max-w-[420px] border border-radius-border-subtle bg-radius-bg-primary">
+        <div className="flex items-center gap-2 px-3 py-2">
+          <span className="shrink-0 select-none text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+            /
+          </span>
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(event) => onChangeQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
+                event.preventDefault();
+                inputRef.current?.select();
+              }
+              if (event.key === "Escape") {
+                event.preventDefault();
+                onClose();
+              }
+              if (event.key === "Enter") {
+                event.preventDefault();
+                onSubmit();
+              }
+            }}
+            placeholder="Search email"
+            className="min-w-0 flex-1 bg-transparent text-[13px] text-radius-text-primary outline-none placeholder:text-radius-text-muted font-[family-name:var(--font-family-sans)]"
+          />
+          {query.trim() ? (
+            <span className="shrink-0 text-[10px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+              {loading ? "..." : `${resultCount.toLocaleString()}`}
+            </span>
+          ) : null}
           <button
             type="button"
             onClick={onClose}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
+            className="flex h-5 w-5 shrink-0 items-center justify-center text-radius-text-muted transition-colors hover:text-radius-text-primary"
             aria-label="Close email search"
           >
-            <XIcon size={13} />
+            <span className="text-[15px] leading-none">×</span>
           </button>
-        </div>
-        <div className="flex items-center justify-between gap-3 border-t border-radius-border-subtle px-3.5 py-2 text-[10px] uppercase tracking-[0.08em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-          <div className="min-w-0 truncate">
-            {!query.trim()
-              ? "Local inbox search"
-              : loading
-                ? "Searching..."
-                : `${resultCount.toLocaleString()} result${resultCount === 1 ? "" : "s"}`}
-          </div>
-          <div className="shrink-0 inline-flex items-center gap-3">
-            <span className="inline-flex items-center gap-1">
-              <ArrowBendDownLeftIcon size={10} />
-              Open
-            </span>
-            <span>Esc</span>
-          </div>
         </div>
       </div>
     </div>

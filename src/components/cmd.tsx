@@ -1,6 +1,4 @@
 import * as React from "react";
-import { Calculator, CreditCard, Settings, User } from "lucide-react";
-
 import {
   Command,
   CommandEmpty,
@@ -8,8 +6,6 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
-  CommandShortcut,
 } from "@/components/ui/command";
 import { useTheme } from "./theme-provider";
 import {
@@ -43,7 +39,7 @@ export function CommandK({ onSearchEmails }: CommandKProps) {
 
   return (
     <Command
-      className="w-full max-w-xl rounded-lg border"
+      className="w-full max-w-xl border border-radius-border-subtle"
       onKeyDown={handleKeyDown}
     >
       <CommandInput
@@ -63,28 +59,6 @@ export function CommandK({ onSearchEmails }: CommandKProps) {
           <CommandItem onSelect={onSearchEmails}>
             <MagnifyingGlassIcon />
             <span>Search Emails</span>
-          </CommandItem>
-          <CommandItem disabled>
-            <Calculator />
-            <span>Calculator</span>
-          </CommandItem>
-        </CommandGroup>
-        <CommandSeparator />
-        <CommandGroup heading="Settings">
-          <CommandItem>
-            <User />
-            <span>Profile</span>
-            <CommandShortcut>⌘P</CommandShortcut>
-          </CommandItem>
-          <CommandItem>
-            <CreditCard />
-            <span>Billing</span>
-            <CommandShortcut>⌘B</CommandShortcut>
-          </CommandItem>
-          <CommandItem>
-            <Settings />
-            <span>Settings</span>
-            <CommandShortcut>⌘S</CommandShortcut>
           </CommandItem>
         </CommandGroup>
       </CommandList>
