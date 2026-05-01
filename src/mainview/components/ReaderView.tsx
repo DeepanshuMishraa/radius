@@ -113,6 +113,7 @@ function MessageStatusWidget({ message }: { message: Message }) {
           color: isRegular ? "var(--radius-text-muted)" : meta.text,
           border: `1px solid ${isRegular ? "var(--radius-border-subtle)" : meta.border}`,
         }}
+        title="Mail category"
       >
         {isRegular ? "Regular" : meta.label}
       </span>

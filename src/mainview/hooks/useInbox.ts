@@ -180,11 +180,9 @@ export function useMessage(id: string | null) {
     const cached = cacheRef.current.get(id);
     if (cached !== undefined) {
       setMessage(cached);
-      setLoading(false);
-      return;
     }
 
-    setLoading(true);
+    setLoading(cached === undefined);
     radiusRpc.request
       .getMessage({ id })
       .then((msg) => {

@@ -15,7 +15,7 @@ import {
   getHistory,
   extractBodies,
   parseHeaders,
-  classifyFromLabels,
+  classifyMessageNature,
   isReadFromLabels,
   GmailAPIError,
   HistoryGapError,
@@ -66,7 +66,7 @@ const PAGE_SIZE = 500;
 const FETCH_CONCURRENCY = 15;
 const INSERT_BATCH_SIZE = 50;
 const MESSAGE_METADATA_BATCH_SIZE = 250;
-const CURRENT_METADATA_SCHEMA_VERSION = 1;
+const CURRENT_METADATA_SCHEMA_VERSION = 2;
 
 let syncLock = false;
 
@@ -117,7 +117,12 @@ function toStoredMessageMetadata(msg: GmailMessage) {
     to: headers["to"] ?? "",
     subject: headers["subject"] ?? "",
     snippet: msg.snippet,
-    category: classifyFromLabels(msg.labelIds),
+    category: classifyMessageNature({
+      labelIds: msg.labelIds,
+      from: headers["from"],
+      subject: headers["subject"],
+      snippet: msg.snippet,
+    }),
     isRead: isReadFromLabels(msg.labelIds),
   };
 }
@@ -626,7 +631,13 @@ async function flushInsertBuffer(
         snippet: msg.snippet,
         bodyText: bodies.text,
         bodyHtml: bodies.html,
-        category: classifyFromLabels(msg.labelIds),
+        category: classifyMessageNature({
+          labelIds: msg.labelIds,
+          from: headers["from"],
+          subject: headers["subject"],
+          snippet: msg.snippet,
+          bodyText: bodies.text,
+        }),
         isRead: isReadFromLabels(msg.labelIds),
       };
     })

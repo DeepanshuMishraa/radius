@@ -53,6 +53,143 @@ export function classifyFromLabels(labelIds: string[] | undefined): EmailCategor
   return "regular";
 }
 
+function tokenizeClassificationText(...parts: Array<string | null | undefined>): string {
+  return parts
+    .filter(Boolean)
+    .join(" \n ")
+    .toLowerCase();
+}
+
+export function classifyMessageNature(input: {
+  labelIds?: string[];
+  from?: string | null;
+  subject?: string | null;
+  snippet?: string | null;
+  bodyText?: string | null;
+}): EmailCategory {
+  const gmailCategory = classifyFromLabels(input.labelIds);
+  if (gmailCategory !== "regular") return gmailCategory;
+
+  const text = tokenizeClassificationText(
+    input.from,
+    input.subject,
+    input.snippet,
+    input.bodyText
+  );
+
+  if (!text) return "regular";
+
+  const spamSignals = [
+    "claim your prize",
+    "guaranteed income",
+    "bitcoin giveaway",
+    "urgent response needed",
+    "act now",
+    "free money",
+    "loan approved",
+    "casino",
+    "lottery",
+  ];
+  if (spamSignals.some((signal) => text.includes(signal))) {
+    return "spam";
+  }
+
+  const importantSignals = [
+    "new sign-in",
+    "security alert",
+    "password reset",
+    "verification code",
+    "one-time password",
+    "otp",
+    "account recovery",
+    "invoice",
+    "bill is generated",
+    "payment due",
+    "receipt",
+    "order confirmed",
+    "action required",
+    "critical",
+  ];
+  if (importantSignals.some((signal) => text.includes(signal))) {
+    return "important";
+  }
+
+  const socialSignals = [
+    "linkedin",
+    "facebook",
+    "instagram",
+    "x.com",
+    "twitter",
+    "discord",
+    "reddit",
+    "quora",
+    "your profile",
+    "followers",
+    "connection request",
+  ];
+  if (socialSignals.some((signal) => text.includes(signal))) {
+    return "social";
+  }
+
+  const forumSignals = [
+    "community",
+    "forum",
+    "discussion",
+    "thread",
+    "digest",
+    "groups.io",
+    "google groups",
+    "discourse",
+    "stack overflow",
+    "hacker news",
+  ];
+  if (forumSignals.some((signal) => text.includes(signal))) {
+    return "forums";
+  }
+
+  const promotionalSignals = [
+    "marketing@",
+    "newsletter@",
+    "deal",
+    "discount",
+    "save ",
+    "% off",
+    "special offer",
+    "limited time",
+    "upgrade",
+    "premium",
+    "launch",
+    "explore the drop",
+    "sale",
+    "shop",
+    "wishlist",
+  ];
+  if (promotionalSignals.some((signal) => text.includes(signal))) {
+    return "promotional";
+  }
+
+  const updateSignals = [
+    "newsletter",
+    "updates",
+    "release notes",
+    "changelog",
+    "what's new",
+    "what’s new",
+    "this month in",
+    "student highlights",
+    "product update",
+    "announcing",
+    "notifications@",
+    "no-reply@github.com",
+    "githubeducation",
+  ];
+  if (updateSignals.some((signal) => text.includes(signal))) {
+    return "updates";
+  }
+
+  return "regular";
+}
+
 export interface GmailHistoryItem {
   id: string;
   messagesAdded?: Array<{ message: { id: string } }>;
@@ -170,6 +307,9 @@ export async function getMessageMetadata(
   });
   params.append("metadataHeaders", "To");
   params.append("metadataHeaders", "Subject");
+  params.append("metadataHeaders", "List-Id");
+  params.append("metadataHeaders", "List-Unsubscribe");
+  params.append("metadataHeaders", "Precedence");
 
   const res = await fetchWithRetry(
     `${GMAIL_API_BASE}/messages/${messageId}?${params.toString()}`,

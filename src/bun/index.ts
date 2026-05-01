@@ -25,6 +25,7 @@ import {
   getMessage as getGmailMessage,
   extractBodies,
   modifyMessageLabels,
+  GmailAPIError,
 } from "./gmail";
 import {
   runInitialAndBackgroundSync,
@@ -287,18 +288,37 @@ async function init() {
             }
 
             if (Boolean(message.isRead)) {
-              return { success: true };
+              return { success: true, localStateApplied: true };
             }
 
+            await setMessageReadState(id, true);
             const accessToken = await getValidAccessToken();
             await modifyMessageLabels(accessToken, id, {
               removeLabelIds: ["UNREAD"],
             });
-            await setMessageReadState(id, true);
-            return { success: true };
+            return { success: true, localStateApplied: true };
           } catch (err) {
             console.error("markMessageRead error:", err);
-            return { success: false, error: String(err) };
+            if (
+              err instanceof GmailAPIError &&
+              err.status === 403 &&
+              err.body.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")
+            ) {
+              return {
+                success: false,
+                error:
+                  "Gmail read sync needs fresh Gmail modify permission. Reconnect Gmail once to enable it.",
+                code: "reauth_required",
+                localStateApplied: true,
+              };
+            }
+
+            return {
+              success: false,
+              error: String(err),
+              code: "remote_sync_failed",
+              localStateApplied: true,
+            };
           }
         },
       },

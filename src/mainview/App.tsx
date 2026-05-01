@@ -35,6 +35,7 @@ function App() {
   >({});
   const pendingReadRef = useRef(new Set<string>());
   const failedReadRef = useRef(new Set<string>());
+  const [gmailSyncNotice, setGmailSyncNotice] = useState<string | null>(null);
 
   const { isAuthenticated, startOAuth } = useAuth();
   const syncStatus = useSyncStatus();
@@ -127,19 +128,19 @@ function App() {
     radiusRpc.request
       .markMessageRead({ id: selectedMessage.id })
       .then((result) => {
-        if (!result.success) {
+        if (!result.success && result.code !== "reauth_required") {
           throw new Error(result.error ?? "Failed to mark message read");
+        }
+        if (result.code === "reauth_required") {
+          setGmailSyncNotice(result.error ?? "Reconnect Gmail to sync read state.");
+          return;
         }
         failedReadRef.current.delete(selectedMessage.id);
       })
       .catch((err) => {
         console.error("Failed to mark message read:", err);
         failedReadRef.current.add(selectedMessage.id);
-        setMessageOverrides((prev) => {
-          const next = { ...prev };
-          delete next[selectedMessage.id];
-          return next;
-        });
+        setGmailSyncNotice("Could not sync read state to Gmail right now.");
       })
       .finally(() => {
         pendingReadRef.current.delete(selectedMessage.id);
@@ -249,7 +250,7 @@ function App() {
       />
 
       {/* Minimal sync indicator — bottom left, never blocks */}
-      <SyncPill syncStatus={syncStatus} />
+      <SyncPill syncStatus={syncStatus} notice={gmailSyncNotice} />
       </div>
     </ThemeProvider>
   );
@@ -355,8 +356,14 @@ function DragRegion() {
   );
 }
 
-function SyncPill({ syncStatus }: { syncStatus: ReturnType<typeof useSyncStatus> }) {
-  if (syncStatus.status !== "syncing") return null;
+function SyncPill({
+  syncStatus,
+  notice,
+}: {
+  syncStatus: ReturnType<typeof useSyncStatus>;
+  notice: string | null;
+}) {
+  if (syncStatus.status !== "syncing" && !notice) return null;
 
   const current = syncStatus.progress?.current ?? 0;
   const total = syncStatus.progress?.total ?? 0;
@@ -364,21 +371,28 @@ function SyncPill({ syncStatus }: { syncStatus: ReturnType<typeof useSyncStatus>
 
   return (
     <div className="fixed bottom-4 left-4 z-40 flex items-center gap-2 px-3 py-1.5 rounded-full bg-radius-bg-secondary/90 backdrop-blur-sm border border-radius-border-subtle shadow-sm">
-      <svg
-        className="animate-spin text-radius-text-muted shrink-0"
-        width="12"
-        height="12"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-      </svg>
+      {syncStatus.status === "syncing" ? (
+        <svg
+          className="animate-spin text-radius-text-muted shrink-0"
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
+      ) : (
+        <span className="inline-flex h-2 w-2 shrink-0 rounded-full bg-radius-accent" />
+      )}
       <span className="text-[11px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
-        {total > 0 ? `${pct}% · ${current.toLocaleString()}/${total.toLocaleString()}` : "Syncing"}
+        {notice ??
+          (total > 0
+            ? `${pct}% · ${current.toLocaleString()}/${total.toLocaleString()}`
+            : "Syncing")}
       </span>
     </div>
   );

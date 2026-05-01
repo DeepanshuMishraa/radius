@@ -73,7 +73,12 @@ export type RadiusRPC = {
       };
       markMessageRead: {
         params: { id: string };
-        response: { success: boolean; error?: string };
+        response: {
+          success: boolean;
+          error?: string;
+          code?: "reauth_required" | "remote_sync_failed";
+          localStateApplied?: boolean;
+        };
       };
     };
     messages: {
