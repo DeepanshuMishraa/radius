@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 
-const CLIENT_ID = "234277816966-brk273tqgfoudsmh06mv9htnbs8e61r0.apps.googleusercontent.com";
+const CLIENT_ID = "234277816966-3ct835d3fmh5r1uqsjrrj9njin42b57t.apps.googleusercontent.com";
+const CLIENT_SECRET = "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";
 
 const REDIRECT_URI = "http://127.0.0.1:3333";
 const SCOPE = "https://www.googleapis.com/auth/gmail.modify";
@@ -76,6 +77,7 @@ export async function exchangeCodeForTokens(
 ): Promise<TokenData> {
   const body = new URLSearchParams({
     client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
     code,
     redirect_uri: REDIRECT_URI,
     grant_type: "authorization_code",
@@ -101,6 +103,7 @@ export async function refreshAccessToken(
 ): Promise<{ access_token: string; expires_in: number }> {
   const body = new URLSearchParams({
     client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
     refresh_token: refreshToken,
     grant_type: "refresh_token",
   });
