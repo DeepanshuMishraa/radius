@@ -1,17 +1,69 @@
 import { spawn } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 
-function getEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return value;
+interface OAuthConfig {
+  clientId: string;
 }
 
-const CLIENT_ID = getEnv("GOOGLE_CLIENT_ID");
-const CLIENT_SECRET = getEnv("GOOGLE_CLIENT_SECRET");
 const REDIRECT_URI = "http://localhost:3333/oauth/callback";
 const SCOPE = "https://www.googleapis.com/auth/gmail.modify";
+const BUNDLED_OAUTH_CONFIG_PATH = resolve(
+  dirname(process.execPath),
+  "..",
+  "Resources",
+  "oauth-config.json"
+);
+const DEV_OAUTH_CONFIG_PATH = resolve(process.cwd(), "build", "oauth-config.json");
+
+let cachedOAuthConfig: OAuthConfig | null = null;
+
+function getEnvOAuthConfig(): OAuthConfig | null {
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  if (!clientId) {
+    return null;
+  }
+  return { clientId };
+}
+
+function readOAuthConfigFile(filePath: string): OAuthConfig | null {
+  if (!existsSync(filePath)) {
+    return null;
+  }
+
+  const raw = readFileSync(filePath, "utf-8");
+  const parsed = JSON.parse(raw) as { clientId?: unknown };
+
+  if (typeof parsed.clientId !== "string" || parsed.clientId.trim() === "") {
+    throw new Error(`OAuth config file is missing clientId: ${filePath}`);
+  }
+
+  return { clientId: parsed.clientId.trim() };
+}
+
+function getOAuthConfig(): OAuthConfig {
+  if (cachedOAuthConfig) {
+    return cachedOAuthConfig;
+  }
+
+  const envConfig = getEnvOAuthConfig();
+  if (envConfig) {
+    cachedOAuthConfig = envConfig;
+    return cachedOAuthConfig;
+  }
+
+  const bundledConfig =
+    readOAuthConfigFile(BUNDLED_OAUTH_CONFIG_PATH) ??
+    readOAuthConfigFile(DEV_OAUTH_CONFIG_PATH);
+  if (bundledConfig) {
+    cachedOAuthConfig = bundledConfig;
+    return cachedOAuthConfig;
+  }
+
+  throw new Error(
+    "Missing Google OAuth client ID. Set GOOGLE_CLIENT_ID in .env for dev, or create build/oauth-config.json with {\"clientId\":\"...\"} before packaging."
+  );
+}
 
 export interface TokenData {
   access_token: string;
@@ -65,8 +117,9 @@ async function sha256(plain: string): Promise<string> {
 }
 
 export function buildAuthURL(codeChallenge: string): string {
+  const { clientId } = getOAuthConfig();
   const params = new URLSearchParams({
-    client_id: CLIENT_ID,
+    client_id: clientId,
     redirect_uri: REDIRECT_URI,
     response_type: "code",
     scope: SCOPE,
@@ -82,9 +135,9 @@ export async function exchangeCodeForTokens(
   code: string,
   codeVerifier: string
 ): Promise<TokenData> {
+  const { clientId } = getOAuthConfig();
   const body = new URLSearchParams({
-    client_id: CLIENT_ID,
-    client_secret: CLIENT_SECRET,
+    client_id: clientId,
     code,
     redirect_uri: REDIRECT_URI,
     grant_type: "authorization_code",
@@ -108,9 +161,9 @@ export async function exchangeCodeForTokens(
 export async function refreshAccessToken(
   refreshToken: string
 ): Promise<{ access_token: string; expires_in: number }> {
+  const { clientId } = getOAuthConfig();
   const body = new URLSearchParams({
-    client_id: CLIENT_ID,
-    client_secret: CLIENT_SECRET,
+    client_id: clientId,
     refresh_token: refreshToken,
     grant_type: "refresh_token",
   });
