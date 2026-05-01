@@ -15,16 +15,6 @@ A minimal, fast desktop email client for Gmail. Built with [Electrobun](https://
 - [Bun](https://bun.sh)
 - A Google Cloud project with the Gmail API enabled
 
-## Setup
-
-Create a `.env` file in the project root:
-
-```env
-GOOGLE_CLIENT_ID=your_client_id
-```
-
-`GOOGLE_CLIENT_ID` is bundled into release builds through a generated `build/oauth-config.json`.
-
 ## Running
 
 ```bash
@@ -43,10 +33,10 @@ bun run build:canary
 
 ## Release OAuth config
 
-- Keep your build-time values in the project root `.env`, or export them in CI.
+- The Google OAuth Client ID is hardcoded in `scripts/generate-oauth-config.ts`.
 - The build step generates `build/oauth-config.json` and Electrobun copies that file into the packaged app resources.
-- Finder-launched apps do not inherit your shell environment, so the packaged app reads that bundled JSON instead of `.env`.
-- Only the public `GOOGLE_CLIENT_ID` is bundled. User tokens still live in macOS Keychain.
+- Finder-launched apps do not inherit your shell environment, so the packaged app reads that bundled JSON.
+- User tokens live in the system keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service).
 
 ## Project structure
 
