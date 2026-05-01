@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
 
-const CLIENT_ID = "234277816966-ds42jbf56s6d5vdalfdtlcejucm04dop.apps.googleusercontent.com";
+const CLIENT_ID = "234277816966-brk273tqgfoudsmh06mv9htnbs8e61r0.apps.googleusercontent.com";
 
-const REDIRECT_URI = "http://localhost:3333/oauth/callback";
+const REDIRECT_URI = "http://127.0.0.1:3333";
 const SCOPE = "https://www.googleapis.com/auth/gmail.modify";
 
 export interface TokenData {

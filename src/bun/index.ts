@@ -1,4 +1,4 @@
-import { BrowserWindow, BrowserView, Utils } from "electrobun/bun";
+import Electrobun, { BrowserWindow, BrowserView, Utils, ApplicationMenu } from "electrobun/bun";
 import { spawn } from "node:child_process";
 import type { RadiusRPC } from "../shared/types";
 import type { SyncMode } from "../shared/types";
@@ -220,6 +220,50 @@ async function handleOAuthCallback(code: string, syncMode: SyncMode): Promise<vo
 async function init() {
   await createSchema();
 
+  // Set up macOS application menu so Cmd+Q works
+  ApplicationMenu.setApplicationMenu([
+    {
+      label: "Radius",
+      submenu: [
+        { role: "about" },
+        { type: "separator" },
+        { role: "hide" },
+        { role: "hideOthers" },
+        { role: "showAll" },
+        { type: "separator" },
+        { role: "quit" },
+      ],
+    },
+    {
+      label: "Edit",
+      submenu: [
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "selectAll" },
+      ],
+    },
+    {
+      label: "Window",
+      submenu: [
+        { role: "minimize" },
+        { role: "close" },
+        { type: "separator" },
+        { role: "bringAllToFront" },
+      ],
+    },
+  ]);
+
+  // Clean up polling and sync schedulers before quitting
+  Electrobun.events.on("before-quit", () => {
+    stopPolling?.();
+    stopDeferredFullSync?.();
+    authServer?.stop();
+  });
+
   const url = await getMainViewUrl();
 
   const rpc = BrowserView.defineRPC<RadiusRPC>({
@@ -335,7 +379,7 @@ async function init() {
               port: 3333,
               async fetch(req) {
                 const url = new URL(req.url);
-                if (url.pathname === "/oauth/callback") {
+                if (url.pathname === "/" || url.pathname === "/oauth/callback") {
                   const code = url.searchParams.get("code");
                   if (code) {
                     handleOAuthCallback(code, syncMode).catch((err) => {
