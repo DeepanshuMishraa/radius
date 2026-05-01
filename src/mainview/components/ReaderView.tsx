@@ -129,19 +129,9 @@ function MessageStatusWidget({ message }: { message: Message }) {
   const isRegular = message.category === "regular";
 
   return (
-    <div className="inline-flex items-center gap-2 rounded-2xl border border-radius-border-subtle bg-radius-bg-secondary/70 px-3 py-2 text-[11px] font-[family-name:var(--font-family-sans)]">
+    <div className="inline-flex items-center gap-2 text-[11px] font-[family-name:var(--font-family-sans)]">
       <span
-        className={`inline-flex items-center rounded-full px-2 py-0.5 ${
-          message.isRead
-            ? "bg-radius-bg-primary text-radius-text-muted"
-            : "bg-radius-accent/14 text-radius-accent"
-        }`}
-      >
-        {message.isRead ? "Read" : "Unread"}
-      </span>
-      <span className="text-radius-text-muted">•</span>
-      <span
-        className="inline-flex items-center rounded-full px-2 py-0.5"
+        className="inline-flex items-center rounded-full px-2.5 py-1"
         style={{
           backgroundColor: isRegular ? "var(--radius-bg-primary)" : meta.bg,
           color: isRegular ? "var(--radius-text-muted)" : meta.text,
