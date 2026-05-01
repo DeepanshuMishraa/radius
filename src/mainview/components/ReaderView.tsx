@@ -169,7 +169,7 @@ function InboxWidget({
       onClick={onClick}
       className="
         electrobun-webkit-app-region-no-drag
-        fixed top-[42px] left-4 z-30
+        fixed top-[50px] left-4 z-30
         p-2
         rounded-lg
         text-radius-text-muted
@@ -572,7 +572,7 @@ export const ReaderView = memo(function ReaderView({
 
   if (!message) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-radius-bg-primary relative pt-9">
+      <div className="flex flex-col items-center justify-center h-full bg-radius-bg-primary relative pt-11">
         <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
         <div className="w-10 h-10 rounded-2xl border border-radius-border-subtle flex items-center justify-center mb-4">
           <svg
@@ -600,7 +600,7 @@ export const ReaderView = memo(function ReaderView({
   const hasHtmlBody = Boolean(sanitizedHtml);
 
   return (
-    <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-9">
+    <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-11">
       <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
 
       <div className="flex-1 email-enter" key={message.id}>

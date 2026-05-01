@@ -186,7 +186,7 @@ export function InboxList({
   }, [lastVirtualItem?.index, loading, messages.length, onReachEnd, total]);
 
   return (
-    <div className="flex flex-col h-full bg-radius-bg-primary pt-9">
+    <div className="flex flex-col h-full bg-radius-bg-primary pt-11">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-radius-border-subtle">
         <div className="min-w-0">

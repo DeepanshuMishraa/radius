@@ -455,7 +455,7 @@ function EmailSearchSpotlight({
   if (!open) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-9 z-50 flex justify-center px-4">
+    <div className="pointer-events-none fixed inset-x-0 top-11 z-50 flex justify-center px-4">
       <div className="pointer-events-auto w-full max-w-[420px] border border-radius-border-subtle bg-radius-bg-primary">
         <div className="flex items-center gap-2 px-3 py-2">
           <span className="shrink-0 select-none text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
@@ -504,7 +504,7 @@ function EmailSearchSpotlight({
 function DragRegion() {
   return (
     <div
-      className="electrobun-webkit-app-region-drag fixed top-0 left-0 right-0 h-9 z-50"
+      className="electrobun-webkit-app-region-drag fixed top-0 left-0 right-0 h-11 z-50"
       style={
         {
           appRegion: "drag",
