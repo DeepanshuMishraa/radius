@@ -8,7 +8,7 @@ import "../styles/global.css";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Radius — a minimal, fast, distraction-free desktop email client for Gmail. Read-only. Local cache. Zero clutter." />
+    <meta name="description" content="Radius — a minimal, fast, distraction-free desktop email client for Gmail. Read-only. Local cache. Dark mode. Zero clutter." />
     <meta name="theme-color" content="#e0dbd3" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Radius — A quiet place for your email</title>
@@ -21,14 +21,14 @@ import "../styles/global.css";
     <!-- Navigation -->
     <nav class="fixed top-0 left-0 right-0 z-50 px-6 py-4">
       <div class="max-w-5xl mx-auto flex items-center justify-between">
-        <a href="#" class="flex items-center gap-2.5 text-radius-text-primary">
+        <a href="#" class="nav-logo flex items-center gap-2.5 text-radius-text-primary">
           <RadiusMark class="w-5 h-5 text-radius-accent" />
           <span class="text-[13px] font-medium tracking-tight">Radius</span>
         </a>
         <div class="flex items-center gap-6">
-          <a href="#features" class="text-[12px] text-radius-text-secondary hover:text-radius-text-primary transition-colors duration-150">Features</a>
-          <a href="#how-it-works" class="text-[12px] text-radius-text-secondary hover:text-radius-text-primary transition-colors duration-150">How it works</a>
-          <a href="https://github.com/DeepanshuMishraa/radius" target="_blank" rel="noopener" class="text-[12px] text-radius-text-secondary hover:text-radius-text-primary transition-colors duration-150">GitHub</a>
+          <a href="#features" class="nav-link text-[12px] text-radius-text-secondary transition-colors duration-150">Features</a>
+          <a href="#how-it-works" class="nav-link text-[12px] text-radius-text-secondary transition-colors duration-150">How it works</a>
+          <a href="https://github.com/DeepanshuMishraa/radius" target="_blank" rel="noopener" class="nav-link text-[12px] text-radius-text-secondary transition-colors duration-150">GitHub</a>
         </div>
       </div>
     </nav>
@@ -36,9 +36,9 @@ import "../styles/global.css";
     <!-- Hero -->
     <section class="relative pt-32 pb-20 px-6">
       <div class="max-w-5xl mx-auto">
-        <div class="flex flex-col items-center text-center">
+        <div class="hero-content flex flex-col items-center text-center">
           <!-- Mark -->
-          <div class="mb-10">
+          <div class="hero-mark mb-10">
             <RadiusMark class="w-14 h-14 text-radius-accent" />
           </div>
 
@@ -48,20 +48,22 @@ import "../styles/global.css";
           </h1>
 
           <!-- Tagline -->
-          <p class="text-[15px] md:text-[17px] text-radius-text-muted leading-relaxed tracking-wide mb-4 max-w-md">
+          <p class="hero-tagline text-[15px] md:text-[17px] text-radius-text-muted leading-relaxed tracking-wide mb-4 max-w-md">
             A quiet place for your email.
           </p>
 
-          <p class="text-[13px] text-radius-text-secondary leading-[1.7] mb-12 max-w-sm text-balance">
+          <p class="hero-body text-[13px] text-radius-text-secondary leading-[1.7] mb-12 max-w-sm text-balance">
             A minimal, fast desktop client for Gmail. No clutter. No ads. No noise. Just your inbox, cached locally, ready the moment you open it.
           </p>
 
           <!-- Download -->
-          <DownloadButton />
+          <div class="hero-download">
+            <DownloadButton />
+          </div>
 
           <!-- Version note -->
-          <p class="mt-6 text-[11px] text-radius-text-muted/60 tracking-wide">
-            v1.0.0 &mdash; Free and open source under MIT
+          <p class="hero-version mt-6 text-[11px] text-radius-text-muted/60 tracking-wide">
+            macOS · Windows · Linux &mdash; Free and open source under MIT
           </p>
         </div>
       </div>
@@ -70,19 +72,21 @@ import "../styles/global.css";
     <!-- App Preview -->
     <section class="px-6 pb-24">
       <div class="max-w-5xl mx-auto">
-        <img
-          src="/hero.jpeg"
-          alt="Radius email client showing the inbox and reader view"
-          class="w-full rounded-[14px] border border-radius-border shadow-[0_2px_40px_-12px_rgba(0,0,0,0.12)]"
-          loading="eager"
-        />
+        <div class="preview-frame">
+          <img
+            src="/hero.jpeg"
+            alt="Radius email client showing the inbox and reader view"
+            class="w-full rounded-[14px] border border-radius-border shadow-[0_2px_40px_-12px_rgba(0,0,0,0.12)]"
+            loading="eager"
+          />
+        </div>
       </div>
     </section>
 
     <!-- Features -->
     <section id="features" class="px-6 py-24 bg-radius-bg-primary">
       <div class="max-w-5xl mx-auto">
-        <div class="text-center mb-16">
+        <div class="section-header text-center mb-16">
           <h2 class="font-serif text-[32px] md:text-[40px] font-semibold text-radius-text-primary leading-[1.15] tracking-tight mb-4">
             Built for focus
           </h2>
@@ -91,10 +95,10 @@ import "../styles/global.css";
           </p>
         </div>
 
-        <div class="grid md:grid-cols-3 gap-8">
+        <div class="features-grid grid md:grid-cols-3 gap-8">
           <!-- Feature 1 -->
-          <div class="group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50 hover:border-radius-border transition-colors duration-200">
-            <div class="w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
+          <div class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50">
+            <div class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-radius-accent">
                 <polyline points="13 2 13 9 20 9" />
                 <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
@@ -107,8 +111,8 @@ import "../styles/global.css";
           </div>
 
           <!-- Feature 2 -->
-          <div class="group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50 hover:border-radius-border transition-colors duration-200">
-            <div class="w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
+          <div class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50">
+            <div class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-radius-accent">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
@@ -116,13 +120,13 @@ import "../styles/global.css";
             </div>
             <h3 class="text-[14px] font-semibold text-radius-text-primary mb-2">Typographic reader</h3>
             <p class="text-[13px] text-radius-text-secondary leading-relaxed">
-              Emails render in a centered 680px column with generous line height and system serif. Finally, an email client that respects the craft of reading.
+              Emails render in a centered column with generous line height and serif typography. Finally, an email client that respects the craft of reading.
             </p>
           </div>
 
           <!-- Feature 3 -->
-          <div class="group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50 hover:border-radius-border transition-colors duration-200">
-            <div class="w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
+          <div class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50">
+            <div class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-radius-accent">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
@@ -134,8 +138,8 @@ import "../styles/global.css";
           </div>
 
           <!-- Feature 4 -->
-          <div class="group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50 hover:border-radius-border transition-colors duration-200">
-            <div class="w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
+          <div class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50">
+            <div class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-radius-accent">
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
@@ -148,8 +152,8 @@ import "../styles/global.css";
           </div>
 
           <!-- Feature 5 -->
-          <div class="group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50 hover:border-radius-border transition-colors duration-200">
-            <div class="w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
+          <div class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50">
+            <div class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-radius-accent">
                 <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -162,8 +166,8 @@ import "../styles/global.css";
           </div>
 
           <!-- Feature 6 -->
-          <div class="group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50 hover:border-radius-border transition-colors duration-200">
-            <div class="w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
+          <div class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50">
+            <div class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-radius-accent">
                 <path d="M18 20V10" />
                 <path d="M12 20V4" />
@@ -175,6 +179,47 @@ import "../styles/global.css";
               Virtualized lists handle 10,000+ emails without breaking a sweat. Built with @tanstack/react-virtual and disciplined rendering.
             </p>
           </div>
+
+          <!-- Feature 7 -->
+          <div class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50">
+            <div class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-radius-accent">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            </div>
+            <h3 class="text-[14px] font-semibold text-radius-text-primary mb-2">Dark mode</h3>
+            <p class="text-[13px] text-radius-text-secondary leading-relaxed">
+              A carefully tuned dark theme with warm grays, not harsh blacks. Toggle via command palette or let your system decide.
+            </p>
+          </div>
+
+          <!-- Feature 8 -->
+          <div class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50">
+            <div class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-radius-accent">
+                <polyline points="4 17 10 11 4 5" />
+                <line x1="12" x2="20" y1="19" y2="19" />
+              </svg>
+            </div>
+            <h3 class="text-[14px] font-semibold text-radius-text-primary mb-2">Command palette</h3>
+            <p class="text-[13px] text-radius-text-secondary leading-relaxed">
+              Hit Cmd+K to toggle theme, search emails, or jump to any action. Keyboard-first design for people who prefer typing to clicking.
+            </p>
+          </div>
+
+          <!-- Feature 9 -->
+          <div class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50">
+            <div class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-radius-accent">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+            </div>
+            <h3 class="text-[14px] font-semibold text-radius-text-primary mb-2">Instant search</h3>
+            <p class="text-[13px] text-radius-text-secondary leading-relaxed">
+              Search across sender, subject, snippet, and full body text. Results appear as you type. No server round-trips &mdash; everything is local.
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -182,7 +227,7 @@ import "../styles/global.css";
     <!-- How it works -->
     <section id="how-it-works" class="px-6 py-24">
       <div class="max-w-5xl mx-auto">
-        <div class="text-center mb-16">
+        <div class="section-header text-center mb-16">
           <h2 class="font-serif text-[32px] md:text-[40px] font-semibold text-radius-text-primary leading-[1.15] tracking-tight mb-4">
             How it works
           </h2>
@@ -191,25 +236,25 @@ import "../styles/global.css";
           </p>
         </div>
 
-        <div class="grid md:grid-cols-3 gap-6">
-          <div class="relative p-6 rounded-xl bg-radius-bg-primary border border-radius-border-subtle">
-            <div class="absolute -top-3 left-6 px-2 py-0.5 bg-radius-frame-bg rounded text-[10px] font-medium text-radius-text-secondary">01</div>
+        <div class="steps-grid grid md:grid-cols-3 gap-6">
+          <div class="step-card relative p-6 rounded-xl bg-radius-bg-primary border border-radius-border-subtle">
+            <div class="step-badge absolute -top-3 left-6 px-2 py-0.5 bg-radius-frame-bg rounded text-[10px] font-medium text-radius-text-secondary">01</div>
             <h3 class="text-[14px] font-semibold text-radius-text-primary mb-2 mt-1">Connect Gmail</h3>
             <p class="text-[13px] text-radius-text-secondary leading-relaxed">
               One-click OAuth with PKCE. We request read-only access. You approve. That's it.
             </p>
           </div>
 
-          <div class="relative p-6 rounded-xl bg-radius-bg-primary border border-radius-border-subtle">
-            <div class="absolute -top-3 left-6 px-2 py-0.5 bg-radius-frame-bg rounded text-[10px] font-medium text-radius-text-secondary">02</div>
+          <div class="step-card relative p-6 rounded-xl bg-radius-bg-primary border border-radius-border-subtle">
+            <div class="step-badge absolute -top-3 left-6 px-2 py-0.5 bg-radius-frame-bg rounded text-[10px] font-medium text-radius-text-secondary">02</div>
             <h3 class="text-[14px] font-semibold text-radius-text-primary mb-2 mt-1">First sync</h3>
             <p class="text-[13px] text-radius-text-secondary leading-relaxed">
               Radius fetches your inbox and stores it locally. A progress bar shows the way. For a thousand emails, this takes under a minute.
             </p>
           </div>
 
-          <div class="relative p-6 rounded-xl bg-radius-bg-primary border border-radius-border-subtle">
-            <div class="absolute -top-3 left-6 px-2 py-0.5 bg-radius-frame-bg rounded text-[10px] font-medium text-radius-text-secondary">03</div>
+          <div class="step-card relative p-6 rounded-xl bg-radius-bg-primary border border-radius-border-subtle">
+            <div class="step-badge absolute -top-3 left-6 px-2 py-0.5 bg-radius-frame-bg rounded text-[10px] font-medium text-radius-text-secondary">03</div>
             <h3 class="text-[14px] font-semibold text-radius-text-primary mb-2 mt-1">Just read</h3>
             <p class="text-[13px] text-radius-text-secondary leading-relaxed">
               From now on, Radius opens instantly. Background sync keeps you current. No waiting. No loading states. Just email.
@@ -248,7 +293,7 @@ import "../styles/global.css";
             </p>
             <div class="flex flex-wrap gap-2 mb-6">
               {["Electrobun", "Bun", "React", "Tailwind CSS", "SQLite", "TypeScript"].map((tech) => (
-                <span class="px-2.5 py-1 text-[11px] text-radius-text-secondary bg-radius-bg-secondary border border-radius-border-subtle rounded-md">
+                <span class="tech-tag px-2.5 py-1 text-[11px] text-radius-text-secondary bg-radius-bg-secondary border border-radius-border-subtle rounded-md">
                   {tech}
                 </span>
               ))}
@@ -257,7 +302,7 @@ import "../styles/global.css";
               href="https://github.com/DeepanshuMishraa/radius"
               target="_blank"
               rel="noopener"
-              class="inline-flex items-center gap-2 text-[13px] text-radius-accent hover:text-radius-accent-hover transition-colors duration-150"
+              class="github-link inline-flex items-center gap-2 text-[13px] text-radius-accent transition-colors duration-150"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
@@ -266,25 +311,25 @@ import "../styles/global.css";
             </a>
           </div>
 
-          <div class="p-6 rounded-xl bg-radius-bg-secondary border border-radius-border-subtle">
+          <div class="specs-card p-6 rounded-xl bg-radius-bg-secondary border border-radius-border-subtle">
             <div class="flex items-center gap-2 mb-4">
               <div class="w-2 h-2 rounded-full bg-radius-success"></div>
               <span class="text-[11px] text-radius-text-muted font-medium uppercase tracking-wide">System requirements</span>
             </div>
             <div class="space-y-3">
-              <div class="flex items-center justify-between py-2 border-b border-radius-border-subtle/50">
+              <div class="spec-row flex items-center justify-between py-2 border-b border-radius-border-subtle/50">
                 <span class="text-[13px] text-radius-text-secondary">macOS</span>
-                <span class="text-[12px] text-radius-text-primary">12.0+ (Monterey)</span>
+                <span class="text-[12px] text-radius-text-primary">12.0+ (Intel &amp; Apple Silicon)</span>
               </div>
-              <div class="flex items-center justify-between py-2 border-b border-radius-border-subtle/50">
+              <div class="spec-row flex items-center justify-between py-2 border-b border-radius-border-subtle/50">
                 <span class="text-[13px] text-radius-text-secondary">Windows</span>
                 <span class="text-[12px] text-radius-text-primary">10+ (64-bit)</span>
               </div>
-              <div class="flex items-center justify-between py-2 border-b border-radius-border-subtle/50">
+              <div class="spec-row flex items-center justify-between py-2 border-b border-radius-border-subtle/50">
                 <span class="text-[13px] text-radius-text-secondary">Linux</span>
-                <span class="text-[12px] text-radius-text-primary">AppImage (x64)</span>
+                <span class="text-[12px] text-radius-text-primary">x64 (tar.gz installer)</span>
               </div>
-              <div class="flex items-center justify-between py-2">
+              <div class="spec-row flex items-center justify-between py-2">
                 <span class="text-[13px] text-radius-text-secondary">Required</span>
                 <span class="text-[12px] text-radius-text-primary">Gmail account</span>
               </div>
@@ -301,7 +346,7 @@ import "../styles/global.css";
           Questions
         </h2>
 
-        <div class="space-y-1">
+        <div class="faq-list space-y-1">
           {[
             {
               q: "Does Radius work with Outlook or other providers?",
@@ -328,8 +373,8 @@ import "../styles/global.css";
               a: "Open an issue on GitHub. We read everything, even if we don't respond to every request."
             },
           ].map((item) => (
-            <details class="group rounded-lg bg-radius-bg-secondary/50 border border-radius-border-subtle open:border-radius-border transition-colors duration-150">
-              <summary class="flex items-center justify-between cursor-pointer px-5 py-4 text-[13px] font-medium text-radius-text-primary select-none list-none">
+            <details class="faq-item group rounded-lg bg-radius-bg-secondary/50 border border-radius-border-subtle open:border-radius-border">
+              <summary class="faq-summary flex items-center justify-between cursor-pointer px-5 py-4 text-[13px] font-medium text-radius-text-primary select-none list-none">
                 {item.q}
                 <svg
                   width="14"
@@ -340,12 +385,12 @@ import "../styles/global.css";
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  class="text-radius-text-muted shrink-0 ml-4 group-open:rotate-180 transition-transform duration-200"
+                  class="faq-chevron text-radius-text-muted shrink-0 ml-4"
                 >
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </summary>
-              <div class="px-5 pb-4 text-[13px] text-radius-text-secondary leading-relaxed">
+              <div class="faq-answer px-5 pb-4 text-[13px] text-radius-text-secondary leading-relaxed">
                 {item.a}
               </div>
             </details>
@@ -378,15 +423,34 @@ import "../styles/global.css";
           <span class="text-[11px]">MIT License</span>
         </div>
         <div class="flex items-center gap-5">
-          <a href="https://github.com/DeepanshuMishraa/radius" target="_blank" rel="noopener" class="text-[12px] text-radius-text-muted hover:text-radius-text-secondary transition-colors duration-150">GitHub</a>
-          <a href="https://github.com/DeepanshuMishraa/radius/releases" target="_blank" rel="noopener" class="text-[12px] text-radius-text-muted hover:text-radius-text-secondary transition-colors duration-150">Releases</a>
-          <a href="https://github.com/DeepanshuMishraa/radius/issues" target="_blank" rel="noopener" class="text-[12px] text-radius-text-muted hover:text-radius-text-secondary transition-colors duration-150">Issues</a>
+          <a href="https://github.com/DeepanshuMishraa/radius" target="_blank" rel="noopener" class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150">GitHub</a>
+          <a href="https://github.com/DeepanshuMishraa/radius/releases" target="_blank" rel="noopener" class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150">Releases</a>
+          <a href="https://github.com/DeepanshuMishraa/radius/issues" target="_blank" rel="noopener" class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150">Issues</a>
         </div>
       </div>
     </footer>
 
     <!-- Entrance animations -->
     <style is:global>
+      /* ============================================
+         Emil Kowalski Animation Principles
+         - ease-out as default (cubic-bezier(0.32, 0.72, 0, 1))
+         - max 300ms for UI transitions
+         - transform + opacity only
+         - scale(0.97) for button press feedback
+         - staggered children entrances
+         - reduced motion support
+         ============================================ */
+
+      :root {
+        --ease-out-expo: cubic-bezier(0.32, 0.72, 0, 1);
+        --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+        --duration-fast: 150ms;
+        --duration-normal: 200ms;
+        --duration-slow: 300ms;
+      }
+
+      /* --- Scroll-triggered entrance animations --- */
       @keyframes fade-up {
         from {
           opacity: 0;
@@ -398,17 +462,237 @@ import "../styles/global.css";
         }
       }
 
-      .animate-fade-up {
-        animation: fade-up 600ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+      @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
       }
 
+      @keyframes scale-in {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      /* Hero entrance sequence */
+      .hero-mark {
+        opacity: 0;
+        animation: fade-up 500ms var(--ease-out-expo) 100ms forwards;
+      }
+      .hero-content h1 {
+        opacity: 0;
+        animation: fade-up 500ms var(--ease-out-expo) 180ms forwards;
+      }
+      .hero-tagline {
+        opacity: 0;
+        animation: fade-up 500ms var(--ease-out-expo) 260ms forwards;
+      }
+      .hero-body {
+        opacity: 0;
+        animation: fade-up 500ms var(--ease-out-expo) 340ms forwards;
+      }
+      .hero-download {
+        opacity: 0;
+        animation: fade-up 500ms var(--ease-out-expo) 420ms forwards;
+      }
+      .hero-version {
+        opacity: 0;
+        animation: fade-up 500ms var(--ease-out-expo) 500ms forwards;
+      }
+
+      /* Preview image */
+      .preview-frame {
+        opacity: 0;
+        animation: scale-in 600ms var(--ease-out-expo) 600ms forwards;
+      }
+
+      /* Section headers */
+      .section-header {
+        opacity: 0;
+      }
+      .section-header.is-visible {
+        animation: fade-up 500ms var(--ease-out-expo) forwards;
+      }
+
+      /* Feature cards — staggered */
+      .feature-card {
+        opacity: 0;
+        transform: translateY(12px);
+        transition:
+          border-color var(--duration-normal) var(--ease-out),
+          transform var(--duration-normal) var(--ease-out);
+      }
+      .feature-card.is-visible {
+        animation: fade-up 400ms var(--ease-out-expo) forwards;
+      }
+
+      /* Stagger delays applied via JS or nth-child */
+      .features-grid .feature-card:nth-child(1) { animation-delay: 0ms; }
+      .features-grid .feature-card:nth-child(2) { animation-delay: 50ms; }
+      .features-grid .feature-card:nth-child(3) { animation-delay: 100ms; }
+      .features-grid .feature-card:nth-child(4) { animation-delay: 150ms; }
+      .features-grid .feature-card:nth-child(5) { animation-delay: 200ms; }
+      .features-grid .feature-card:nth-child(6) { animation-delay: 250ms; }
+      .features-grid .feature-card:nth-child(7) { animation-delay: 300ms; }
+      .features-grid .feature-card:nth-child(8) { animation-delay: 350ms; }
+      .features-grid .feature-card:nth-child(9) { animation-delay: 400ms; }
+
+      /* Feature card hover: icon lift */
+      .feature-card:hover {
+        border-color: var(--color-radius-border);
+      }
+      .feature-card:hover .feature-icon {
+        transform: translateY(-2px);
+      }
+      .feature-icon {
+        transition: transform var(--duration-normal) var(--ease-out);
+      }
+
+      /* Step cards */
+      .step-card {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      .step-card.is-visible {
+        animation: fade-up 400ms var(--ease-out-expo) forwards;
+      }
+      .steps-grid .step-card:nth-child(1) { animation-delay: 0ms; }
+      .steps-grid .step-card:nth-child(2) { animation-delay: 80ms; }
+      .steps-grid .step-card:nth-child(3) { animation-delay: 160ms; }
+
+      /* Tech tags */
+      .tech-tag {
+        transition:
+          border-color var(--duration-fast) var(--ease-out),
+          transform var(--duration-fast) var(--ease-out);
+      }
+      .tech-tag:hover {
+        border-color: var(--color-radius-border);
+        transform: translateY(-1px);
+      }
+
+      /* Spec rows */
+      .spec-row {
+        opacity: 0;
+        transform: translateX(-8px);
+      }
+      .spec-row.is-visible {
+        animation: fade-up 300ms var(--ease-out-expo) forwards;
+      }
+      .specs-card .spec-row:nth-child(2) { animation-delay: 0ms; }
+      .specs-card .spec-row:nth-child(3) { animation-delay: 60ms; }
+      .specs-card .spec-row:nth-child(4) { animation-delay: 120ms; }
+      .specs-card .spec-row:nth-child(5) { animation-delay: 180ms; }
+
+      /* GitHub link hover */
+      .github-link {
+        transition: color var(--duration-fast) var(--ease-out);
+      }
+      .github-link:hover {
+        color: var(--color-radius-accent-hover);
+      }
+
+      /* FAQ */
+      .faq-item {
+        transition: border-color var(--duration-fast) var(--ease-out);
+      }
+      .faq-summary {
+        transition: color var(--duration-fast) var(--ease-out);
+      }
+      .faq-summary:hover {
+        color: var(--color-radius-text-primary);
+      }
+      .faq-chevron {
+        transition: transform 200ms var(--ease-out-expo);
+      }
+      .faq-item[open] .faq-chevron {
+        transform: rotate(180deg);
+      }
+      .faq-answer {
+        animation: fade-in 200ms var(--ease-out);
+      }
+
+      /* Nav links */
+      .nav-link {
+        position: relative;
+        transition: color var(--duration-fast) var(--ease-out);
+      }
+      .nav-link:hover {
+        color: var(--color-radius-text-primary);
+      }
+      .nav-link::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 100%;
+        height: 1px;
+        background: currentColor;
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 200ms var(--ease-out-expo);
+      }
+      .nav-link:hover::after {
+        transform: scaleX(1);
+      }
+
+      /* Footer links */
+      .footer-link {
+        transition: color var(--duration-fast) var(--ease-out);
+      }
+      .footer-link:hover {
+        color: var(--color-radius-text-secondary);
+      }
+
+      /* Reduced motion */
       @media (prefers-reduced-motion: reduce) {
-        .animate-fade-up {
+        .hero-mark,
+        .hero-content h1,
+        .hero-tagline,
+        .hero-body,
+        .hero-download,
+        .hero-version,
+        .preview-frame,
+        .section-header,
+        .feature-card,
+        .step-card,
+        .spec-row {
           animation: none;
           opacity: 1;
           transform: none;
         }
+        .faq-chevron {
+          transition: none;
+        }
+        .feature-icon,
+        .tech-tag,
+        .nav-link::after {
+          transition: none;
+        }
       }
     </style>
+
+    <!-- Intersection Observer for scroll-triggered animations -->
+    <script>
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
+      );
+
+      document.querySelectorAll(
+        ".section-header, .feature-card, .step-card, .spec-row"
+      ).forEach((el) => observer.observe(el));
+    </script>
   </body>
 </html>
