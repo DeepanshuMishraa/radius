@@ -1,6 +1,6 @@
 import DOMPurify from "dompurify";
 import { memo, useCallback, useMemo } from "react";
-import type { MouseEvent } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 import type { Message, EmailCategory } from "../hooks/useInbox";
 import { ListIcon } from "@phosphor-icons/react";
 import { radiusRpc } from "../lib/rpc";
@@ -143,6 +143,12 @@ function InboxWidget({
         transition-colors duration-150 ease-out
         active:scale-[0.98]
       "
+      style={
+        {
+          appRegion: "no-drag",
+          WebkitAppRegion: "no-drag",
+        } as CSSProperties
+      }
       title="Open inbox"
     >
       <ListIcon size={16} />

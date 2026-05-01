@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef, useDeferredValue } from "react";
+import type { CSSProperties } from "react";
 import { Onboarding } from "./components/Onboarding";
 import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
@@ -351,7 +352,12 @@ function DragRegion() {
   return (
     <div
       className="electrobun-webkit-app-region-drag fixed top-0 left-0 right-0 h-9 z-50"
-      style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+      style={
+        {
+          appRegion: "drag",
+          WebkitAppRegion: "drag",
+        } as CSSProperties
+      }
     />
   );
 }
