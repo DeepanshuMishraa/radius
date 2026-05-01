@@ -1,0 +1,29 @@
+src/bun/auth.ts
+  413776ea16728818 3,61,78,103
+.env.example
+  413776ea16728818 1-2
+package.json
+  413776ea16728818 10-12
+README.md
+  413776ea16728818 34,36,38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "1af03b422a9c57bdbcdd661de1286943e835f54a",
+  "prompts": {
+    "413776ea16728818": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019de2f8-37da-744d-b047-2a6460548f20",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 16,
+      "total_deletions": 96,
+      "accepted_lines": 20,
+      "overriden_lines": 0
+    }
+  }
+}
