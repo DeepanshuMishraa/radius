@@ -24,6 +24,9 @@ jobs:
           - os: ubuntu-latest
             platform: linux
             arch: x64
+          - os: windows-latest
+            platform: win
+            arch: x64
 
     steps:
       - name: Checkout
@@ -46,6 +49,8 @@ jobs:
         run: |
           if [ "${{ matrix.platform }}" = "macos" ]; then
             FILE=$(ls artifacts/stable-macos-${{ matrix.arch }}-*.dmg | head -n 1)
+          elif [ "${{ matrix.platform }}" = "win" ]; then
+            FILE=$(ls artifacts/stable-win-${{ matrix.arch }}-*.zip | head -n 1)
           else
             FILE=$(ls artifacts/stable-linux-${{ matrix.arch }}-*.tar.gz | head -n 1)
           fi
