@@ -1,6 +1,7 @@
 import { BrowserWindow, BrowserView, Utils } from "electrobun/bun";
 import { spawn } from "node:child_process";
 import type { RadiusRPC } from "../shared/types";
+import type { SyncMode } from "../shared/types";
 import {
   createSchema,
   getInboxMessages,
@@ -32,6 +33,7 @@ import {
 } from "./gmail";
 import {
   runInitialAndBackgroundSync,
+  continueDeferredFullSyncIfDue,
   startIncrementalSyncPolling,
   doIncrementalSync,
   runMessageMetadataBackfillIfNeeded,
@@ -58,8 +60,48 @@ async function getMainViewUrl(): Promise<string> {
 let codeVerifier: string | null = null;
 let authServer: ReturnType<typeof Bun.serve> | null = null;
 let stopPolling: (() => void) | null = null;
+let stopDeferredFullSync: (() => void) | null = null;
 let emitNewMailToRenderer: (message: Awaited<ReturnType<typeof getGmailMessage>>) => void =
   () => {};
+
+function stopDeferredFullSyncScheduler() {
+  stopDeferredFullSync?.();
+  stopDeferredFullSync = null;
+}
+
+function startDeferredFullSyncScheduler() {
+  stopDeferredFullSyncScheduler();
+
+  let stopped = false;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  const scheduleNext = (delayMs: number) => {
+    timeoutId = setTimeout(async () => {
+      if (stopped) return;
+
+      try {
+        const result = await continueDeferredFullSyncIfDue();
+        if (stopped || result.completed) {
+          if (result.completed) {
+            stopDeferredFullSyncScheduler();
+          }
+          return;
+        }
+        scheduleNext(result.nextRunInMs ?? 60 * 60 * 1000);
+      } catch (err) {
+        console.error("❌ Deferred full sync failed:", err);
+        scheduleNext(60 * 60 * 1000);
+      }
+    }, delayMs);
+  };
+
+  scheduleNext(0);
+
+  stopDeferredFullSync = () => {
+    stopped = true;
+    if (timeoutId) clearTimeout(timeoutId);
+  };
+}
 
 function toRpcMessage(gmailMessage: Awaited<ReturnType<typeof getGmailMessage>>) {
   const headers = parseHeaders(gmailMessage.payload.headers ?? []);
@@ -116,7 +158,7 @@ function normalizeMessageListRecord(
   return normalizeMessageRecord(message) ?? message;
 }
 
-async function handleOAuthCallback(code: string): Promise<void> {
+async function handleOAuthCallback(code: string, syncMode: SyncMode): Promise<void> {
   if (!code || !codeVerifier) {
     console.error("❌ OAuth callback missing code or verifier");
     await updateSyncState({
@@ -139,6 +181,7 @@ async function handleOAuthCallback(code: string): Promise<void> {
 
     // Mark as authenticated immediately — this triggers the inbox view
     await updateSyncState({
+      syncMode,
       status: "syncing",
       phase: "initial",
       lastSyncAt: Date.now(),
@@ -149,11 +192,19 @@ async function handleOAuthCallback(code: string): Promise<void> {
     );
 
     // Start sync in the background — don't block the callback
-    runInitialAndBackgroundSync().catch((err) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error("❌ Background sync failed:", msg);
-      updateSyncState({ status: "error", phase: null, error: msg });
-    });
+    runInitialAndBackgroundSync(syncMode)
+      .then(() => {
+        if (syncMode === "all") {
+          startDeferredFullSyncScheduler();
+        } else {
+          stopDeferredFullSyncScheduler();
+        }
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("❌ Background sync failed:", msg);
+        updateSyncState({ status: "error", phase: null, error: msg });
+      });
 
     // Start incremental polling
     stopPolling = await startIncrementalSyncPolling((message) => {
@@ -250,7 +301,10 @@ async function init() {
                 ? { current: state.progressCurrent, total: state.progressTotal }
                 : undefined,
             lastSyncAt: state.lastSyncAt ?? undefined,
+            initialSyncCompletedAt: state.initialSyncCompletedAt ?? undefined,
             fullSyncCompletedAt: state.fullSyncCompletedAt ?? undefined,
+            syncMode: state.syncMode === "all" ? "all" : "recent",
+            fullSyncPending: state.backgroundSyncPending,
             error: state.error ?? undefined,
           };
         },
@@ -270,7 +324,7 @@ async function init() {
           }
         },
 
-        async startOAuth() {
+        async startOAuth({ syncMode }: { syncMode: SyncMode }) {
           try {
             codeVerifier = generateCodeVerifier();
             const codeChallenge = await sha256(codeVerifier);
@@ -284,7 +338,7 @@ async function init() {
                 if (url.pathname === "/oauth/callback") {
                   const code = url.searchParams.get("code");
                   if (code) {
-                    handleOAuthCallback(code).catch((err) => {
+                    handleOAuthCallback(code, syncMode).catch((err) => {
                       console.error("OAuth callback failed:", err);
                     });
 
@@ -311,11 +365,20 @@ async function init() {
           }
         },
 
-        async startSync() {
+        async startSync({ syncMode }: { syncMode?: SyncMode }) {
           try {
-            runInitialAndBackgroundSync().catch((err) => {
-              console.error("Sync failed:", err);
-            });
+            const resolvedSyncMode = syncMode ?? "recent";
+            runInitialAndBackgroundSync(resolvedSyncMode)
+              .then(() => {
+                if (resolvedSyncMode === "all") {
+                  startDeferredFullSyncScheduler();
+                } else {
+                  stopDeferredFullSyncScheduler();
+                }
+              })
+              .catch((err) => {
+                console.error("Sync failed:", err);
+              });
             return { success: true };
           } catch (err) {
             console.error("startSync error:", err);
@@ -415,7 +478,7 @@ async function init() {
 
   const state = await getSyncState();
 
-  if (state.fullSyncCompletedAt) {
+  if (state.initialSyncCompletedAt) {
     try {
       await runMessageMetadataBackfillIfNeeded();
     } catch (err) {
@@ -440,24 +503,36 @@ async function init() {
     stopPolling = await startIncrementalSyncPolling((message) => {
       emitNewMailToRenderer(message);
     });
+
+    if (state.syncMode === "all" && state.backgroundSyncPending) {
+      startDeferredFullSyncScheduler();
+    }
   } else {
-    // No full sync on record — check if user is authenticated but
+    // No initial sync on record — check if user is authenticated but
     // initial sync never completed (crash, quit mid-sync, etc.)
     const refreshToken = await getRefreshToken();
     if (refreshToken) {
       console.log(
-        "🔄 Authenticated but no full sync found — resuming initial sync",
+        "🔄 Authenticated but no initial sync found — resuming initial sync",
       );
-      runInitialAndBackgroundSync().catch((err) => {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error("❌ Resume sync failed:", msg);
-        updateSyncState({ status: "error", phase: null, error: msg });
-      });
+      const resumedSyncMode = state.syncMode === "all" ? "all" : "recent";
+      runInitialAndBackgroundSync(resumedSyncMode)
+        .then(() => {
+          if (resumedSyncMode === "all") {
+            startDeferredFullSyncScheduler();
+          }
+        })
+        .catch((err) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error("❌ Resume sync failed:", msg);
+          updateSyncState({ status: "error", phase: null, error: msg });
+        });
     }
   }
 
   // Keep reference for future cleanup (logout, quit, etc.)
   void stopPolling;
+  void stopDeferredFullSync;
 
   console.log("🚀 Radius App Started");
 }

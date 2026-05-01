@@ -58,6 +58,12 @@ export async function createSchema(): Promise<void> {
       last_sync_at INTEGER,
       initial_sync_completed_at INTEGER,
       full_sync_completed_at INTEGER,
+      sync_mode TEXT NOT NULL DEFAULT 'recent',
+      background_sync_cursor TEXT,
+      background_sync_total INTEGER,
+      background_sync_processed INTEGER NOT NULL DEFAULT 0,
+      background_sync_pending INTEGER NOT NULL DEFAULT 0,
+      background_sync_last_batch_at INTEGER,
       status TEXT NOT NULL DEFAULT 'idle',
       phase TEXT,
       progress_current INTEGER,
@@ -94,6 +100,28 @@ export async function createSchema(): Promise<void> {
   }
   if (!existingColumns.has("full_sync_completed_at")) {
     db.exec("ALTER TABLE sync_state ADD COLUMN full_sync_completed_at INTEGER");
+  }
+  if (!existingColumns.has("sync_mode")) {
+    db.exec("ALTER TABLE sync_state ADD COLUMN sync_mode TEXT NOT NULL DEFAULT 'recent'");
+  }
+  if (!existingColumns.has("background_sync_cursor")) {
+    db.exec("ALTER TABLE sync_state ADD COLUMN background_sync_cursor TEXT");
+  }
+  if (!existingColumns.has("background_sync_total")) {
+    db.exec("ALTER TABLE sync_state ADD COLUMN background_sync_total INTEGER");
+  }
+  if (!existingColumns.has("background_sync_processed")) {
+    db.exec(
+      "ALTER TABLE sync_state ADD COLUMN background_sync_processed INTEGER NOT NULL DEFAULT 0"
+    );
+  }
+  if (!existingColumns.has("background_sync_pending")) {
+    db.exec(
+      "ALTER TABLE sync_state ADD COLUMN background_sync_pending INTEGER NOT NULL DEFAULT 0"
+    );
+  }
+  if (!existingColumns.has("background_sync_last_batch_at")) {
+    db.exec("ALTER TABLE sync_state ADD COLUMN background_sync_last_batch_at INTEGER");
   }
   if (!existingColumns.has("phase")) {
     db.exec("ALTER TABLE sync_state ADD COLUMN phase TEXT");
@@ -330,7 +358,13 @@ export async function updateSyncState(state: {
   historyId?: string;
   lastSyncAt?: number;
   initialSyncCompletedAt?: number | null;
-  fullSyncCompletedAt?: number;
+  fullSyncCompletedAt?: number | null;
+  syncMode?: string;
+  backgroundSyncCursor?: string | null;
+  backgroundSyncTotal?: number | null;
+  backgroundSyncProcessed?: number;
+  backgroundSyncPending?: boolean;
+  backgroundSyncLastBatchAt?: number | null;
   status?: string;
   phase?: string | null;
   progressCurrent?: number | null;
@@ -357,6 +391,30 @@ export async function updateSyncState(state: {
   if (state.fullSyncCompletedAt !== undefined) {
     sets.push("full_sync_completed_at = ?");
     vals.push(state.fullSyncCompletedAt);
+  }
+  if (state.syncMode !== undefined) {
+    sets.push("sync_mode = ?");
+    vals.push(state.syncMode);
+  }
+  if (state.backgroundSyncCursor !== undefined) {
+    sets.push("background_sync_cursor = ?");
+    vals.push(state.backgroundSyncCursor);
+  }
+  if (state.backgroundSyncTotal !== undefined) {
+    sets.push("background_sync_total = ?");
+    vals.push(state.backgroundSyncTotal);
+  }
+  if (state.backgroundSyncProcessed !== undefined) {
+    sets.push("background_sync_processed = ?");
+    vals.push(state.backgroundSyncProcessed);
+  }
+  if (state.backgroundSyncPending !== undefined) {
+    sets.push("background_sync_pending = ?");
+    vals.push(state.backgroundSyncPending ? 1 : 0);
+  }
+  if (state.backgroundSyncLastBatchAt !== undefined) {
+    sets.push("background_sync_last_batch_at = ?");
+    vals.push(state.backgroundSyncLastBatchAt);
   }
   if (state.status !== undefined) {
     sets.push("status = ?");
@@ -393,6 +451,12 @@ export async function getSyncState(): Promise<{
   lastSyncAt: number | null;
   initialSyncCompletedAt: number | null;
   fullSyncCompletedAt: number | null;
+  syncMode: string;
+  backgroundSyncCursor: string | null;
+  backgroundSyncTotal: number | null;
+  backgroundSyncProcessed: number;
+  backgroundSyncPending: boolean;
+  backgroundSyncLastBatchAt: number | null;
   status: string;
   phase: string | null;
   progressCurrent: number | null;
@@ -404,8 +468,11 @@ export async function getSyncState(): Promise<{
   const row = db
     .query(
       `SELECT history_id, last_sync_at, initial_sync_completed_at,
-              full_sync_completed_at, status, phase, progress_current,
-              progress_total, error, metadata_schema_version
+              full_sync_completed_at, sync_mode, background_sync_cursor,
+              background_sync_total, background_sync_processed,
+              background_sync_pending, background_sync_last_batch_at,
+              status, phase, progress_current, progress_total, error,
+              metadata_schema_version
        FROM sync_state WHERE id = 1`
     )
     .get() as {
@@ -413,6 +480,12 @@ export async function getSyncState(): Promise<{
     last_sync_at: number | null;
     initial_sync_completed_at: number | null;
     full_sync_completed_at: number | null;
+    sync_mode: string | null;
+    background_sync_cursor: string | null;
+    background_sync_total: number | null;
+    background_sync_processed: number | null;
+    background_sync_pending: number | null;
+    background_sync_last_batch_at: number | null;
     status: string;
     phase: string | null;
     progress_current: number | null;
@@ -426,6 +499,12 @@ export async function getSyncState(): Promise<{
     lastSyncAt: row?.last_sync_at ?? null,
     initialSyncCompletedAt: row?.initial_sync_completed_at ?? null,
     fullSyncCompletedAt: row?.full_sync_completed_at ?? null,
+    syncMode: row?.sync_mode ?? "recent",
+    backgroundSyncCursor: row?.background_sync_cursor ?? null,
+    backgroundSyncTotal: row?.background_sync_total ?? null,
+    backgroundSyncProcessed: row?.background_sync_processed ?? 0,
+    backgroundSyncPending: Boolean(row?.background_sync_pending ?? 0),
+    backgroundSyncLastBatchAt: row?.background_sync_last_batch_at ?? null,
     status: row?.status ?? "idle",
     phase: row?.phase ?? null,
     progressCurrent: row?.progress_current ?? null,

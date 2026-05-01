@@ -10,6 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { ThemeProvider } from "@/components/theme-provider";
 import { XIcon } from "@phosphor-icons/react";
 import { radiusRpc } from "./lib/rpc";
+import type { SyncMode } from "../shared/types";
+
+const INBOX_PAGE_STEP = 500;
+const INITIAL_INBOX_LIMIT = 3000;
 
 function parseAddressLabel(address: string | null | undefined) {
   if (!address) return { name: "Radius", email: "" };
@@ -54,12 +58,14 @@ function App() {
     "default" | "followup"
   >("default");
   const [newMailToast, setNewMailToast] = useState<Message | null>(null);
+  const [selectedSyncMode, setSelectedSyncMode] = useState<SyncMode | null>(null);
+  const [inboxLimit, setInboxLimit] = useState(INITIAL_INBOX_LIMIT);
   const newMailToastTimeoutRef = useRef<number | null>(null);
 
   const { isAuthenticated, startOAuth } = useAuth();
   const syncStatus = useSyncStatus();
   const { messages, total } = useInbox(
-    1000,
+    inboxLimit,
     0,
     syncStatus.status === "syncing" ? 2000 : 8000
   );
@@ -217,9 +223,27 @@ function App() {
     setNotificationPromptVisible(false);
   }, []);
 
-  const handleConnect = useCallback(async () => {
-    await startOAuth();
-  }, [startOAuth]);
+  const handleConnect = useCallback(
+    async (syncMode: SyncMode) => {
+      setSelectedSyncMode(syncMode);
+      await startOAuth(syncMode);
+    },
+    [startOAuth]
+  );
+
+  const handleLoadMoreInbox = useCallback(() => {
+    setInboxLimit((current) => {
+      if (current >= total) return current;
+      return Math.min(current + INBOX_PAGE_STEP, total);
+    });
+  }, [total]);
+
+  useEffect(() => {
+    if (total === 0) return;
+    setInboxLimit((current) =>
+      current >= total ? current : Math.min(Math.max(current, INITIAL_INBOX_LIMIT), total)
+    );
+  }, [total]);
 
   const handleSelectMessage = useCallback((id: string) => {
     setSelectedMessageId(id);
@@ -319,6 +343,8 @@ function App() {
         <DragRegion />
         <Onboarding
           onConnect={handleConnect}
+          selectedMode={selectedSyncMode}
+          onSelectMode={setSelectedSyncMode}
           error={syncStatus.status === "error" ? syncStatus.error : undefined}
         />
       </div>
@@ -342,6 +368,7 @@ function App() {
           heading={searchActive ? "Search Results" : "Inbox"}
           detail={searchMeta ?? undefined}
           loading={searchLoading}
+          onReachEnd={searchActive ? undefined : handleLoadMoreInbox}
           emptyMessage={
             searchActive
               ? `No emails match “${deferredSearchQuery.trim()}”`
@@ -636,7 +663,7 @@ function SyncPill({
   syncStatus: ReturnType<typeof useSyncStatus>;
   notice: string | null;
 }) {
-  if (syncStatus.status !== "syncing" && !notice) return null;
+  if (syncStatus.status !== "syncing" && !notice && !syncStatus.fullSyncPending) return null;
 
   const current = syncStatus.progress?.current ?? 0;
   const total = syncStatus.progress?.total ?? 0;
@@ -663,9 +690,11 @@ function SyncPill({
       )}
       <span className="text-[11px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
         {notice ??
-          (total > 0
-            ? `${pct}% · ${current.toLocaleString()}/${total.toLocaleString()}`
-            : "Syncing")}
+          (syncStatus.fullSyncPending && syncStatus.status !== "syncing"
+            ? "Full migration in progress. Older mail will keep syncing while Radius is open."
+            : total > 0
+              ? `${pct}% · ${current.toLocaleString()}/${total.toLocaleString()}`
+              : "Syncing")}
       </span>
     </div>
   );

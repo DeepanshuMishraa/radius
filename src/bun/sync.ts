@@ -21,6 +21,7 @@ import {
   HistoryGapError,
   type GmailMessage,
 } from "./gmail";
+import type { SyncMode } from "../shared/types";
 
 async function withRetry<T>(
   fn: () => Promise<T>,
@@ -61,12 +62,14 @@ export type ProgressCallback = (progress: SyncProgress) => void;
 
 type SyncPhase = "initial" | "background";
 
-const INITIAL_SYNC_TARGET = 1000;
+const INITIAL_SYNC_TARGET = 3000;
 const PAGE_SIZE = 500;
 const FETCH_CONCURRENCY = 15;
 const INSERT_BATCH_SIZE = 50;
 const MESSAGE_METADATA_BATCH_SIZE = 250;
 const CURRENT_METADATA_SCHEMA_VERSION = 2;
+const DEFERRED_FULL_SYNC_BATCH_TARGET = 500;
+const DEFERRED_FULL_SYNC_INTERVAL_MS = 60 * 60 * 1000;
 const FAST_POLL_INTERVAL_MS = 4000;
 const IDLE_POLL_INTERVAL_MS = 10000;
 const ERROR_POLL_INTERVAL_MS = 15000;
@@ -148,6 +151,12 @@ interface SyncRunResult {
   latestHistoryId?: string;
 }
 
+interface DeferredFullSyncResult {
+  ran: boolean;
+  completed: boolean;
+  nextRunInMs?: number;
+}
+
 async function pushSyncProgress(
   phase: SyncPhase,
   progress: SyncProgress,
@@ -185,10 +194,11 @@ async function runSyncPass({
     phase === "initial"
       ? Math.min(limit ?? INITIAL_SYNC_TARGET, resolvedTotalEstimate)
       : resolvedTotalEstimate;
+  const targetProcessed =
+    limit === undefined ? undefined : processedBeforeStart + limit;
 
   let pageToken = startPageToken;
   let processed = processedBeforeStart;
-  let insertBuffer: GmailMessage[] = [];
 
   await pushSyncProgress(
     phase,
@@ -215,9 +225,13 @@ async function runSyncPass({
     }
 
     const remaining =
-      limit === undefined ? pageMessages.length : Math.max(limit - processed, 0);
+      targetProcessed === undefined
+        ? pageMessages.length
+        : Math.max(targetProcessed - processed, 0);
     const messagesToFetch =
-      limit === undefined ? pageMessages : pageMessages.slice(0, remaining);
+      targetProcessed === undefined
+        ? pageMessages
+        : pageMessages.slice(0, remaining);
 
     const ids = messagesToFetch.map((m) => m.id);
     const fetched = await fetchMessagesPool(ids, accessToken, FETCH_CONCURRENCY);
@@ -240,21 +254,10 @@ async function runSyncPass({
     }
 
     pageToken = page.nextPageToken;
-    if (limit !== undefined && processed >= limit) {
+    if (targetProcessed !== undefined && processed >= targetProcessed) {
       break;
     }
   } while (pageToken);
-
-  if (insertBuffer.length > 0) {
-    await flushInsertBuffer(insertBuffer, accessToken);
-    processed += insertBuffer.length;
-    const progress = {
-      current: Math.min(processed, progressTotal),
-      total: progressTotal,
-    };
-    await pushSyncProgress(phase, progress, latestHistoryId);
-    onProgress?.(progress);
-  }
 
   return {
     processed,
@@ -267,17 +270,27 @@ async function runSyncPass({
 export async function doFullSync(
   onProgress?: ProgressCallback
 ): Promise<void> {
-  await runInitialAndBackgroundSync(onProgress);
+  const state = await getSyncState();
+  await runInitialAndBackgroundSync(state.syncMode === "all" ? "all" : "recent", onProgress);
 }
 
 async function runInitialAndBackgroundSyncUnlocked(
+  syncMode: SyncMode,
   onProgress?: ProgressCallback
 ): Promise<void> {
   await updateSyncState({
+    syncMode,
     status: "syncing",
     phase: "initial",
     progressCurrent: 0,
     progressTotal: INITIAL_SYNC_TARGET,
+    initialSyncCompletedAt: null,
+    fullSyncCompletedAt: null,
+    backgroundSyncCursor: null,
+    backgroundSyncTotal: null,
+    backgroundSyncProcessed: 0,
+    backgroundSyncPending: false,
+    backgroundSyncLastBatchAt: null,
     error: null,
   });
 
@@ -297,6 +310,7 @@ async function runInitialAndBackgroundSyncUnlocked(
       historyId: initialResult.latestHistoryId,
       lastSyncAt: initialCompletedAt,
       initialSyncCompletedAt: initialCompletedAt,
+      syncMode,
       progressCurrent: Math.min(initialResult.processed, initialProgressTotal),
       progressTotal: initialProgressTotal,
       status: "idle",
@@ -308,9 +322,14 @@ async function runInitialAndBackgroundSyncUnlocked(
       initialResult.totalEstimate > initialResult.processed &&
       initialResult.nextPageToken !== undefined;
 
-    if (!hasMoreToSync) {
+    if (syncMode === "recent" || !hasMoreToSync) {
       await updateSyncState({
         fullSyncCompletedAt: initialCompletedAt,
+        backgroundSyncCursor: null,
+        backgroundSyncTotal: initialResult.totalEstimate,
+        backgroundSyncProcessed: initialResult.processed,
+        backgroundSyncPending: false,
+        backgroundSyncLastBatchAt: null,
         metadataSchemaVersion: CURRENT_METADATA_SCHEMA_VERSION,
         status: "idle",
         phase: null,
@@ -319,27 +338,26 @@ async function runInitialAndBackgroundSyncUnlocked(
       return;
     }
 
-    const backgroundResult = await runSyncPass({
-      phase: "background",
-      startPageToken: initialResult.nextPageToken,
-      totalEstimate: initialResult.totalEstimate,
-      processedBeforeStart: initialResult.processed,
-      latestHistoryId: initialResult.latestHistoryId,
-    });
-
     await updateSyncState({
-      historyId: backgroundResult.latestHistoryId,
-      lastSyncAt: Date.now(),
-      fullSyncCompletedAt: Date.now(),
+      historyId: initialResult.latestHistoryId,
+      lastSyncAt: initialCompletedAt,
+      fullSyncCompletedAt: null,
+      backgroundSyncCursor: initialResult.nextPageToken ?? null,
+      backgroundSyncTotal: initialResult.totalEstimate,
+      backgroundSyncProcessed: initialResult.processed,
+      backgroundSyncPending: true,
+      backgroundSyncLastBatchAt: initialCompletedAt,
       metadataSchemaVersion: CURRENT_METADATA_SCHEMA_VERSION,
-      progressCurrent: backgroundResult.processed,
-      progressTotal: backgroundResult.totalEstimate,
+      progressCurrent: Math.min(initialResult.processed, initialResult.totalEstimate),
+      progressTotal: initialResult.totalEstimate,
       status: "idle",
       phase: null,
       error: null,
     });
 
-    console.log(`Full sync complete: ${backgroundResult.processed} messages`);
+    console.log(
+      `Initial sync complete: ${initialResult.processed} messages. Deferred full sync is queued.`
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await updateSyncState({
@@ -352,10 +370,11 @@ async function runInitialAndBackgroundSyncUnlocked(
 }
 
 export async function runInitialAndBackgroundSync(
+  syncMode: SyncMode = "recent",
   onProgress?: ProgressCallback
 ): Promise<void> {
   const result = await withSyncLock(() =>
-    runInitialAndBackgroundSyncUnlocked(onProgress)
+    runInitialAndBackgroundSyncUnlocked(syncMode, onProgress)
   );
 
   if (result === "locked") {
@@ -363,25 +382,55 @@ export async function runInitialAndBackgroundSync(
   }
 }
 
-export async function runBackgroundCatchupSync(): Promise<void> {
+export async function continueDeferredFullSyncIfDue(): Promise<DeferredFullSyncResult> {
+  const state = await getSyncState();
+  if (!state.backgroundSyncPending || !state.backgroundSyncCursor) {
+    return { ran: false, completed: true };
+  }
+
+  const lastBatchAt = state.backgroundSyncLastBatchAt ?? 0;
+  const elapsedMs = Date.now() - lastBatchAt;
+  if (elapsedMs < DEFERRED_FULL_SYNC_INTERVAL_MS) {
+    return {
+      ran: false,
+      completed: false,
+      nextRunInMs: DEFERRED_FULL_SYNC_INTERVAL_MS - elapsedMs,
+    };
+  }
+
   const result = await withSyncLock(async () => {
     await updateSyncState({
+      syncMode: "all",
       status: "syncing",
       phase: "background",
-      progressCurrent: 0,
-      progressTotal: null,
+      progressCurrent: state.backgroundSyncProcessed,
+      progressTotal: state.backgroundSyncTotal,
       error: null,
     });
 
     try {
       const backgroundResult = await runSyncPass({
         phase: "background",
+        limit: DEFERRED_FULL_SYNC_BATCH_TARGET,
+        startPageToken: state.backgroundSyncCursor ?? undefined,
+        totalEstimate: state.backgroundSyncTotal ?? undefined,
+        processedBeforeStart: state.backgroundSyncProcessed,
+        latestHistoryId: state.historyId ?? undefined,
       });
+      const completed =
+        backgroundResult.nextPageToken === undefined ||
+        backgroundResult.processed >= backgroundResult.totalEstimate;
+      const completedAt = Date.now();
 
       await updateSyncState({
         historyId: backgroundResult.latestHistoryId,
-        lastSyncAt: Date.now(),
-        fullSyncCompletedAt: Date.now(),
+        lastSyncAt: completedAt,
+        fullSyncCompletedAt: completed ? completedAt : null,
+        backgroundSyncCursor: backgroundResult.nextPageToken ?? null,
+        backgroundSyncTotal: backgroundResult.totalEstimate,
+        backgroundSyncProcessed: backgroundResult.processed,
+        backgroundSyncPending: !completed,
+        backgroundSyncLastBatchAt: completedAt,
         metadataSchemaVersion: CURRENT_METADATA_SCHEMA_VERSION,
         progressCurrent: backgroundResult.processed,
         progressTotal: backgroundResult.totalEstimate,
@@ -390,7 +439,19 @@ export async function runBackgroundCatchupSync(): Promise<void> {
         error: null,
       });
 
-      console.log(`Background catch-up complete: ${backgroundResult.processed} messages`);
+      if (completed) {
+        console.log(`Full sync complete: ${backgroundResult.processed} messages`);
+      } else {
+        console.log(
+          `Deferred full sync advanced to ${backgroundResult.processed}/${backgroundResult.totalEstimate}`
+        );
+      }
+
+      return {
+        ran: true,
+        completed,
+        nextRunInMs: completed ? undefined : DEFERRED_FULL_SYNC_INTERVAL_MS,
+      };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await updateSyncState({ status: "error", phase: null, error: message });
@@ -399,8 +460,10 @@ export async function runBackgroundCatchupSync(): Promise<void> {
   });
 
   if (result === "locked") {
-    console.log("Sync already in progress — skipping duplicate");
+    return { ran: false, completed: false };
   }
+
+  return result;
 }
 
 export async function doIncrementalSync(): Promise<{
@@ -410,8 +473,11 @@ export async function doIncrementalSync(): Promise<{
 }> {
   const state = await getSyncState();
   if (!state.historyId) {
-    console.log("No historyId — running full sync instead");
-    await runInitialAndBackgroundSync();
+    if (state.status === "syncing") {
+      return { newMessages: 0, hadGap: false, messages: [] };
+    }
+    console.log("No historyId — running initial sync instead");
+    await runInitialAndBackgroundSync(state.syncMode === "all" ? "all" : "recent");
     return { newMessages: 0, hadGap: false, messages: [] };
   }
 
@@ -538,7 +604,7 @@ export async function doIncrementalSync(): Promise<{
 
   if (lockResult.needsFullResync) {
     await clearMessages();
-    await runInitialAndBackgroundSync();
+    await runInitialAndBackgroundSync(state.syncMode === "all" ? "all" : "recent");
     return { newMessages: 0, hadGap: true, messages: [] };
   }
 

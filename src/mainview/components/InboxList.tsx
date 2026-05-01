@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import type { Message, SyncStatus, EmailCategory } from "../hooks/useInbox";
 
 interface InboxListProps {
@@ -8,6 +8,7 @@ interface InboxListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   syncStatus: SyncStatus;
+  onReachEnd?: () => void;
   heading?: string;
   detail?: string;
   loading?: boolean;
@@ -146,6 +147,7 @@ export function InboxList({
   selectedId,
   onSelect,
   syncStatus,
+  onReachEnd,
   heading = "Inbox",
   detail,
   loading = false,
@@ -167,6 +169,20 @@ export function InboxList({
     },
     [onSelect]
   );
+
+  const virtualItems = virtualizer.getVirtualItems();
+  const lastVirtualItem = virtualItems[virtualItems.length - 1];
+
+  useEffect(() => {
+    if (
+      onReachEnd &&
+      lastVirtualItem &&
+      messages.length < total &&
+      lastVirtualItem.index >= messages.length - 20
+    ) {
+      onReachEnd();
+    }
+  }, [lastVirtualItem, messages.length, onReachEnd, total]);
 
   return (
     <div className="flex flex-col h-full bg-radius-bg-primary pt-9">
@@ -221,7 +237,7 @@ export function InboxList({
               position: "relative",
             }}
           >
-            {virtualizer.getVirtualItems().map((virtualItem) => {
+            {virtualItems.map((virtualItem) => {
               const message = messages[virtualItem.index];
               return (
                 <div
