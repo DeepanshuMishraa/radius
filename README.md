@@ -21,13 +21,9 @@ Create a `.env` file in the project root:
 
 ```env
 GOOGLE_CLIENT_ID=your_client_id
-GOOGLE_CLIENT_SECRET=your_client_secret
-BUNDLE_GOOGLE_CLIENT_SECRET=false
 ```
 
 `GOOGLE_CLIENT_ID` is bundled into release builds through a generated `build/oauth-config.json`.
-By default, `GOOGLE_CLIENT_SECRET` is not bundled. Only set `BUNDLE_GOOGLE_CLIENT_SECRET=true`
-if you explicitly want to ship it inside the app bundle and accept that it is extractable.
 
 ## Running
 
@@ -50,7 +46,7 @@ bun run build:canary
 - Keep your build-time values in the project root `.env`, or export them in CI.
 - The build step generates `build/oauth-config.json` and Electrobun copies that file into the packaged app resources.
 - Finder-launched apps do not inherit your shell environment, so the packaged app reads that bundled JSON instead of `.env`.
-- By default, only the public `GOOGLE_CLIENT_ID` is bundled. User tokens still live in macOS Keychain.
+- Only the public `GOOGLE_CLIENT_ID` is bundled. User tokens still live in macOS Keychain.
 
 ## Project structure
 

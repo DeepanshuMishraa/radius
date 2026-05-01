@@ -41,6 +41,8 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build app
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         run: bun run build:stable
 
       - name: Rename artifact
