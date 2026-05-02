@@ -8,7 +8,12 @@ import type { Message } from "./hooks/useInbox";
 import { CommandK } from "@/components/cmd";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ThemeProvider } from "@/components/theme-provider";
-import { XIcon } from "@phosphor-icons/react";
+import {
+  X,
+  Bell,
+  EnvelopeSimple,
+  ArrowCircleUp,
+} from "@phosphor-icons/react";
 import { radiusRpc } from "./lib/rpc";
 import type { SyncMode, UpdateInfo } from "../shared/types";
 
@@ -608,82 +613,54 @@ function NotificationPermissionPrompt({
   onOpenSettings: () => void | Promise<void>;
   onDismiss: () => void;
 }) {
-  if (!visible) {
-    return null;
-  }
+  if (!visible) return null;
 
   return (
-    <div className="pointer-events-auto max-w-[280px] rounded-2xl border border-radius-border-subtle bg-radius-bg-primary/94 px-4 py-3 shadow-[0_16px_36px_rgba(0,0,0,0.12)] backdrop-blur-md">
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-radius-bg-secondary text-radius-accent">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
-            <path d="M10 17a2 2 0 0 0 4 0" />
-          </svg>
-        </div>
+    <div className="toast pointer-events-auto w-[300px] rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl overflow-hidden">
+      <div className="flex items-start gap-3 p-3.5">
+        <Bell
+          weight="fill"
+          size={18}
+          className="mt-0.5 shrink-0 text-radius-accent"
+        />
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-              Turn on new mail alerts
-            </p>
-            <button
-              type="button"
-              onClick={onDismiss}
-              className="mt-[-2px] inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
-              aria-label="Dismiss notification prompt"
-            >
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
-            </button>
-          </div>
+          <p className="text-[12px] font-medium text-radius-text-primary leading-snug font-[family-name:var(--font-family-sans)]">
+            {mode === "followup"
+              ? "Set Radius to Banners"
+              : "Turn on new mail alerts"}
+          </p>
           <p className="mt-1 text-[11px] leading-[1.5] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
             {mode === "followup"
-              ? "If alerts only land in Notification Center, open Notifications settings and set Radius to Banners so new mail pops up while the app is open."
-              : "Enable native alerts so Radius can notify you when new email arrives while the app is open."}
+              ? "Open Notifications settings and set Radius to Banners so new mail pops up."
+              : "Enable native alerts so Radius can notify you when new email arrives."}
           </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                void onRequestPermission();
-              }}
-              className="inline-flex items-center rounded-full bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover"
-            >
-              {mode === "followup" ? "Try again" : "Enable alerts"}
-            </button>
-            {mode === "followup" ? (
-              <button
-                type="button"
-                onClick={() => {
-                  void onOpenSettings();
-                }}
-                className="inline-flex items-center rounded-full border border-radius-border-subtle bg-radius-bg-secondary px-3 py-1.5 text-[11px] font-medium text-radius-text-primary transition-colors hover:border-radius-border hover:bg-radius-bg-primary"
-              >
-                Open settings
-              </button>
-            ) : null}
-          </div>
         </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="mt-[-2px] inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
+          aria-label="Dismiss"
+        >
+          <X size={12} weight="bold" />
+        </button>
+      </div>
+      <div className="flex items-center gap-2 border-t border-radius-border-subtle px-3.5 py-2.5">
+        <button
+          type="button"
+          onClick={() => void onRequestPermission()}
+          className="inline-flex items-center rounded-lg bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover"
+        >
+          {mode === "followup" ? "Try again" : "Enable alerts"}
+        </button>
+        {mode === "followup" && (
+          <button
+            type="button"
+            onClick={() => void onOpenSettings()}
+            className="inline-flex items-center rounded-lg border border-radius-border-subtle bg-transparent px-3 py-1.5 text-[11px] font-medium text-radius-text-secondary transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
+          >
+            Open settings
+          </button>
+        )}
       </div>
     </div>
   );
@@ -698,41 +675,58 @@ function InAppNewMailToast({
   onOpen: () => void;
   onDismiss: () => void;
 }) {
-  if (!message) {
-    return null;
-  }
+  if (!message) return null;
 
   const sender = parseAddressLabel(message.from);
 
   return (
-    <div className="pointer-events-auto w-[320px] rounded-[22px] border border-radius-border-subtle bg-radius-bg-primary/96 p-3 shadow-[0_18px_40px_rgba(0,0,0,0.18)] backdrop-blur-md transition-all duration-300 ease-out">
-      <div className="flex items-start gap-3">
-        <button
-          type="button"
-          onClick={onOpen}
-          className="min-w-0 flex-1 rounded-[18px] bg-radius-bg-secondary/70 px-3 py-3 text-left transition-colors duration-200 hover:bg-radius-bg-secondary"
-        >
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.08em] text-radius-accent font-[family-name:var(--font-family-sans)]">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-radius-accent" />
-            New mail
+    <button
+      type="button"
+      onClick={onOpen}
+      className="toast pointer-events-auto group relative w-[300px] overflow-hidden rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 text-left shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-all duration-200 hover:shadow-[0_12px_40px_rgba(0,0,0,0.16)] hover:border-radius-border"
+    >
+      {/* Progress bar */}
+      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-radius-border-subtle">
+        <div className="toast-progress h-full bg-radius-accent/40" />
+      </div>
+
+      <div className="flex items-start gap-3 p-3.5 pb-4">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-radius-accent-subtle">
+          <EnvelopeSimple weight="fill" size={14} className="text-radius-accent" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-radius-accent font-[family-name:var(--font-family-sans)]">
+              New mail
+            </span>
           </div>
-          <p className="mt-2 truncate text-[14px] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
+          <p className="mt-1 truncate text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-serif)]">
             {sender.name}
           </p>
-          <p className="mt-1 truncate text-[12px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
+          <p className="mt-0.5 truncate text-[12px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
             {message.subject || message.snippet || "Open to read"}
           </p>
-        </button>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
-          aria-label="Dismiss new mail alert"
+        </div>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDismiss();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.stopPropagation();
+              onDismiss();
+            }
+          }}
+          className="mt-[-2px] inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-radius-text-muted opacity-0 transition-all duration-150 hover:bg-radius-bg-secondary hover:text-radius-text-primary group-hover:opacity-100"
+          aria-label="Dismiss"
         >
-          <XIcon size={12} />
-        </button>
+          <X size={12} weight="bold" />
+        </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -754,77 +748,54 @@ function UpdateNotification({
   }
 
   return (
-    <div className="pointer-events-auto w-[320px] rounded-[22px] border border-radius-border-subtle bg-radius-bg-primary/96 p-3 shadow-[0_18px_40px_rgba(0,0,0,0.18)] backdrop-blur-md transition-all duration-300 ease-out">
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-radius-accent/10 text-radius-accent">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9" />
-          </svg>
-        </div>
+    <div className="toast pointer-events-auto w-[300px] rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl overflow-hidden">
+      <div className="flex items-start gap-3 p-3.5">
+        <ArrowCircleUp
+          weight="fill"
+          size={18}
+          className="mt-0.5 shrink-0 text-radius-accent"
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-              {updateDownloaded ? "Update ready" : "Update available"}
+            <p className="text-[12px] font-medium text-radius-text-primary leading-snug font-[family-name:var(--font-family-sans)]">
+              {updateDownloaded
+                ? `Radius ${updateInfo.version} ready`
+                : `Radius ${updateInfo.version} available`}
             </p>
             <button
               type="button"
               onClick={onDismiss}
-              className="mt-[-2px] inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
-              aria-label="Dismiss update notification"
+              className="mt-[-2px] inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
+              aria-label="Dismiss"
             >
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
+              <X size={12} weight="bold" />
             </button>
           </div>
           <p className="mt-1 text-[11px] leading-[1.5] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
             {updateDownloaded
-              ? `Radius ${updateInfo.version} is downloaded and ready to install. The app will restart automatically.`
-              : `Radius ${updateInfo.version} is available. Download now to get the latest improvements.`}
+              ? "Downloaded and ready to install. The app will restart automatically."
+              : "Download now to get the latest improvements and fixes."}
           </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {updateDownloaded ? (
-              <button
-                type="button"
-                onClick={() => {
-                  void onApply();
-                }}
-                className="inline-flex items-center rounded-full bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover"
-              >
-                Install & Restart
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  void onDownload();
-                }}
-                className="inline-flex items-center rounded-full bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover"
-              >
-                Download
-              </button>
-            )}
-          </div>
         </div>
+      </div>
+      <div className="flex items-center gap-2 border-t border-radius-border-subtle px-3.5 py-2.5">
+        {updateDownloaded ? (
+          <button
+            type="button"
+            onClick={() => void onApply()}
+            className="inline-flex items-center rounded-lg bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover"
+          >
+            Install & Restart
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void onDownload()}
+            className="inline-flex items-center rounded-lg bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover"
+          >
+            Download
+          </button>
+        )}
       </div>
     </div>
   );
