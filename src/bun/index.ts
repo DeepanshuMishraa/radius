@@ -1,4 +1,4 @@
-import Electrobun, { BrowserWindow, BrowserView, Utils, ApplicationMenu } from "electrobun/bun";
+import Electrobun, { BrowserWindow, BrowserView, Utils, ApplicationMenu, Updater } from "electrobun/bun";
 import { spawn } from "node:child_process";
 import type { RadiusRPC } from "../shared/types";
 import type { SyncMode } from "../shared/types";
@@ -43,9 +43,7 @@ const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
 
 async function getMainViewUrl(): Promise<string> {
-  const channel = await import("electrobun/bun").then((m) =>
-    m.Updater.localInfo.channel(),
-  );
+  const channel = await Updater.localInfo.channel();
   if (channel === "dev") {
     try {
       await fetch(DEV_SERVER_URL, { method: "HEAD" });
@@ -63,6 +61,16 @@ let stopPolling: (() => void) | null = null;
 let stopDeferredFullSync: (() => void) | null = null;
 let emitNewMailToRenderer: (message: Awaited<ReturnType<typeof getGmailMessage>>) => void =
   () => {};
+
+// ── Updater serialization guard ──
+// Electrobun's Updater is process-global; only one operation at a time.
+let updaterLock: Promise<unknown> = Promise.resolve();
+
+function withUpdaterLock<T>(fn: () => Promise<T>): Promise<T> {
+  const next = updaterLock.then(() => fn()).catch(() => fn());
+  updaterLock = next;
+  return next as Promise<T>;
+}
 
 function stopDeferredFullSyncScheduler() {
   stopDeferredFullSync?.();
@@ -498,6 +506,72 @@ async function init() {
             return { success: false, error: String(err) };
           }
         },
+
+        async checkForUpdate() {
+          try {
+            const updateInfo = await withUpdaterLock(() =>
+              Updater.checkForUpdate()
+            );
+            rpc.send.updateStatus(updateInfo);
+            return updateInfo;
+          } catch (err) {
+            console.error("checkForUpdate error:", err);
+            return {
+              version: "",
+              hash: "",
+              updateAvailable: false,
+              updateReady: false,
+              error: String(err),
+            };
+          }
+        },
+
+        async downloadUpdate() {
+          try {
+            await withUpdaterLock(() => Updater.downloadUpdate());
+            const info = Updater.updateInfo();
+            if (info) rpc.send.updateStatus(info);
+            return { success: true };
+          } catch (err) {
+            console.error("downloadUpdate error:", err);
+            return { success: false, error: String(err) };
+          }
+        },
+
+        async applyUpdate() {
+          try {
+            const info = Updater.updateInfo();
+            if (!info?.updateReady) {
+              return { success: false, error: "No update ready to apply" };
+            }
+            await withUpdaterLock(() => Updater.applyUpdate());
+            // App quits and relaunches — this line won't be reached
+            return { success: true };
+          } catch (err) {
+            console.error("applyUpdate error:", err);
+            return { success: false, error: String(err) };
+          }
+        },
+
+        async getLocalReleaseInfo() {
+          try {
+            const [version, hash, baseUrl, channel] = await Promise.all([
+              Updater.localInfo.version(),
+              Updater.localInfo.hash(),
+              Updater.localInfo.baseUrl(),
+              Updater.localInfo.channel(),
+            ]);
+            return { version, hash, baseUrl, channel };
+          } catch (err) {
+            console.error("getLocalReleaseInfo error:", err);
+            return {
+              version: "",
+              hash: "",
+              baseUrl: "",
+              channel: "",
+            };
+          }
+        },
       },
       messages: {},
     },
@@ -509,6 +583,56 @@ async function init() {
     rpc.send.newMail(rpcMessage);
   };
 
+  // ── Auto-update check on startup (non-dev builds only) ──
+  async function checkForUpdates(): Promise<void> {
+    try {
+      const [baseUrl, channel] = await Promise.all([
+        Updater.localInfo.baseUrl(),
+        Updater.localInfo.channel(),
+      ]);
+
+      if (!baseUrl) {
+        console.log("📦 Update baseUrl not configured — skipping update check");
+        return;
+      }
+
+      if (channel === "dev") {
+        console.log("📦 Dev build — skipping update check");
+        return;
+      }
+
+      console.log(`📦 Checking for updates on ${channel}...`);
+      const updateInfo = await withUpdaterLock(() =>
+        Updater.checkForUpdate()
+      );
+
+      rpc.send.updateStatus(updateInfo);
+
+      if (updateInfo.updateAvailable && !updateInfo.updateReady) {
+        console.log(`⬇️  Update available: v${updateInfo.version} — downloading...`);
+        await withUpdaterLock(() => Updater.downloadUpdate());
+
+        const postDownload = Updater.updateInfo();
+        if (postDownload) {
+          rpc.send.updateStatus(postDownload);
+          if (postDownload.updateReady) {
+            console.log("✅ Update downloaded and ready to install");
+          } else if (postDownload.error) {
+            console.error("❌ Update download failed:", postDownload.error);
+          }
+        }
+      } else if (updateInfo.updateReady) {
+        console.log("✅ Update already downloaded and ready to install");
+      } else if (updateInfo.error) {
+        console.error("❌ Update check returned error:", updateInfo.error);
+      } else {
+        console.log("📦 App is up to date");
+      }
+    } catch (err) {
+      console.error("❌ Update check failed:", err);
+    }
+  }
+
   const mainWindow = new BrowserWindow<typeof rpc>({
     title: "Radius",
     url,
@@ -519,6 +643,11 @@ async function init() {
   });
 
   void mainWindow;
+
+  // Check for updates shortly after startup so the UI is ready
+  setTimeout(() => {
+    void checkForUpdates();
+  }, 3000);
 
   const state = await getSyncState();
 

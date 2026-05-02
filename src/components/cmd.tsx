@@ -11,13 +11,15 @@ import { useTheme } from "./theme-provider";
 import {
   SunDimIcon,
   MagnifyingGlassIcon,
+  ArrowsClockwiseIcon,
 } from "@phosphor-icons/react/dist/ssr";
 
 interface CommandKProps {
   onSearchEmails: () => void;
+  onCheckForUpdates: () => void;
 }
 
-export function CommandK({ onSearchEmails }: CommandKProps) {
+export function CommandK({ onSearchEmails, onCheckForUpdates }: CommandKProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const { setTheme, theme } = useTheme();
 
@@ -59,6 +61,10 @@ export function CommandK({ onSearchEmails }: CommandKProps) {
           <CommandItem onSelect={onSearchEmails}>
             <MagnifyingGlassIcon />
             <span>Search Emails</span>
+          </CommandItem>
+          <CommandItem onSelect={onCheckForUpdates}>
+            <ArrowsClockwiseIcon />
+            <span>Check for Updates</span>
           </CommandItem>
         </CommandGroup>
       </CommandList>

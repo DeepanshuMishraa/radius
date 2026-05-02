@@ -7,6 +7,9 @@ export default {
     version: "0.0.1",
     urlSchemes: ["radius"],
   },
+  release: {
+    baseUrl: "https://github.com/DeepanshuMishraa/radius/releases/latest/download",
+  },
   build: {
     copy: {
       "dist/index.html": "views/mainview/index.html",

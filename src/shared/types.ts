@@ -13,6 +13,21 @@ export type EmailCategory =
 
 export type SyncMode = "recent" | "all";
 
+export interface UpdateInfo {
+  version: string;
+  hash: string;
+  updateAvailable: boolean;
+  updateReady: boolean;
+  error?: string;
+}
+
+export interface LocalReleaseInfo {
+  version: string;
+  hash: string;
+  baseUrl: string;
+  channel: string;
+}
+
 export interface Message {
   id: string;
   threadId: string;
@@ -92,6 +107,22 @@ export type RadiusRPC = {
         params: {};
         response: { success: boolean; error?: string };
       };
+      checkForUpdate: {
+        params: {};
+        response: UpdateInfo;
+      };
+      downloadUpdate: {
+        params: {};
+        response: { success: boolean; error?: string };
+      };
+      applyUpdate: {
+        params: {};
+        response: { success: boolean; error?: string };
+      };
+      getLocalReleaseInfo: {
+        params: {};
+        response: LocalReleaseInfo;
+      };
     };
     messages: {
       ready: {};
@@ -108,6 +139,7 @@ export type RadiusRPC = {
     messages: {
       syncProgress: SyncStatus;
       newMail: Message;
+      updateStatus: UpdateInfo;
     };
   };
 };

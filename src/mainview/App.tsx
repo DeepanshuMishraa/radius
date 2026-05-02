@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { ThemeProvider } from "@/components/theme-provider";
 import { XIcon } from "@phosphor-icons/react";
 import { radiusRpc } from "./lib/rpc";
-import type { SyncMode } from "../shared/types";
+import type { SyncMode, UpdateInfo } from "../shared/types";
 
 const INBOX_PAGE_STEP = 500;
 const INITIAL_INBOX_LIMIT = 3000;
@@ -60,6 +60,8 @@ function App() {
   const [newMailToast, setNewMailToast] = useState<Message | null>(null);
   const [selectedSyncMode, setSelectedSyncMode] = useState<SyncMode | null>(null);
   const [inboxLimit, setInboxLimit] = useState(INITIAL_INBOX_LIMIT);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [updateDownloaded, setUpdateDownloaded] = useState(false);
   const newMailToastTimeoutRef = useRef<number | null>(null);
 
   const { isAuthenticated, startOAuth } = useAuth();
@@ -125,6 +127,20 @@ function App() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  useEffect(() => {
+    const handleUpdateStatus = (info: UpdateInfo) => {
+      setUpdateInfo(info);
+      if (info.updateReady) {
+        setUpdateDownloaded(true);
+      }
+    };
+
+    radiusRpc.addMessageListener("updateStatus", handleUpdateStatus);
+    return () => {
+      radiusRpc.removeMessageListener("updateStatus", handleUpdateStatus);
+    };
   }, []);
 
   useEffect(() => {
@@ -296,6 +312,34 @@ function App() {
     setSidebarOpen(true);
   }, []);
 
+  const handleCheckForUpdates = useCallback(async () => {
+    setCmdOpen(false);
+    try {
+      const result = await radiusRpc.request.checkForUpdate({});
+
+      if (result.error) {
+        console.error("❌ Update check returned error:", result.error);
+        return;
+      }
+
+      if (result.updateAvailable && !result.updateReady) {
+        console.log(`⬇️  Update v${result.version} available — downloading...`);
+        const downloadResult = await radiusRpc.request.downloadUpdate({});
+        if (!downloadResult.success) {
+          console.error("❌ Download failed:", downloadResult.error);
+        } else {
+          console.log("✅ Update download started");
+        }
+      } else if (result.updateReady) {
+        console.log("✅ Update already downloaded and ready");
+      } else {
+        console.log("📦 App is up to date");
+      }
+    } catch (err) {
+      console.error("Manual update check failed:", err);
+    }
+  }, []);
+
   const handleCloseSearch = useCallback(() => {
     setSearchOpen(false);
     setSearchDraft("");
@@ -303,6 +347,32 @@ function App() {
 
   const dismissNewMailToast = useCallback(() => {
     setNewMailToast(null);
+  }, []);
+
+  const handleDownloadUpdate = useCallback(async () => {
+    try {
+      const result = await radiusRpc.request.downloadUpdate({});
+      if (!result.success) {
+        console.error("Download update failed:", result.error);
+      }
+    } catch (err) {
+      console.error("Download update error:", err);
+    }
+  }, []);
+
+  const handleApplyUpdate = useCallback(async () => {
+    try {
+      const result = await radiusRpc.request.applyUpdate({});
+      if (!result.success) {
+        console.error("Apply update failed:", result.error);
+      }
+    } catch (err) {
+      console.error("Apply update error:", err);
+    }
+  }, []);
+
+  const dismissUpdateNotification = useCallback(() => {
+    setUpdateInfo(null);
   }, []);
 
   const handleOpenNewMailToast = useCallback(() => {
@@ -389,7 +459,10 @@ function App() {
           <DialogDescription className="sr-only">
             Search for commands and actions in Radius.
           </DialogDescription>
-          <CommandK onSearchEmails={handleOpenSearch} />
+          <CommandK
+            onSearchEmails={handleOpenSearch}
+            onCheckForUpdates={handleCheckForUpdates}
+          />
         </DialogContent>
       </Dialog>
       <EmailSearchSpotlight
@@ -404,6 +477,13 @@ function App() {
 
       {/* Minimal sync indicator — bottom left, never blocks */}
       <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
+        <UpdateNotification
+          updateInfo={updateInfo}
+          updateDownloaded={updateDownloaded}
+          onDownload={handleDownloadUpdate}
+          onApply={handleApplyUpdate}
+          onDismiss={dismissUpdateNotification}
+        />
         <InAppNewMailToast
           message={newMailToast}
           onOpen={handleOpenNewMailToast}
@@ -651,6 +731,100 @@ function InAppNewMailToast({
         >
           <XIcon size={12} />
         </button>
+      </div>
+    </div>
+  );
+}
+
+function UpdateNotification({
+  updateInfo,
+  updateDownloaded,
+  onDownload,
+  onApply,
+  onDismiss,
+}: {
+  updateInfo: UpdateInfo | null;
+  updateDownloaded: boolean;
+  onDownload: () => void | Promise<void>;
+  onApply: () => void | Promise<void>;
+  onDismiss: () => void;
+}) {
+  if (!updateInfo || (!updateInfo.updateAvailable && !updateInfo.updateReady)) {
+    return null;
+  }
+
+  return (
+    <div className="pointer-events-auto w-[320px] rounded-[22px] border border-radius-border-subtle bg-radius-bg-primary/96 p-3 shadow-[0_18px_40px_rgba(0,0,0,0.18)] backdrop-blur-md transition-all duration-300 ease-out">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-radius-accent/10 text-radius-accent">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9" />
+          </svg>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+              {updateDownloaded ? "Update ready" : "Update available"}
+            </p>
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="mt-[-2px] inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
+              aria-label="Dismiss update notification"
+            >
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          </div>
+          <p className="mt-1 text-[11px] leading-[1.5] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+            {updateDownloaded
+              ? `Radius ${updateInfo.version} is downloaded and ready to install. The app will restart automatically.`
+              : `Radius ${updateInfo.version} is available. Download now to get the latest improvements.`}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {updateDownloaded ? (
+              <button
+                type="button"
+                onClick={() => {
+                  void onApply();
+                }}
+                className="inline-flex items-center rounded-full bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover"
+              >
+                Install & Restart
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  void onDownload();
+                }}
+                className="inline-flex items-center rounded-full bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover"
+              >
+                Download
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
