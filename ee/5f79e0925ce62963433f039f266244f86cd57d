@@ -1,0 +1,33 @@
+src/components/cmd.tsx
+  c5b3e558421541b2 14,19,22,65-67
+src/mainview/App.tsx
+  c5b3e558421541b2 13,63-64,132-145,315-342,352-377,462-465,480-486,739-832
+src/shared/types.ts
+  c5b3e558421541b2 16-30,110-125,142
+src/bun/index.ts
+  c5b3e558421541b2 1,46,65-74,509-574,586-635,647-651
+electrobun.config.ts
+  c5b3e558421541b2 10-12
+.github/workflows/release.yml
+  c5b3e558421541b2 77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "ee5f79e0925ce62963433f039f266244f86cd57d",
+  "prompts": {
+    "c5b3e558421541b2": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019de461-dd9c-7449-ad1b-e8dbc79a4f2f",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 407,
+      "total_deletions": 52,
+      "accepted_lines": 1055,
+      "overriden_lines": 0
+    }
+  }
+}
