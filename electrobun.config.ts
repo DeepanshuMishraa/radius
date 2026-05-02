@@ -8,7 +8,8 @@ export default {
     urlSchemes: ["radius"],
   },
   release: {
-    baseUrl: "https://github.com/DeepanshuMishraa/radius/releases/latest/download",
+    baseUrl:
+      "https://github.com/DeepanshuMishraa/radius/releases/latest/download",
   },
   build: {
     copy: {
@@ -27,5 +28,8 @@ export default {
       bundleCEF: false,
       icon: "icon.iconset/icon_256x256.png",
     },
+  },
+  runtime: {
+    exitOnLastWindowClosed: false,
   },
 } satisfies ElectrobunConfig;

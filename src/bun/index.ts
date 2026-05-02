@@ -32,6 +32,65 @@ import {
   checkForUpdates,
 } from "./updater";
 
+let mainWindow: BrowserWindow<any> | null = null;
+
+async function createMainWindow() {
+  const url = await getMainViewUrl();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rpc: any = BrowserView.defineRPC<RadiusRPC>({
+    maxRequestTime: 10000,
+    handlers: {
+      requests: {
+        getInbox: handleGetInbox,
+        searchInbox: handleSearchInbox,
+        getMessage: handleGetMessage,
+        getSyncStatus: handleGetSyncStatus,
+        openExternalUrl: handleOpenExternalUrl,
+        startOAuth: handleStartOAuth,
+        startSync: handleStartSync,
+        markMessageRead: handleMarkMessageRead,
+        requestNotificationPermission: handleRequestNotificationPermission,
+        openNotificationSettings: handleOpenNotificationSettings,
+        applyUpdate: handleApplyUpdate,
+        getLocalReleaseInfo: handleGetLocalReleaseInfo,
+
+        // Update handlers need rpc to send status — kept inline to avoid circular type
+        async checkForUpdate() {
+          const { handleCheckForUpdate } = await import("./updater");
+          return handleCheckForUpdate(rpc);
+        },
+        async downloadUpdate() {
+          const { handleDownloadUpdate } = await import("./updater");
+          return handleDownloadUpdate(rpc);
+        },
+      },
+      messages: {},
+    },
+  });
+
+  setEmitNewMailToRenderer((message) => {
+    const rpcMessage = toRpcMessage(message);
+    showNewMailNotification(rpcMessage);
+    rpc.send.newMail(rpcMessage);
+  });
+
+  const { x, y, width, height } = Screen.getPrimaryDisplay().workArea;
+
+  mainWindow = new BrowserWindow<typeof rpc>({
+    title: "Radius",
+    url,
+    frame: { x, y, width, height },
+    titleBarStyle: "hiddenInset",
+    rpc,
+  });
+
+  // Check for updates shortly after the window is created
+  setTimeout(() => {
+    void checkForUpdates(rpc);
+  }, 3000);
+}
+
 async function init() {
   await createSchema();
 
@@ -79,62 +138,23 @@ async function init() {
     getAuthServer()?.stop();
   });
 
-  const url = await getMainViewUrl();
+  // ── macOS-native window lifecycle ──
+  // Closing the window destroys it (Electrobun doesn't support intercepting close).
+  // exitOnLastWindowClosed is false, so the app stays running.
+  // When the user clicks the dock icon, we recreate the window.
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rpc: any = BrowserView.defineRPC<RadiusRPC>({
-    maxRequestTime: 10000,
-    handlers: {
-      requests: {
-        getInbox: handleGetInbox,
-        searchInbox: handleSearchInbox,
-        getMessage: handleGetMessage,
-        getSyncStatus: handleGetSyncStatus,
-        openExternalUrl: handleOpenExternalUrl,
-        startOAuth: handleStartOAuth,
-        startSync: handleStartSync,
-        markMessageRead: handleMarkMessageRead,
-        requestNotificationPermission: handleRequestNotificationPermission,
-        openNotificationSettings: handleOpenNotificationSettings,
-        applyUpdate: handleApplyUpdate,
-        getLocalReleaseInfo: handleGetLocalReleaseInfo,
-
-        // Update handlers need rpc to send status — kept inline to avoid circular type
-        async checkForUpdate() {
-          const { handleCheckForUpdate } = await import("./updater");
-          return handleCheckForUpdate(rpc);
-        },
-        async downloadUpdate() {
-          const { handleDownloadUpdate } = await import("./updater");
-          return handleDownloadUpdate(rpc);
-        },
-      },
-      messages: {},
-    },
+  Electrobun.events.on("reopen", () => {
+    if (!mainWindow || !BrowserWindow.getById(mainWindow.id)) {
+      createMainWindow().catch((err) => {
+        console.error("Failed to recreate window on reopen:", err);
+      });
+    } else {
+      mainWindow.unminimize();
+      mainWindow.focus();
+    }
   });
 
-  setEmitNewMailToRenderer((message) => {
-    const rpcMessage = toRpcMessage(message);
-    showNewMailNotification(rpcMessage);
-    rpc.send.newMail(rpcMessage);
-  });
-
-  const { x, y, width, height } = Screen.getPrimaryDisplay().workArea;
-
-  const mainWindow = new BrowserWindow<typeof rpc>({
-    title: "Radius",
-    url,
-    frame: { x, y, width, height },
-    titleBarStyle: "hiddenInset",
-    rpc,
-  });
-
-  void mainWindow;
-
-  // Check for updates shortly after startup so the UI is ready
-  setTimeout(() => {
-    void checkForUpdates(rpc);
-  }, 3000);
+  await createMainWindow();
 
   const state = await getSyncState();
 
