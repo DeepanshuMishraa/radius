@@ -95,6 +95,49 @@
     animation: email-enter 250ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
+/* ── Toast notifications ── */
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes toast-out {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+}
+
+.toast {
+    animation: toast-in 300ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.toast.exiting {
+    animation: toast-out 200ms cubic-bezier(0.32, 0, 1, 1) forwards;
+    pointer-events: none;
+}
+
+/* Toast progress bar that shrinks over the auto-dismiss duration */
+@keyframes toast-progress {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}
+
+.toast-progress {
+    transform-origin: left;
+    animation: toast-progress 6500ms linear forwards;
+}
+
 /* Reduced motion: disable layout animations, keep opacity fade */
 @media (prefers-reduced-motion: reduce) {
     .sidebar-panel {
