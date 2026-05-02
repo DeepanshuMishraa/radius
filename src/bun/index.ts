@@ -1,4 +1,10 @@
-import Electrobun, { BrowserView, BrowserWindow, ApplicationMenu, Screen } from "electrobun/bun";
+import Electrobun, {
+  BrowserView,
+  BrowserWindow,
+  ApplicationMenu,
+  Screen,
+  Updater,
+} from "electrobun/bun";
 import type { RadiusRPC } from "../shared/types";
 import { createSchema, getSyncState } from "./db";
 import { getMainViewUrl } from "./url";
@@ -84,6 +90,17 @@ async function createMainWindow() {
     titleBarStyle: "hiddenInset",
     rpc,
   });
+
+  // Disable right-click context menu in release builds
+  const channel = await Updater.localInfo.channel();
+  if (channel !== "dev") {
+    const webviewId = mainWindow.webviewId;
+    Electrobun.events.on(`dom-ready-${webviewId}`, () => {
+      mainWindow?.webview.executeJavascript(
+        `document.addEventListener("contextmenu",(e)=>e.preventDefault())`,
+      );
+    });
+  }
 
   // Check for updates shortly after the window is created
   setTimeout(() => {
