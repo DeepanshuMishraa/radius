@@ -336,11 +336,6 @@ const EMAIL_BODY_STYLES = `
     font-size: 1.08rem;
     line-height: 1.85;
   }
-  .email-body--rich {
-    font-family: Arial, Helvetica, sans-serif;
-    color: #202124;
-    background: #ffffff;
-  }
   .email-section--simple {
     font-family: var(--font-family-serif), Georgia, serif;
     color: var(--radius-text-primary, #292827);
@@ -358,6 +353,28 @@ const EMAIL_BODY_STYLES = `
   }
   .dark .email-section--rich {
     background: #fbfbfa;
+    outline: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  }
+  /* In dark mode, strip hardcoded pure-white backgrounds from email content
+     so it sits cleanly on the #fbfbfa card instead of creating a harsh edge. */
+  .dark .email-section--rich [bgcolor="#ffffff"],
+  .dark .email-section--rich [bgcolor="#fff"],
+  .dark .email-section--rich [bgcolor="white"],
+  .dark .email-section--rich [style*="background-color:#ffffff"],
+  .dark .email-section--rich [style*="background-color: #ffffff"],
+  .dark .email-section--rich [style*="background-color:#fff"],
+  .dark .email-section--rich [style*="background-color: #fff"],
+  .dark .email-section--rich [style*="background-color:rgb(255,255,255"],
+  .dark .email-section--rich [style*="background-color: rgb(255, 255, 255"],
+  .dark .email-section--rich [style*="background:#ffffff"],
+  .dark .email-section--rich [style*="background: #ffffff"],
+  .dark .email-section--rich [style*="background:#fff"],
+  .dark .email-section--rich [style*="background: #fff"],
+  .dark .email-section--rich [style*="background:rgb(255,255,255"],
+  .dark .email-section--rich [style*="background: rgb(255, 255, 255"] {
+    background: transparent !important;
+    background-color: transparent !important;
   }
   .email-body p { margin: 0 0 1em; }
   .email-body p:last-child { margin-bottom: 0; }
@@ -388,11 +405,6 @@ const EMAIL_BODY_STYLES = `
   .email-body--simple h4, .email-body--simple h5, .email-body--simple h6 {
     font-family: var(--font-family-serif), Georgia, serif;
     color: var(--radius-text-primary, #292827);
-  }
-  .email-body--rich h1, .email-body--rich h2, .email-body--rich h3,
-  .email-body--rich h4, .email-body--rich h5, .email-body--rich h6 {
-    font-family: Arial, Helvetica, sans-serif;
-    color: #202124;
   }
   .email-body h1 { font-size: 1.5em; }
   .email-body h2 { font-size: 1.3em; }
