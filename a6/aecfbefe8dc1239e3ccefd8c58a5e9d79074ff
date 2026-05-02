@@ -1,0 +1,46 @@
+src/bun/sync-lifecycle.ts
+  46f15d0f4822ec98 1-274
+src/bun/rpc-handlers.ts
+  46f15d0f4822ec98 1-171
+src/bun/ui.ts
+  46f15d0f4822ec98 1-70
+src/bun/index.ts
+  46f15d0f4822ec98 1,3-5,7-12,14-18,20-28,30-33,77-79,84-85,89-102,104-105,108-109,116,120,122,127,136,142,144,153
+src/bun/url.ts
+  46f15d0f4822ec98 1-17
+src/bun/updater.ts
+  46f15d0f4822ec98 1-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "a6aecfbefe8dc1239e3ccefd8c58a5e9d79074ff",
+  "prompts": {
+    "426a2ffba3bb13bf": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019de759-9c18-762b-918e-5953fd4ff0ff",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 1,
+      "accepted_lines": 0,
+      "overriden_lines": 0
+    },
+    "46f15d0f4822ec98": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019de767-e2bc-74cc-9e4b-e9dad10cf427",
+        "model": "glm-5.1"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 2121,
+      "total_deletions": 2045,
+      "accepted_lines": 737,
+      "overriden_lines": 0
+    }
+  }
+}
