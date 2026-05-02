@@ -1,0 +1,23 @@
+src/mainview/main.tsx
+  a8c1bb4a553f3fbc 6-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "0b8ff2f1369b6c8ccb4bffc78bf5eecf235379e6",
+  "prompts": {
+    "a8c1bb4a553f3fbc": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_218027763ffeAiWrbzTcjzT2be",
+        "model": "opencode-go/deepseek-v4-flash"
+      },
+      "human_author": null,
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 1,
+      "accepted_lines": 4,
+      "overriden_lines": 0
+    }
+  }
+}
