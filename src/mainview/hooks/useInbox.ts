@@ -285,3 +285,46 @@ export function useAuth() {
 
   return { isAuthenticated, startOAuth };
 }
+
+export interface Account {
+  email: string;
+  name: string;
+  addedAt: number;
+}
+
+export function useAccounts() {
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [activeAccount, setActiveAccount] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAccounts = useCallback(async () => {
+    try {
+      const result = await radiusRpc.request.getAccounts({});
+      setAccounts(result.accounts);
+      setActiveAccount(result.activeAccount);
+    } catch (err) {
+      console.error("Failed to fetch accounts:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const switchAccount = useCallback(async (email: string | null) => {
+    try {
+      const result = await radiusRpc.request.switchAccount({ email });
+      if (result.success) {
+        setActiveAccount(email);
+      }
+      return result.success;
+    } catch (err) {
+      console.error("Failed to switch account:", err);
+      return false;
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
+
+  return { accounts, activeAccount, loading, refresh: fetchAccounts, switchAccount };
+}

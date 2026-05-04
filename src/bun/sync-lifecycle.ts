@@ -3,6 +3,7 @@ import type { SyncMode } from "../shared/types";
 import {
   updateSyncState,
   getSyncState,
+  switchAccount as switchDbAccount,
 } from "./db";
 import {
   buildAuthURL,
@@ -11,6 +12,9 @@ import {
   sha256,
   setTokens,
   storeRefreshToken,
+  getRefreshToken,
+  getProfile,
+  setAccountEmail,
 } from "./auth";
 import {
   runInitialAndBackgroundSync,
@@ -19,7 +23,12 @@ import {
   doIncrementalSync,
   runMessageMetadataBackfillIfNeeded,
 } from "./sync";
-import { getRefreshToken } from "./auth";
+import {
+  getAccounts,
+  getActiveAccount,
+  setActiveAccount,
+  addAccount,
+} from "./accounts";
 
 let codeVerifier: string | null = null;
 let authServer: ReturnType<typeof Bun.serve> | null = null;
@@ -88,6 +97,63 @@ function startDeferredFullSyncScheduler() {
   };
 }
 
+function stopAllSync() {
+  stopPolling?.();
+  stopPolling = null;
+  stopDeferredFullSyncScheduler();
+}
+
+async function startSyncForAccount() {
+  const state = await getSyncState();
+
+  if (state.initialSyncCompletedAt) {
+    await runMessageMetadataBackfillIfNeeded().catch((err) => {
+      console.error("❌ Metadata backfill failed:", err);
+    });
+
+    doIncrementalSync()
+      .then((result) => {
+        if (result.newMessages > 0) {
+          console.log(`📥 Startup catch-up: ${result.newMessages} new message(s)`);
+        } else {
+          console.log("📥 Startup catch-up: no new messages");
+        }
+      })
+      .catch((err) => {
+        console.error("❌ Startup catch-up failed:", err);
+      });
+
+    stopPolling = await startIncrementalSyncPolling((message) => {
+      emitNewMailToRenderer(message);
+    });
+
+    if (state.syncMode === "all" && state.backgroundSyncPending) {
+      startDeferredFullSyncScheduler();
+    }
+  } else {
+    const refreshToken = await getRefreshToken();
+    if (refreshToken) {
+      console.log("🔄 Authenticated but no initial sync found — resuming initial sync");
+      const resumedSyncMode = state.syncMode === "all" ? "all" : "recent";
+      runInitialAndBackgroundSync(resumedSyncMode)
+        .then(() => {
+          if (resumedSyncMode === "all") {
+            startDeferredFullSyncScheduler();
+          }
+        })
+        .catch((err) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error("❌ Resume sync failed:", msg);
+          updateSyncState({ status: "error", phase: null, error: msg });
+        });
+
+      stopPolling = await startIncrementalSyncPolling((message) => {
+        emitNewMailToRenderer(message);
+      });
+    }
+  }
+}
+
 // ── OAuth callback ──
 
 async function handleOAuthCallback(
@@ -109,12 +175,20 @@ async function handleOAuthCallback(
     const tokens = await exchangeCodeForTokens(code, codeVerifier);
     setTokens(tokens);
 
+    console.log("👤 Fetching Gmail profile...");
+    const profile = await getProfile(tokens.access_token);
+    const email = profile.emailAddress;
+
     if (tokens.refresh_token) {
-      await storeRefreshToken(tokens.refresh_token);
-      console.log("💾 Refresh token stored in Keychain");
+      await storeRefreshToken(tokens.refresh_token, email);
+      console.log(`💾 Refresh token stored in Keychain for ${email}`);
     }
 
-    // Mark as authenticated immediately — this triggers the inbox view
+    await addAccount({ email, name: email.split("@")[0], addedAt: Date.now() });
+    await setActiveAccount(email);
+    await switchDbAccount(email);
+    setAccountEmail(email);
+
     await updateSyncState({
       syncMode,
       status: "syncing",
@@ -123,10 +197,9 @@ async function handleOAuthCallback(
       error: null,
     });
     console.log(
-      "✅ Authenticated — opening inbox, streaming messages in background",
+      `✅ Authenticated as ${email} — opening inbox, streaming messages in background`,
     );
 
-    // Start sync in the background — don't block the callback
     runInitialAndBackgroundSync(syncMode)
       .then(() => {
         if (syncMode === "all") {
@@ -141,7 +214,6 @@ async function handleOAuthCallback(
         updateSyncState({ status: "error", phase: null, error: msg });
       });
 
-    // Start incremental polling
     stopPolling = await startIncrementalSyncPolling((message) => {
       emitNewMailToRenderer(message);
     });
@@ -161,7 +233,6 @@ export async function handleStartOAuth(params: { syncMode: SyncMode }) {
     const codeChallenge = await sha256(codeVerifier);
     const authURL = buildAuthURL(codeChallenge);
 
-    // Start local redirect server
     authServer = Bun.serve({
       port: 3333,
       async fetch(req) {
@@ -221,37 +292,104 @@ export async function handleStartSync(params: { syncMode?: SyncMode }) {
   }
 }
 
-export async function startExistingUserSync() {
-  const state = await getSyncState();
-  // Already have at least an initial sync — catch up then poll
-  await runMessageMetadataBackfillIfNeeded().catch((err) => {
-    console.error("❌ Metadata backfill failed:", err);
-  });
+export async function handleGetAccounts() {
+  const accounts = await getAccounts();
+  const active = await getActiveAccount();
+  return { accounts, activeAccount: active };
+}
 
-  doIncrementalSync()
-    .then((result) => {
-      if (result.newMessages > 0) {
-        console.log(
-          `📥 Startup catch-up: ${result.newMessages} new message(s)`,
-        );
-      } else {
-        console.log("📥 Startup catch-up: no new messages");
+export async function handleSwitchAccount(params: { email: string | null }) {
+  const { email } = params;
+  try {
+    stopAllSync();
+
+    await setActiveAccount(email);
+    await switchDbAccount(email);
+    setAccountEmail(email);
+
+    if (email) {
+      const refreshToken = await getRefreshToken(email);
+      if (refreshToken) {
+        await startSyncForAccount();
       }
-    })
-    .catch((err) => {
-      console.error("❌ Startup catch-up failed:", err);
+    }
+
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("❌ Switch account failed:", message);
+    return { success: false, error: message };
+  }
+}
+
+export async function startExistingUserSync() {
+  const active = await getActiveAccount();
+  if (active) {
+    await switchDbAccount(active);
+    setAccountEmail(active);
+  }
+
+  const state = await getSyncState();
+
+  if (state.initialSyncCompletedAt) {
+    await runMessageMetadataBackfillIfNeeded().catch((err) => {
+      console.error("❌ Metadata backfill failed:", err);
     });
 
-  stopPolling = await startIncrementalSyncPolling((message) => {
-    emitNewMailToRenderer(message);
-  });
+    doIncrementalSync()
+      .then((result) => {
+        if (result.newMessages > 0) {
+          console.log(
+            `📥 Startup catch-up: ${result.newMessages} new message(s)`,
+          );
+        } else {
+          console.log("📥 Startup catch-up: no new messages");
+        }
+      })
+      .catch((err) => {
+        console.error("❌ Startup catch-up failed:", err);
+      });
 
-  if (state.syncMode === "all" && state.backgroundSyncPending) {
-    startDeferredFullSyncScheduler();
+    stopPolling = await startIncrementalSyncPolling((message) => {
+      emitNewMailToRenderer(message);
+    });
+
+    if (state.syncMode === "all" && state.backgroundSyncPending) {
+      startDeferredFullSyncScheduler();
+    }
+  } else {
+    const refreshToken = await getRefreshToken();
+    if (refreshToken) {
+      console.log(
+        "🔄 Authenticated but no initial sync found — resuming initial sync",
+      );
+      const resumedSyncMode = state.syncMode === "all" ? "all" : "recent";
+      runInitialAndBackgroundSync(resumedSyncMode)
+        .then(() => {
+          if (resumedSyncMode === "all") {
+            startDeferredFullSyncScheduler();
+          }
+        })
+        .catch((err) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error("❌ Resume sync failed:", msg);
+          updateSyncState({ status: "error", phase: null, error: msg });
+        });
+
+      stopPolling = await startIncrementalSyncPolling((message) => {
+        emitNewMailToRenderer(message);
+      });
+    }
   }
 }
 
 export async function tryResumeSyncFromRefreshToken() {
+  const active = await getActiveAccount();
+  if (active) {
+    await switchDbAccount(active);
+    setAccountEmail(active);
+  }
+
   const state = await getSyncState();
   const refreshToken = await getRefreshToken();
   if (refreshToken) {

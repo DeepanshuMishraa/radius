@@ -13,8 +13,26 @@ export interface TokenData {
   token_type: string;
 }
 
+export interface GmailProfile {
+  emailAddress: string;
+  messagesTotal: number;
+  threadsTotal: number;
+  historyId: string;
+}
+
 let currentAccessToken: string | null = null;
 let tokenExpiresAt = 0;
+let currentAccountEmail: string | null = null;
+
+export function setAccountEmail(email: string | null): void {
+  currentAccountEmail = email;
+  currentAccessToken = null;
+  tokenExpiresAt = 0;
+}
+
+export function getAccountEmail(): string | null {
+  return currentAccountEmail;
+}
 
 export function setTokens(tokens: TokenData): void {
   currentAccessToken = tokens.access_token;
@@ -26,7 +44,7 @@ export async function getValidAccessToken(): Promise<string> {
     return currentAccessToken;
   }
 
-  const refreshToken = await getRefreshToken();
+  const refreshToken = await getRefreshToken(currentAccountEmail ?? undefined);
   if (!refreshToken) {
     throw new Error("No refresh token found — please authenticate first");
   }
@@ -35,6 +53,17 @@ export async function getValidAccessToken(): Promise<string> {
   currentAccessToken = refreshed.access_token;
   tokenExpiresAt = Date.now() + refreshed.expires_in * 1000;
   return currentAccessToken;
+}
+
+export async function getProfile(accessToken: string): Promise<GmailProfile> {
+  const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/profile", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Profile fetch failed: ${res.status} ${text}`);
+  }
+  return (await res.json()) as GmailProfile;
 }
 
 function base64URLEncode(str: string): string {
@@ -127,14 +156,15 @@ export async function refreshAccessToken(
 }
 
 // Keychain storage via macOS security CLI
-export function storeRefreshToken(token: string): Promise<void> {
+export function storeRefreshToken(token: string, email?: string): Promise<void> {
+  const service = email ? `gmail-refresh-token-${email}` : "gmail-refresh-token";
   return new Promise((resolve, reject) => {
     const child = spawn("security", [
       "add-generic-password",
       "-a",
       "radius",
       "-s",
-      "gmail-refresh-token",
+      service,
       "-w",
       token,
       "-U",
@@ -149,14 +179,15 @@ export function storeRefreshToken(token: string): Promise<void> {
   });
 }
 
-export function getRefreshToken(): Promise<string | null> {
+export function getRefreshToken(email?: string): Promise<string | null> {
+  const service = email ? `gmail-refresh-token-${email}` : "gmail-refresh-token";
   return new Promise((resolve, reject) => {
     const child = spawn("security", [
       "find-generic-password",
       "-a",
       "radius",
       "-s",
-      "gmail-refresh-token",
+      service,
       "-w",
     ]);
 
