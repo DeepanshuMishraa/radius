@@ -13,6 +13,7 @@ import {
   setTokens,
   storeRefreshToken,
   getRefreshToken,
+  getValidAccessToken,
   getProfile,
   setAccountEmail,
 } from "./auth";
@@ -293,8 +294,32 @@ export async function handleStartSync(params: { syncMode?: SyncMode }) {
 }
 
 export async function handleGetAccounts() {
-  const accounts = await getAccounts();
-  const active = await getActiveAccount();
+  let accounts = await getAccounts();
+  let active = await getActiveAccount();
+
+  if (accounts.length === 0) {
+    try {
+      const refreshToken = await getRefreshToken();
+      if (refreshToken) {
+        const accessToken = await getValidAccessToken();
+        const profile = await getProfile(accessToken);
+        const account = {
+          email: profile.emailAddress,
+          name: profile.emailAddress.split("@")[0],
+          addedAt: Date.now(),
+        };
+        await addAccount(account);
+        if (!active) {
+          await setActiveAccount(profile.emailAddress);
+          active = profile.emailAddress;
+        }
+        accounts = await getAccounts();
+      }
+    } catch (err) {
+      console.error("Failed to auto-populate accounts for existing user:", err);
+    }
+  }
+
   return { accounts, activeAccount: active };
 }
 
