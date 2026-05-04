@@ -1,0 +1,29 @@
+src/bun/accounts.ts
+  5a35bf42e670951c 1,33
+src/bun/sync.ts
+  5a35bf42e670951c 79-104,111-116,126-127,134,218,248,273,280,522,545,570,573,586,591-592,675,693,701-702
+src/bun/auth.ts
+  5a35bf42e670951c 219-226
+src/bun/sync-lifecycle.ts
+  5a35bf42e670951c 16,27-28,108-127,158,353,410,443
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "e72f823f19a31c4f9b174f1785581f7f42d055e4",
+  "prompts": {
+    "5a35bf42e670951c": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_20d51fce7ffeUx2eelZIega3jA",
+        "model": "opencode-go/kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 89,
+      "total_deletions": 11,
+      "accepted_lines": 87,
+      "overriden_lines": 0
+    }
+  }
+}
