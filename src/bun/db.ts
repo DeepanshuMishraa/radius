@@ -4,16 +4,44 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 
 const DB_DIR = join(homedir(), "Library", "Application Support", "Radius");
-const DB_PATH = join(DB_DIR, "radius.db");
+const DEFAULT_DB_PATH = join(DB_DIR, "radius.db");
 
 let db: Database | null = null;
+let currentAccountEmail: string | null = null;
+
+function getDbPath(email: string | null): string {
+  if (!email) return DEFAULT_DB_PATH;
+  const safeEmail = email.replace(/[^a-zA-Z0-9.@]/g, "_");
+  return join(DB_DIR, `radius-${safeEmail}.db`);
+}
+
+export function getCurrentAccountEmail(): string | null {
+  return currentAccountEmail;
+}
+
+export async function switchAccount(email: string | null): Promise<void> {
+  if (currentAccountEmail === email && db) return;
+
+  if (db) {
+    try {
+      db.close();
+    } catch {
+      // ignore close errors
+    }
+    db = null;
+  }
+
+  currentAccountEmail = email;
+  await createSchema();
+}
 
 export async function getDb(): Promise<Database> {
   if (db) return db;
 
   await mkdir(DB_DIR, { recursive: true });
 
-  db = new Database(DB_PATH);
+  const dbPath = getDbPath(currentAccountEmail);
+  db = new Database(dbPath);
   db.exec("PRAGMA journal_mode = WAL;");
   db.exec("PRAGMA foreign_keys = ON;");
 

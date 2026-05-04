@@ -6,7 +6,9 @@ import Electrobun, {
   Updater,
 } from "electrobun/bun";
 import type { RadiusRPC } from "../shared/types";
-import { createSchema, getSyncState } from "./db";
+import { createSchema, getSyncState, switchAccount as switchDbAccount } from "./db";
+import { getActiveAccount } from "./accounts";
+import { setAccountEmail } from "./auth";
 import { getMainViewUrl } from "./url";
 import { toRpcMessage } from "./rpc-handlers";
 import {
@@ -31,6 +33,8 @@ import {
   getStopDeferredFullSync,
   getAuthServer,
   setEmitNewMailToRenderer,
+  handleGetAccounts,
+  handleSwitchAccount,
 } from "./sync-lifecycle";
 import {
   handleApplyUpdate,
@@ -60,6 +64,8 @@ async function createMainWindow() {
         openNotificationSettings: handleOpenNotificationSettings,
         applyUpdate: handleApplyUpdate,
         getLocalReleaseInfo: handleGetLocalReleaseInfo,
+        getAccounts: handleGetAccounts,
+        switchAccount: handleSwitchAccount,
 
         // Update handlers need rpc to send status — kept inline to avoid circular type
         async checkForUpdate() {
@@ -109,6 +115,11 @@ async function createMainWindow() {
 }
 
 async function init() {
+  const active = await getActiveAccount();
+  if (active) {
+    await switchDbAccount(active);
+    setAccountEmail(active);
+  }
   await createSchema();
 
   // Set up macOS application menu so Cmd+Q works

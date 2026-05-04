@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { Onboarding } from "./components/Onboarding";
 import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
-import { useAuth, useSyncStatus, useInbox, useInboxSearch, useMessage } from "./hooks/useInbox";
+import { useAuth, useSyncStatus, useInbox, useInboxSearch, useMessage, useAccounts } from "./hooks/useInbox";
 import type { Message } from "./hooks/useInbox";
 import { CommandK } from "@/components/cmd";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -14,6 +14,7 @@ import {
   EnvelopeSimple,
   ArrowCircleUp,
 } from "@phosphor-icons/react";
+import { Toaster, toast } from "sonner";
 import { radiusRpc } from "./lib/rpc";
 import type { SyncMode, UpdateInfo } from "../shared/types";
 
@@ -62,15 +63,24 @@ function App() {
   const [notificationPromptMode, setNotificationPromptMode] = useState<
     "default" | "followup"
   >("default");
-  const [newMailToast, setNewMailToast] = useState<Message | null>(null);
   const [selectedSyncMode, setSelectedSyncMode] = useState<SyncMode | null>(null);
   const [inboxLimit, setInboxLimit] = useState(INITIAL_INBOX_LIMIT);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [updateDownloaded, setUpdateDownloaded] = useState(false);
-  const newMailToastTimeoutRef = useRef<number | null>(null);
+  const [accountSwitching, setAccountSwitching] = useState(false);
+  const [switchTarget, setSwitchTarget] = useState<string | null>(null);
+  const [addAccountOpen, setAddAccountOpen] = useState(false);
+  const [addAccountMode, setAddAccountMode] = useState<SyncMode | null>(null);
 
   const { isAuthenticated, startOAuth } = useAuth();
+  const { accounts, activeAccount, refresh: refreshAccounts } = useAccounts();
   const syncStatus = useSyncStatus();
+
+  useEffect(() => {
+    if (cmdOpen) {
+      void refreshAccounts();
+    }
+  }, [cmdOpen, refreshAccounts]);
   const { messages, total } = useInbox(
     inboxLimit,
     0,
@@ -150,7 +160,61 @@ function App() {
 
   useEffect(() => {
     const handleNewMail = (incomingMessage: Message) => {
-      setNewMailToast(incomingMessage);
+      const sender = parseAddressLabel(incomingMessage.from);
+      toast.custom(
+        (t) => (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedMessageId(incomingMessage.id);
+              setSidebarOpen(false);
+              toast.dismiss(t);
+            }}
+            className="group pointer-events-auto relative w-[300px] overflow-hidden rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 text-left shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-all duration-200 hover:shadow-[0_12px_40px_rgba(0,0,0,0.16)] hover:border-radius-border"
+          >
+            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-radius-border-subtle">
+              <div className="toast-progress h-full bg-radius-accent/40" />
+            </div>
+            <div className="flex items-start gap-3 p-3.5 pb-4">
+              <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-radius-accent-subtle">
+                <EnvelopeSimple weight="fill" size={14} className="text-radius-accent" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-radius-accent font-[family-name:var(--font-family-sans)]">
+                    New mail
+                  </span>
+                </div>
+                <p className="mt-1 truncate text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-serif)]">
+                  {sender.name}
+                </p>
+                <p className="mt-0.5 truncate text-[12px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
+                  {incomingMessage.subject || incomingMessage.snippet || "Open to read"}
+                </p>
+              </div>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toast.dismiss(t);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.stopPropagation();
+                    toast.dismiss(t);
+                  }
+                }}
+                className="mt-[-2px] inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-radius-text-muted opacity-0 transition-all duration-150 hover:bg-radius-bg-secondary hover:text-radius-text-primary group-hover:opacity-100"
+                aria-label="Dismiss"
+              >
+                <X size={12} weight="bold" />
+              </div>
+            </div>
+          </button>
+        ),
+        { duration: 6500 }
+      );
     };
 
     radiusRpc.addMessageListener("newMail", handleNewMail);
@@ -158,32 +222,6 @@ function App() {
       radiusRpc.removeMessageListener("newMail", handleNewMail);
     };
   }, []);
-
-  useEffect(() => {
-    if (!newMailToast) {
-      if (newMailToastTimeoutRef.current !== null) {
-        window.clearTimeout(newMailToastTimeoutRef.current);
-        newMailToastTimeoutRef.current = null;
-      }
-      return;
-    }
-
-    if (newMailToastTimeoutRef.current !== null) {
-      window.clearTimeout(newMailToastTimeoutRef.current);
-    }
-
-    newMailToastTimeoutRef.current = window.setTimeout(() => {
-      setNewMailToast(null);
-      newMailToastTimeoutRef.current = null;
-    }, 6500);
-
-    return () => {
-      if (newMailToastTimeoutRef.current !== null) {
-        window.clearTimeout(newMailToastTimeoutRef.current);
-        newMailToastTimeoutRef.current = null;
-      }
-    };
-  }, [newMailToast]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -350,10 +388,6 @@ function App() {
     setSearchDraft("");
   }, []);
 
-  const dismissNewMailToast = useCallback(() => {
-    setNewMailToast(null);
-  }, []);
-
   const handleDownloadUpdate = useCallback(async () => {
     try {
       const result = await radiusRpc.request.downloadUpdate({});
@@ -380,12 +414,45 @@ function App() {
     setUpdateInfo(null);
   }, []);
 
-  const handleOpenNewMailToast = useCallback(() => {
-    if (!newMailToast) return;
-    setSelectedMessageId(newMailToast.id);
-    setSidebarOpen(false);
-    setNewMailToast(null);
-  }, [newMailToast]);
+  const handleSwitchAccount = useCallback(
+    async (email: string) => {
+      if (email === activeAccount) {
+        setCmdOpen(false);
+        return;
+      }
+      setSwitchTarget(email);
+      setAccountSwitching(true);
+      setCmdOpen(false);
+      try {
+        await radiusRpc.request.switchAccount({ email });
+        window.location.reload();
+      } catch (err) {
+        console.error("Failed to switch account:", err);
+        setAccountSwitching(false);
+      }
+    },
+    [activeAccount]
+  );
+
+  const handleAddAccount = useCallback(() => {
+    setCmdOpen(false);
+    setAddAccountOpen(true);
+  }, []);
+
+  const handleConnectNewAccount = useCallback(
+    async (syncMode: SyncMode) => {
+      setAddAccountMode(syncMode);
+      setAddAccountOpen(false);
+      await startOAuth(syncMode);
+    },
+    [startOAuth]
+  );
+
+  const handleCloseAddAccount = useCallback(() => {
+    setAddAccountOpen(false);
+    setAddAccountMode(null);
+    void refreshAccounts();
+  }, [refreshAccounts]);
 
   const handleSubmitSearch = useCallback(() => {
     if (searchedMessages.length > 0) {
@@ -467,6 +534,10 @@ function App() {
           <CommandK
             onSearchEmails={handleOpenSearch}
             onCheckForUpdates={handleCheckForUpdates}
+            onSwitchAccount={handleSwitchAccount}
+            onAddAccount={handleAddAccount}
+            accounts={accounts}
+            activeAccount={activeAccount}
           />
         </DialogContent>
       </Dialog>
@@ -489,11 +560,6 @@ function App() {
           onApply={handleApplyUpdate}
           onDismiss={dismissUpdateNotification}
         />
-        <InAppNewMailToast
-          message={newMailToast}
-          onOpen={handleOpenNewMailToast}
-          onDismiss={dismissNewMailToast}
-        />
         <NotificationPermissionPrompt
           visible={notificationPromptVisible}
           mode={notificationPromptMode}
@@ -503,6 +569,34 @@ function App() {
         />
       </div>
       <SyncPill syncStatus={syncStatus} notice={gmailSyncNotice} />
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: "transparent",
+            border: "none",
+            boxShadow: "none",
+            padding: 0,
+          },
+        }}
+      />
+      {accountSwitching && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-radius-bg-primary animate-in fade-in duration-200">
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-radius-accent border-t-transparent" />
+            <p className="text-sm text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+              Switching to {switchTarget}...
+            </p>
+          </div>
+        </div>
+      )}
+      <AddAccountDialog
+        open={addAccountOpen}
+        onClose={handleCloseAddAccount}
+        onConnect={handleConnectNewAccount}
+        selectedMode={addAccountMode}
+        onSelectMode={setAddAccountMode}
+      />
       </div>
     </ThemeProvider>
   );
@@ -666,70 +760,6 @@ function NotificationPermissionPrompt({
   );
 }
 
-function InAppNewMailToast({
-  message,
-  onOpen,
-  onDismiss,
-}: {
-  message: Message | null;
-  onOpen: () => void;
-  onDismiss: () => void;
-}) {
-  if (!message) return null;
-
-  const sender = parseAddressLabel(message.from);
-
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="toast pointer-events-auto group relative w-[300px] overflow-hidden rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 text-left shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-all duration-200 hover:shadow-[0_12px_40px_rgba(0,0,0,0.16)] hover:border-radius-border"
-    >
-      {/* Progress bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-radius-border-subtle">
-        <div className="toast-progress h-full bg-radius-accent/40" />
-      </div>
-
-      <div className="flex items-start gap-3 p-3.5 pb-4">
-        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-radius-accent-subtle">
-          <EnvelopeSimple weight="fill" size={14} className="text-radius-accent" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-radius-accent font-[family-name:var(--font-family-sans)]">
-              New mail
-            </span>
-          </div>
-          <p className="mt-1 truncate text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-serif)]">
-            {sender.name}
-          </p>
-          <p className="mt-0.5 truncate text-[12px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
-            {message.subject || message.snippet || "Open to read"}
-          </p>
-        </div>
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDismiss();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.stopPropagation();
-              onDismiss();
-            }
-          }}
-          className="mt-[-2px] inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-radius-text-muted opacity-0 transition-all duration-150 hover:bg-radius-bg-secondary hover:text-radius-text-primary group-hover:opacity-100"
-          aria-label="Dismiss"
-        >
-          <X size={12} weight="bold" />
-        </div>
-      </div>
-    </button>
-  );
-}
-
 function UpdateNotification({
   updateInfo,
   updateDownloaded,
@@ -841,6 +871,113 @@ function SyncPill({
               ? `${pct}% · ${current.toLocaleString()}/${total.toLocaleString()}`
               : "Syncing")}
       </span>
+    </div>
+  );
+}
+
+function AddAccountDialog({
+  open,
+  onClose,
+  onConnect,
+  selectedMode,
+  onSelectMode,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConnect: (mode: SyncMode) => void;
+  selectedMode: SyncMode | null;
+  onSelectMode: (mode: SyncMode) => void;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-radius-bg-primary/80 backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="w-full max-w-[400px] rounded-2xl border border-radius-border-subtle bg-radius-bg-primary p-6 shadow-[0_16px_48px_rgba(0,0,0,0.16)] animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-[15px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+            Add Account
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
+            aria-label="Close"
+          >
+            <X size={14} weight="bold" />
+          </button>
+        </div>
+
+        <p className="mb-5 text-[13px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+          Connect another Gmail account to Radius.
+        </p>
+
+        <div className="mb-6 grid gap-2">
+          <button
+            type="button"
+            onClick={() => onSelectMode("recent")}
+            className={`flex items-center justify-between rounded-xl border px-4 py-3 transition-colors duration-200 ${
+              selectedMode === "recent"
+                ? "border-radius-accent bg-radius-bg-secondary"
+                : "border-radius-border-subtle hover:bg-radius-bg-secondary/60"
+            }`}
+          >
+            <div className="text-left">
+              <p className="text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+                Recent emails
+              </p>
+              <p className="text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                Fetch latest 3,000 emails
+              </p>
+            </div>
+            <span
+              className={`inline-flex h-4 w-4 shrink-0 rounded-full border ${
+                selectedMode === "recent"
+                  ? "border-radius-accent bg-radius-accent"
+                  : "border-radius-border-subtle"
+              }`}
+            />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSelectMode("all")}
+            className={`flex items-center justify-between rounded-xl border px-4 py-3 transition-colors duration-200 ${
+              selectedMode === "all"
+                ? "border-radius-accent bg-radius-bg-secondary"
+                : "border-radius-border-subtle hover:bg-radius-bg-secondary/60"
+            }`}
+          >
+            <div className="text-left">
+              <p className="text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+                All emails
+              </p>
+              <p className="text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                Full migration in background
+              </p>
+            </div>
+            <span
+              className={`inline-flex h-4 w-4 shrink-0 rounded-full border ${
+                selectedMode === "all"
+                  ? "border-radius-accent bg-radius-accent"
+                  : "border-radius-border-subtle"
+              }`}
+            />
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (selectedMode) {
+              onConnect(selectedMode);
+            }
+          }}
+          disabled={!selectedMode}
+          className="w-full rounded-xl bg-radius-accent px-4 py-2.5 text-[13px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover disabled:bg-radius-bg-secondary disabled:text-radius-text-muted disabled:cursor-not-allowed font-[family-name:var(--font-family-sans)]"
+        >
+          Connect Gmail
+        </button>
+      </div>
     </div>
   );
 }

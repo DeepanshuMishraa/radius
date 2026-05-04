@@ -123,6 +123,17 @@ export type RadiusRPC = {
         params: {};
         response: LocalReleaseInfo;
       };
+      getAccounts: {
+        params: {};
+        response: {
+          accounts: Array<{ email: string; name: string; addedAt: number }>;
+          activeAccount: string | null;
+        };
+      };
+      switchAccount: {
+        params: { email: string | null };
+        response: { success: boolean; error?: string };
+      };
     };
     messages: {
       ready: {};
