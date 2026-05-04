@@ -1,0 +1,23 @@
+src/bun/sync-lifecycle.ts
+  5a35bf42e670951c 16,297-322
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "7248cd5bb07f94760a9e84ac96f8496f1bc2645f",
+  "prompts": {
+    "5a35bf42e670951c": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_20d51fce7ffeUx2eelZIega3jA",
+        "model": "opencode-go/kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 213,
+      "overriden_lines": 0
+    }
+  }
+}
