@@ -73,8 +73,14 @@ function App() {
   const [addAccountMode, setAddAccountMode] = useState<SyncMode | null>(null);
 
   const { isAuthenticated, startOAuth } = useAuth();
-  const { accounts, activeAccount } = useAccounts();
+  const { accounts, activeAccount, refresh: refreshAccounts } = useAccounts();
   const syncStatus = useSyncStatus();
+
+  useEffect(() => {
+    if (cmdOpen) {
+      void refreshAccounts();
+    }
+  }, [cmdOpen, refreshAccounts]);
   const { messages, total } = useInbox(
     inboxLimit,
     0,
@@ -436,6 +442,7 @@ function App() {
   const handleConnectNewAccount = useCallback(
     async (syncMode: SyncMode) => {
       setAddAccountMode(syncMode);
+      setAddAccountOpen(false);
       await startOAuth(syncMode);
     },
     [startOAuth]
@@ -444,7 +451,8 @@ function App() {
   const handleCloseAddAccount = useCallback(() => {
     setAddAccountOpen(false);
     setAddAccountMode(null);
-  }, []);
+    void refreshAccounts();
+  }, [refreshAccounts]);
 
   const handleSubmitSearch = useCallback(() => {
     if (searchedMessages.length > 0) {

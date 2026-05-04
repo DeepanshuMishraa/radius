@@ -326,5 +326,12 @@ export function useAccounts() {
     fetchAccounts();
   }, [fetchAccounts]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      void fetchAccounts();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [fetchAccounts]);
+
   return { accounts, activeAccount, loading, refresh: fetchAccounts, switchAccount };
 }
