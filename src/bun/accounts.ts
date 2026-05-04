@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
@@ -30,6 +30,7 @@ async function readAccounts(): Promise<AccountsData> {
 }
 
 async function writeAccounts(data: AccountsData): Promise<void> {
+  await mkdir(DB_DIR, { recursive: true });
   await writeFile(ACCOUNTS_FILE, JSON.stringify(data, null, 2));
 }
 

@@ -216,4 +216,12 @@ export function getRefreshToken(email?: string): Promise<string | null> {
   });
 }
 
+export async function getRefreshTokenForActiveAccount(): Promise<string | null> {
+  if (currentAccountEmail) {
+    const scoped = await getRefreshToken(currentAccountEmail);
+    if (scoped) return scoped;
+  }
+  return getRefreshToken();
+}
+
 export { generateCodeVerifier, sha256 };

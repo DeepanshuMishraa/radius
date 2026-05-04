@@ -76,12 +76,44 @@ const ERROR_POLL_INTERVAL_MS = 15000;
 const EMPTY_POLLS_BEFORE_IDLE = 12;
 
 let syncLock = false;
+let syncGeneration = 0;
+
+function getCurrentSyncGeneration(): number {
+  return syncGeneration;
+}
+
+export function cancelSync(): void {
+  syncGeneration += 1;
+}
+
+export function isSyncLocked(): boolean {
+  return syncLock;
+}
+
+class SyncCancelledError extends Error {
+  constructor() {
+    super("Sync cancelled");
+    this.name = "SyncCancelledError";
+  }
+}
+
+function checkSyncCancelled(expectedGen: number): void {
+  if (syncGeneration !== expectedGen) {
+    throw new SyncCancelledError();
+  }
+}
 
 async function withSyncLock<T>(fn: () => Promise<T>): Promise<T | "locked"> {
   if (syncLock) return "locked";
   syncLock = true;
   try {
     return await fn();
+  } catch (err) {
+    if (err instanceof SyncCancelledError) {
+      console.log("🛑 Sync was cancelled — aborting gracefully");
+      await updateSyncState({ status: "idle", phase: null, progressCurrent: null, progressTotal: null, error: null });
+    }
+    throw err;
   } finally {
     syncLock = false;
   }
@@ -91,13 +123,15 @@ async function fetchMessagesPool(
   ids: string[],
   accessToken: string,
   concurrency: number,
-  fetcher: (accessToken: string, messageId: string) => Promise<GmailMessage> = getMessage
+  fetcher: (accessToken: string, messageId: string) => Promise<GmailMessage> = getMessage,
+  expectedGen?: number
 ): Promise<GmailMessage[]> {
   const results: GmailMessage[] = [];
   let index = 0;
 
   async function worker(): Promise<void> {
     while (index < ids.length) {
+      if (expectedGen !== undefined) checkSyncCancelled(expectedGen);
       const id = ids[index++];
       try {
         const msg = await withRetry(() => fetcher(accessToken, id));
@@ -181,6 +215,7 @@ async function runSyncPass({
   latestHistoryId,
   onProgress,
 }: SyncRunOptions): Promise<SyncRunResult> {
+  const gen = getCurrentSyncGeneration();
   const accessToken = await getValidAccessToken();
   const firstPage =
     totalEstimate === undefined
@@ -210,6 +245,7 @@ async function runSyncPass({
   );
 
   do {
+    checkSyncCancelled(gen);
     const page = await withRetry(() =>
       listMessages(accessToken, {
         maxResults: PAGE_SIZE,
@@ -234,13 +270,14 @@ async function runSyncPass({
         : pageMessages.slice(0, remaining);
 
     const ids = messagesToFetch.map((m) => m.id);
-    const fetched = await fetchMessagesPool(ids, accessToken, FETCH_CONCURRENCY);
+    const fetched = await fetchMessagesPool(ids, accessToken, FETCH_CONCURRENCY, getMessage, gen);
 
     if (!latestHistoryId && fetched.length > 0) {
       latestHistoryId = fetched[0].historyId;
     }
 
     for (let i = 0; i < fetched.length; i += INSERT_BATCH_SIZE) {
+      checkSyncCancelled(gen);
       const chunk = fetched.slice(i, i + INSERT_BATCH_SIZE);
       await flushInsertBuffer(chunk, accessToken);
       processed += chunk.length;
@@ -482,6 +519,7 @@ export async function doIncrementalSync(): Promise<{
   }
 
   const lockResult = await withSyncLock(async () => {
+    const gen = getCurrentSyncGeneration();
     await updateSyncState({
       status: "syncing",
       phase: "background",
@@ -504,6 +542,7 @@ export async function doIncrementalSync(): Promise<{
         let latestHistoryId = state.historyId;
 
         do {
+          checkSyncCancelled(gen);
           const history = await withRetry(() =>
             getHistory(accessToken, state.historyId!, { pageToken: nextPageToken })
           );
@@ -528,9 +567,10 @@ export async function doIncrementalSync(): Promise<{
         } while (nextPageToken);
 
         if (addedIds.size > 0) {
+          checkSyncCancelled(gen);
           const ids = Array.from(addedIds);
 
-          const fetched = await fetchMessagesPool(ids, accessToken, FETCH_CONCURRENCY);
+          const fetched = await fetchMessagesPool(ids, accessToken, FETCH_CONCURRENCY, getMessage, gen);
 
           if (fetched.length > 0) {
             await flushInsertBuffer(fetched, accessToken);
@@ -543,11 +583,13 @@ export async function doIncrementalSync(): Promise<{
           (id) => !addedIds.has(id)
         );
         if (metadataOnlyIds.length > 0) {
+          checkSyncCancelled(gen);
           const fetchedMetadata = await fetchMessagesPool(
             metadataOnlyIds,
             accessToken,
             FETCH_CONCURRENCY,
-            getMessageMetadata
+            getMessageMetadata,
+            gen
           );
           if (fetchedMetadata.length > 0) {
             await upsertMessageMetadata(
@@ -630,6 +672,7 @@ export async function runMessageMetadataBackfillIfNeeded(): Promise<void> {
   }
 
   const result = await withSyncLock(async () => {
+    const gen = getCurrentSyncGeneration();
     await updateSyncState({
       status: "syncing",
       phase: "background",
@@ -647,6 +690,7 @@ export async function runMessageMetadataBackfillIfNeeded(): Promise<void> {
         offset < totalMessages;
         offset += MESSAGE_METADATA_BATCH_SIZE
       ) {
+        checkSyncCancelled(gen);
         const ids = await listMessageIds(MESSAGE_METADATA_BATCH_SIZE, offset);
         if (ids.length === 0) break;
 
@@ -654,7 +698,8 @@ export async function runMessageMetadataBackfillIfNeeded(): Promise<void> {
           ids,
           accessToken,
           FETCH_CONCURRENCY,
-          getMessageMetadata
+          getMessageMetadata,
+          gen
         );
         if (fetchedMetadata.length > 0) {
           await upsertMessageMetadata(

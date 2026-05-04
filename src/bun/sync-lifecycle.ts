@@ -13,6 +13,7 @@ import {
   setTokens,
   storeRefreshToken,
   getRefreshToken,
+  getRefreshTokenForActiveAccount,
   getValidAccessToken,
   getProfile,
   setAccountEmail,
@@ -23,6 +24,8 @@ import {
   startIncrementalSyncPolling,
   doIncrementalSync,
   runMessageMetadataBackfillIfNeeded,
+  cancelSync,
+  isSyncLocked,
 } from "./sync";
 import {
   getAccounts,
@@ -102,6 +105,26 @@ function stopAllSync() {
   stopPolling?.();
   stopPolling = null;
   stopDeferredFullSyncScheduler();
+  cancelSync();
+}
+
+function waitForSyncLockRelease(maxWaitMs = 10000): Promise<void> {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const check = () => {
+      if (!isSyncLocked()) {
+        resolve();
+        return;
+      }
+      if (Date.now() - start > maxWaitMs) {
+        console.warn("⏱ Sync lock wait timed out — proceeding with account switch anyway");
+        resolve();
+        return;
+      }
+      setTimeout(check, 100);
+    };
+    check();
+  });
 }
 
 async function startSyncForAccount() {
@@ -132,7 +155,7 @@ async function startSyncForAccount() {
       startDeferredFullSyncScheduler();
     }
   } else {
-    const refreshToken = await getRefreshToken();
+    const refreshToken = await getRefreshTokenForActiveAccount();
     if (refreshToken) {
       console.log("🔄 Authenticated but no initial sync found — resuming initial sync");
       const resumedSyncMode = state.syncMode === "all" ? "all" : "recent";
@@ -327,6 +350,7 @@ export async function handleSwitchAccount(params: { email: string | null }) {
   const { email } = params;
   try {
     stopAllSync();
+    await waitForSyncLockRelease();
 
     await setActiveAccount(email);
     await switchDbAccount(email);
@@ -383,7 +407,7 @@ export async function startExistingUserSync() {
       startDeferredFullSyncScheduler();
     }
   } else {
-    const refreshToken = await getRefreshToken();
+    const refreshToken = await getRefreshTokenForActiveAccount();
     if (refreshToken) {
       console.log(
         "🔄 Authenticated but no initial sync found — resuming initial sync",
@@ -416,7 +440,7 @@ export async function tryResumeSyncFromRefreshToken() {
   }
 
   const state = await getSyncState();
-  const refreshToken = await getRefreshToken();
+  const refreshToken = await getRefreshTokenForActiveAccount();
   if (refreshToken) {
     console.log(
       "🔄 Authenticated but no initial sync found — resuming initial sync",
