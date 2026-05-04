@@ -1,0 +1,23 @@
+src/mainview/main.tsx
+  a8c1bb4a553f3fbc 6-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "182236e3be832995e8df740a159684970d6826b2",
+  "prompts": {
+    "a8c1bb4a553f3fbc": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_218027763ffeAiWrbzTcjzT2be",
+        "model": "opencode-go/deepseek-v4-flash"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 0,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}
