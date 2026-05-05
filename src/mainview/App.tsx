@@ -433,7 +433,7 @@ function App() {
         const success = await removeAccount(email);
         if (success) {
           toast.success("Account removed");
-          if (accounts.length <= 1) {
+          if (accounts.length <= 1 || email === activeAccount) {
             window.location.reload();
           }
         } else {
@@ -444,7 +444,7 @@ function App() {
         toast.error("Failed to remove account");
       }
     },
-    [removeAccount, accounts.length]
+    [removeAccount, accounts.length, activeAccount]
   );
 
   const handleConnectNewAccount = useCallback(

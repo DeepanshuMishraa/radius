@@ -224,4 +224,37 @@ export async function getRefreshTokenForActiveAccount(): Promise<string | null> 
   return getRefreshToken();
 }
 
+export function deleteRefreshToken(email?: string): Promise<void> {
+  const service = email ? `gmail-refresh-token-${email}` : "gmail-refresh-token";
+  return new Promise((resolve) => {
+    const child = spawn("security", [
+      "delete-generic-password",
+      "-a",
+      "radius",
+      "-s",
+      service,
+    ]);
+
+    let stderr = "";
+
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    child.on("close", (code) => {
+      if (code === 0 || stderr.includes("The specified item could not be found")) {
+        resolve();
+      } else {
+        console.warn(`Failed to delete refresh token for ${email ?? "legacy"}: ${stderr}`);
+        resolve();
+      }
+    });
+
+    child.on("error", (err) => {
+      console.warn(`Failed to delete refresh token for ${email ?? "legacy"}:`, err);
+      resolve();
+    });
+  });
+}
+
 export { generateCodeVerifier, sha256 };

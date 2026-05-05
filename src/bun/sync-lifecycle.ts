@@ -4,6 +4,7 @@ import {
   updateSyncState,
   getSyncState,
   switchAccount as switchDbAccount,
+  deleteAccountDb,
 } from "./db";
 import {
   buildAuthURL,
@@ -17,6 +18,7 @@ import {
   getValidAccessToken,
   getProfile,
   setAccountEmail,
+  deleteRefreshToken,
 } from "./auth";
 import {
   runInitialAndBackgroundSync,
@@ -378,10 +380,17 @@ export async function handleRemoveAccount(params: { email: string }) {
     stopAllSync();
     await waitForSyncLockRelease();
 
+    await deleteRefreshToken(email);
     await removeAccount(email);
+
+    const remaining = await getAccounts();
+    if (remaining.length === 0) {
+      await deleteRefreshToken();
+    }
 
     const active = await getActiveAccount();
     await switchDbAccount(active);
+    await deleteAccountDb(email);
     setAccountEmail(active);
 
     if (active) {

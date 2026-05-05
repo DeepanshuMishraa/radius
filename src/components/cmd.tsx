@@ -68,7 +68,10 @@ export function CommandK({
       e.preventDefault();
       setDeleteTarget(selectedAccount.email);
     },
-    { enabled: page === "accounts" && !!selectedAccount && !deleteTarget }
+    {
+      enabled: page === "accounts" && !!selectedAccount && !deleteTarget,
+      ignoreInputs: false,
+    }
   );
 
   const handleKeyDown = React.useCallback(
