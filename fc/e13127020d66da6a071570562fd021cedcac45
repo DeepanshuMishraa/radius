@@ -1,0 +1,31 @@
+src/components/cmd.tsx
+  98f5c231d467a1eb 71-74
+src/mainview/App.tsx
+  98f5c231d467a1eb 436,447
+src/bun/auth.ts
+  98f5c231d467a1eb 227-259
+src/bun/db.ts
+  98f5c231d467a1eb 2,38-63
+src/bun/sync-lifecycle.ts
+  98f5c231d467a1eb 7,21,383,386-390,393
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "fce13127020d66da6a071570562fd021cedcac45",
+  "prompts": {
+    "98f5c231d467a1eb": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_207ac289effeV7pabPk1zaJZtj",
+        "model": "opencode-go/kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra",
+      "messages": [],
+      "total_additions": 75,
+      "total_deletions": 4,
+      "accepted_lines": 75,
+      "overriden_lines": 0
+    }
+  }
+}
