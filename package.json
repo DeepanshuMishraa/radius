@@ -1,6 +1,6 @@
 {
   "name": "Radius",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A Minimal and Clean Distraction Free Client",
   "scripts": {
     "start": "vite build && electrobun dev",
