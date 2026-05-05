@@ -4,7 +4,7 @@ export default {
   app: {
     name: "Radius",
     identifier: "radius.dipxsy.app",
-    version: "1.0.2",
+    version: "1.0.3",
     urlSchemes: ["radius"],
   },
   release: {
