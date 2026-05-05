@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import { mkdir } from "node:fs/promises";
+import { mkdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
@@ -33,6 +33,32 @@ export async function switchAccount(email: string | null): Promise<void> {
 
   currentAccountEmail = email;
   await createSchema();
+}
+
+export async function deleteAccountDb(email: string): Promise<void> {
+  const safeEmail = email.replace(/[^a-zA-Z0-9.@]/g, "_");
+  const dbPath = join(DB_DIR, `radius-${safeEmail}.db`);
+
+  if (currentAccountEmail === email && db) {
+    try {
+      db.close();
+    } catch {
+      // ignore close errors
+    }
+    db = null;
+    currentAccountEmail = null;
+  }
+
+  const files = [dbPath, `${dbPath}-wal`, `${dbPath}-shm`];
+  for (const file of files) {
+    try {
+      await unlink(file);
+    } catch (err: unknown) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+        console.error(`Failed to delete ${file}:`, err);
+      }
+    }
+  }
 }
 
 export async function getDb(): Promise<Database> {

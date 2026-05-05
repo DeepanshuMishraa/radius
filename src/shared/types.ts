@@ -134,6 +134,10 @@ export type RadiusRPC = {
         params: { email: string | null };
         response: { success: boolean; error?: string };
       };
+      removeAccount: {
+        params: { email: string };
+        response: { success: boolean; error?: string };
+      };
     };
     messages: {
       ready: {};

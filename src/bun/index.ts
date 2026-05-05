@@ -35,6 +35,7 @@ import {
   setEmitNewMailToRenderer,
   handleGetAccounts,
   handleSwitchAccount,
+  handleRemoveAccount,
 } from "./sync-lifecycle";
 import {
   handleApplyUpdate,
@@ -66,6 +67,7 @@ async function createMainWindow() {
         getLocalReleaseInfo: handleGetLocalReleaseInfo,
         getAccounts: handleGetAccounts,
         switchAccount: handleSwitchAccount,
+        removeAccount: handleRemoveAccount,
 
         // Update handlers need rpc to send status — kept inline to avoid circular type
         async checkForUpdate() {

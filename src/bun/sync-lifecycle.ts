@@ -4,6 +4,7 @@ import {
   updateSyncState,
   getSyncState,
   switchAccount as switchDbAccount,
+  deleteAccountDb,
 } from "./db";
 import {
   buildAuthURL,
@@ -17,6 +18,7 @@ import {
   getValidAccessToken,
   getProfile,
   setAccountEmail,
+  deleteRefreshToken,
 } from "./auth";
 import {
   runInitialAndBackgroundSync,
@@ -32,6 +34,7 @@ import {
   getActiveAccount,
   setActiveAccount,
   addAccount,
+  removeAccount,
 } from "./accounts";
 
 let codeVerifier: string | null = null;
@@ -367,6 +370,40 @@ export async function handleSwitchAccount(params: { email: string | null }) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("❌ Switch account failed:", message);
+    return { success: false, error: message };
+  }
+}
+
+export async function handleRemoveAccount(params: { email: string }) {
+  const { email } = params;
+  try {
+    stopAllSync();
+    await waitForSyncLockRelease();
+
+    await deleteRefreshToken(email);
+    await removeAccount(email);
+
+    const remaining = await getAccounts();
+    if (remaining.length === 0) {
+      await deleteRefreshToken();
+    }
+
+    const active = await getActiveAccount();
+    await switchDbAccount(active);
+    await deleteAccountDb(email);
+    setAccountEmail(active);
+
+    if (active) {
+      const refreshToken = await getRefreshToken(active);
+      if (refreshToken) {
+        await startSyncForAccount();
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("❌ Remove account failed:", message);
     return { success: false, error: message };
   }
 }

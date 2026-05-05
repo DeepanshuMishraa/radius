@@ -322,6 +322,22 @@ export function useAccounts() {
     }
   }, []);
 
+  const removeAccount = useCallback(async (email: string) => {
+    try {
+      const result = await radiusRpc.request.removeAccount({ email });
+      if (result.success) {
+        setAccounts((prev) => prev.filter((a) => a.email !== email));
+        if (activeAccount === email) {
+          setActiveAccount(null);
+        }
+      }
+      return result.success;
+    } catch (err) {
+      console.error("Failed to remove account:", err);
+      return false;
+    }
+  }, [activeAccount]);
+
   useEffect(() => {
     fetchAccounts();
   }, [fetchAccounts]);
@@ -333,5 +349,5 @@ export function useAccounts() {
     return () => clearInterval(interval);
   }, [fetchAccounts]);
 
-  return { accounts, activeAccount, loading, refresh: fetchAccounts, switchAccount };
+  return { accounts, activeAccount, loading, refresh: fetchAccounts, switchAccount, removeAccount };
 }

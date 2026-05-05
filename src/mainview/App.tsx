@@ -73,7 +73,7 @@ function App() {
   const [addAccountMode, setAddAccountMode] = useState<SyncMode | null>(null);
 
   const { isAuthenticated, startOAuth } = useAuth();
-  const { accounts, activeAccount, refresh: refreshAccounts } = useAccounts();
+  const { accounts, activeAccount, refresh: refreshAccounts, removeAccount } = useAccounts();
   const syncStatus = useSyncStatus();
 
   useEffect(() => {
@@ -163,57 +163,44 @@ function App() {
       const sender = parseAddressLabel(incomingMessage.from);
       toast.custom(
         (t) => (
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedMessageId(incomingMessage.id);
-              setSidebarOpen(false);
-              toast.dismiss(t);
-            }}
-            className="group pointer-events-auto relative w-[300px] overflow-hidden rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 text-left shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-all duration-200 hover:shadow-[0_12px_40px_rgba(0,0,0,0.16)] hover:border-radius-border"
-          >
-            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-radius-border-subtle">
-              <div className="toast-progress h-full bg-radius-accent/40" />
-            </div>
-            <div className="flex items-start gap-3 p-3.5 pb-4">
-              <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-radius-accent-subtle">
-                <EnvelopeSimple weight="fill" size={14} className="text-radius-accent" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-radius-accent font-[family-name:var(--font-family-sans)]">
-                    New mail
-                  </span>
+          <div className="group pointer-events-auto relative w-[280px] overflow-hidden rounded-xl border border-radius-border-subtle bg-radius-bg-primary/95 shadow-lg backdrop-blur-xl transition-all duration-200 hover:shadow-xl hover:border-radius-border">
+            <button
+              type="button"
+              className="w-full text-left"
+              onClick={() => {
+                setSelectedMessageId(incomingMessage.id);
+                setSidebarOpen(false);
+                toast.dismiss(t);
+              }}
+            >
+              <div className="flex items-start gap-2.5 p-3">
+                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-radius-accent-subtle">
+                  <EnvelopeSimple weight="fill" size={12} className="text-radius-accent" />
                 </div>
-                <p className="mt-1 truncate text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-serif)]">
-                  {sender.name}
-                </p>
-                <p className="mt-0.5 truncate text-[12px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
-                  {incomingMessage.subject || incomingMessage.snippet || "Open to read"}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-radius-accent font-[family-name:var(--font-family-sans)]">
+                    New mail
+                  </p>
+                  <p className="mt-0.5 truncate text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-serif)]">
+                    {sender.name}
+                  </p>
+                  <p className="truncate text-[12px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
+                    {incomingMessage.subject || incomingMessage.snippet || "Open to read"}
+                  </p>
+                </div>
               </div>
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toast.dismiss(t);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.stopPropagation();
-                    toast.dismiss(t);
-                  }
-                }}
-                className="mt-[-2px] inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-radius-text-muted opacity-0 transition-all duration-150 hover:bg-radius-bg-secondary hover:text-radius-text-primary group-hover:opacity-100"
-                aria-label="Dismiss"
-              >
-                <X size={12} weight="bold" />
-              </div>
-            </div>
-          </button>
+            </button>
+            <button
+              type="button"
+              onClick={() => toast.dismiss(t)}
+              className="absolute top-2.5 right-2.5 inline-flex h-5 w-5 items-center justify-center rounded-md text-radius-text-muted opacity-0 transition-all duration-150 hover:bg-radius-bg-secondary hover:text-radius-text-primary group-hover:opacity-100"
+              aria-label="Dismiss"
+            >
+              <X size={11} weight="bold" />
+            </button>
+          </div>
         ),
-        { duration: 6500 }
+        { duration: 6000 }
       );
     };
 
@@ -439,6 +426,27 @@ function App() {
     setAddAccountOpen(true);
   }, []);
 
+  const handleRemoveAccount = useCallback(
+    async (email: string) => {
+      setCmdOpen(false);
+      try {
+        const success = await removeAccount(email);
+        if (success) {
+          toast.success("Account removed");
+          if (accounts.length <= 1 || email === activeAccount) {
+            window.location.reload();
+          }
+        } else {
+          toast.error("Failed to remove account");
+        }
+      } catch (err) {
+        console.error("Remove account error:", err);
+        toast.error("Failed to remove account");
+      }
+    },
+    [removeAccount, accounts.length, activeAccount]
+  );
+
   const handleConnectNewAccount = useCallback(
     async (syncMode: SyncMode) => {
       setAddAccountMode(syncMode);
@@ -536,6 +544,7 @@ function App() {
             onCheckForUpdates={handleCheckForUpdates}
             onSwitchAccount={handleSwitchAccount}
             onAddAccount={handleAddAccount}
+            onRemoveAccount={handleRemoveAccount}
             accounts={accounts}
             activeAccount={activeAccount}
           />
