@@ -12,6 +12,13 @@ export type EmailCategory =
   | "personal"
   | "regular";
 
+export interface Attachment {
+  filename: string;
+  mimeType: string;
+  size: number;
+  attachmentId: string;
+}
+
 export interface Message {
   id: string;
   threadId: string;
@@ -23,6 +30,7 @@ export interface Message {
   snippet: string;
   bodyText: string | null;
   bodyHtml: string | null;
+  attachments: Attachment[];
   category: EmailCategory;
   isRead: boolean;
 }

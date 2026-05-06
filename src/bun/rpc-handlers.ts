@@ -1,7 +1,7 @@
 import type { RadiusRPC } from "../shared/types";
 import { getInboxMessages, searchInboxMessages, getMessageById, updateMessageBodies, getSyncState, setMessageReadState } from "./db";
 import { getValidAccessToken } from "./auth";
-import { getMessage as getGmailMessage, extractBodies, modifyMessageLabels, GmailAPIError, parseHeaders, classifyMessageNature, isReadFromLabels } from "./gmail";
+import { getMessage as getGmailMessage, extractBodies, getAttachment, modifyMessageLabels, GmailAPIError, parseHeaders, classifyMessageNature, isReadFromLabels } from "./gmail";
 
 function toRpcMessage(
   gmailMessage: Awaited<ReturnType<typeof getGmailMessage>>,
@@ -19,6 +19,7 @@ function toRpcMessage(
     snippet: gmailMessage.snippet,
     bodyText: null,
     bodyHtml: null,
+    attachments: [],
     category: classifyMessageNature({
       labelIds: gmailMessage.labelIds,
       from: headers["from"],
@@ -34,8 +35,18 @@ function normalizeMessageRecord(
 ): Record<string, unknown> | null {
   if (!message) return null;
 
+  let attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }> = [];
+  if (typeof message.attachments === "string" && message.attachments) {
+    try {
+      attachments = JSON.parse(message.attachments);
+    } catch {
+      attachments = [];
+    }
+  }
+
   return {
     ...message,
+    attachments,
     category:
       typeof message.category === "string" ? message.category : "regular",
     isRead: Boolean(message.isRead),
@@ -76,7 +87,7 @@ export async function handleGetMessage(params: { id: string }) {
   const { id } = params;
   let msg = await getMessageById(id);
 
-  // On-demand body fetch only when we have no stored body at all.
+  // On-demand body + attachment fetch only when we have no stored body at all.
   if (msg && msg.bodyHtml == null && msg.bodyText == null) {
     try {
       const accessToken = await getValidAccessToken();
@@ -166,6 +177,23 @@ export async function handleMarkMessageRead(params: { id: string }): Promise<{
       error: String(err),
       code: "remote_sync_failed" as const,
       localStateApplied: true,
+    };
+  }
+}
+
+export async function handleDownloadAttachment(params: { messageId: string; attachmentId: string }) {
+  try {
+    const accessToken = await getValidAccessToken();
+    const data = await getAttachment(accessToken, params.messageId, params.attachmentId);
+    return {
+      success: true,
+      data,
+    };
+  } catch (err) {
+    console.error("downloadAttachment error:", err);
+    return {
+      success: false,
+      error: String(err),
     };
   }
 }

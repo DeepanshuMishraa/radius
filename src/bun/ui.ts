@@ -1,6 +1,11 @@
 import { spawn } from "node:child_process";
+import { writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { Utils } from "electrobun/bun";
 import type { RadiusRPC } from "../shared/types";
+import { getAttachment } from "./gmail";
+import { getValidAccessToken } from "./auth";
 
 export function showNewMailNotification(
   message: RadiusRPC["bun"]["requests"]["getMessage"]["response"],
@@ -65,6 +70,26 @@ export function handleOpenNotificationSettings() {
     return { success: true };
   } catch (err) {
     console.error("openNotificationSettings error:", err);
+    return { success: false, error: String(err) };
+  }
+}
+
+export async function handlePreviewAttachment(params: {
+  messageId: string;
+  attachmentId: string;
+  filename: string;
+}) {
+  try {
+    const accessToken = await getValidAccessToken();
+    const data = await getAttachment(accessToken, params.messageId, params.attachmentId);
+
+    const tmpPath = join(tmpdir(), `radius-${params.messageId.slice(0, 8)}-${params.filename}`);
+    await writeFile(tmpPath, Buffer.from(data, "base64"));
+
+    spawn("open", [tmpPath]);
+    return { success: true };
+  } catch (err) {
+    console.error("previewAttachment error:", err);
     return { success: false, error: String(err) };
   }
 }

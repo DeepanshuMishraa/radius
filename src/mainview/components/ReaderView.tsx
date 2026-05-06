@@ -2,7 +2,7 @@ import DOMPurify from "dompurify";
 import { memo, useCallback, useMemo } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import type { Message, EmailCategory } from "../hooks/useInbox";
-import { ListIcon } from "@phosphor-icons/react";
+import { ListIcon, FileIcon, ArrowSquareOut } from "@phosphor-icons/react";
 import { radiusRpc } from "../lib/rpc";
 
 interface ReaderViewProps {
@@ -140,6 +140,60 @@ function MessageStatusWidget({ message }: { message: Message }) {
   );
 }
 
+function AttachmentList({ attachments, messageId }: { attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>; messageId: string }) {
+  if (attachments.length === 0) return null;
+
+  const handlePreview = useCallback(async (attachment: { filename: string; attachmentId: string }) => {
+    try {
+      const result = await radiusRpc.request.previewAttachment({
+        messageId,
+        attachmentId: attachment.attachmentId,
+        filename: attachment.filename,
+      });
+      if (!result.success) {
+        console.error("Failed to preview attachment:", result.error);
+      }
+    } catch (err) {
+      console.error("Preview attachment error:", err);
+    }
+  }, [messageId]);
+
+  const formatSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  return (
+    <div className="mt-6 space-y-2">
+      <div className="text-[11px] font-medium text-radius-text-muted uppercase tracking-wide font-[family-name:var(--font-family-sans)]">
+        {attachments.length} attachment{attachments.length > 1 ? "s" : ""}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {attachments.map((att) => (
+          <button
+            key={att.attachmentId}
+            onClick={() => void handlePreview(att)}
+            className="inline-flex items-center gap-2 rounded-lg border border-radius-border-subtle bg-radius-bg-secondary px-3 py-2 text-left transition-colors hover:bg-radius-bg-tertiary"
+            title={`Open ${att.filename}`}
+          >
+            <FileIcon size={16} className="shrink-0 text-radius-text-muted" />
+            <div className="min-w-0">
+              <div className="truncate text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)] max-w-[200px]">
+                {att.filename}
+              </div>
+              <div className="text-[10px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                {formatSize(att.size)}
+              </div>
+            </div>
+            <ArrowSquareOut size={14} className="shrink-0 text-radius-text-muted ml-1" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function InboxWidget({
   visible,
   onClick,
@@ -175,48 +229,35 @@ function InboxWidget({
   );
 }
 
-function getDeclaredWidth(value: string | null): number | null {
-  if (!value) return null;
-  const match = value.match(/(\d+(?:\.\d+)?)px/i) ?? value.match(/^(\d+(?:\.\d+)?)$/);
-  if (!match) return null;
-  const parsed = Number.parseFloat(match[1]);
-  return Number.isFinite(parsed) ? parsed : null;
-}
+function hasActualRichContent(html: string): boolean {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const body = doc.body;
+  if (!body) return false;
 
-function isRichNode(node: Element): boolean {
-  const element = node as HTMLElement;
-  const tagName = element.tagName.toLowerCase();
-  const style = element.getAttribute("style")?.toLowerCase() ?? "";
-  const textLength = (element.textContent ?? "").replace(/\s+/g, " ").trim().length;
+  const text = body.textContent ?? "";
+  const textLength = text.trim().length;
+  if (textLength < 50) return false;
 
-  if (
-    element.hasAttribute("bgcolor") ||
-    element.hasAttribute("background") ||
-    style.includes("background") ||
-    style.includes("box-shadow") ||
-    style.includes("border-radius")
-  ) {
-    return true;
-  }
+  const htmlLength = body.innerHTML.length;
+  const ratio = htmlLength / textLength;
 
-  if (tagName === "table") {
-    const widthAttr = getDeclaredWidth(element.getAttribute("width"));
-    const styleWidth = getDeclaredWidth(element.style.width);
-    if ((widthAttr ?? 0) >= 320 || (styleWidth ?? 0) >= 320) return true;
-    if (element.querySelectorAll("img").length > 0) return true;
-    if (element.querySelectorAll("tr").length >= 2) return true;
-  }
+  // Newsletters have lots of markup relative to text (styled divs, images, etc.)
+  // Transactional emails are mostly text with minimal HTML wrapper → low ratio
+  if (ratio > 2.0) return true;
 
-  if (tagName === "img") {
-    const widthAttr = getDeclaredWidth(element.getAttribute("width"));
-    const styleWidth = getDeclaredWidth(element.style.width);
-    return (widthAttr ?? 0) >= 220 || (styleWidth ?? 0) >= 220;
-  }
+  // Tables for layout = newsletter
+  if (body.querySelectorAll("table").length > 0) return true;
 
-  if (tagName === "div" || tagName === "section" || tagName === "article") {
-    if (element.querySelector("table")) return true;
-    if (element.querySelectorAll("img").length >= 2) return true;
-    if (style.includes("border") && textLength < 500) return true;
+  // Multiple images = newsletter
+  const images = body.querySelectorAll("img");
+  if (images.length >= 2) return true;
+
+  // Single large image
+  for (const img of images) {
+    const w = img.getAttribute("width");
+    const h = img.getAttribute("height");
+    if (w && Number.parseInt(w, 10) > 150) return true;
+    if (h && Number.parseInt(h, 10) > 150) return true;
   }
 
   return false;
@@ -225,52 +266,25 @@ function isRichNode(node: Element): boolean {
 function splitHtmlIntoSections(html: string): {
   html: string;
   hasRichSections: boolean;
+  hasSimpleSections: boolean;
   richSectionCount: number;
 } {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const root = doc.body;
-  if (!root) return { html, hasRichSections: false, richSectionCount: 0 };
-
-  const topLevelNodes = Array.from(root.childNodes).filter((node) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      return (node.textContent ?? "").trim().length > 0;
-    }
-    return node.nodeType === Node.ELEMENT_NODE;
-  });
-
-  if (topLevelNodes.length === 0) {
-    return { html, hasRichSections: false, richSectionCount: 0 };
-  }
-
-  const firstRichIndex = topLevelNodes.findIndex((node) => {
-    if (node.nodeType !== Node.ELEMENT_NODE) return false;
-    return isRichNode(node as Element);
-  });
-
-  if (firstRichIndex <= 0) {
-    return {
-      html,
-      hasRichSections: firstRichIndex === 0,
-      richSectionCount: firstRichIndex === 0 ? 1 : 0,
-    };
-  }
-
-  const plainWrapper = doc.createElement("div");
-  plainWrapper.className = "email-section email-section--simple";
+  if (!root) return { html, hasRichSections: false, hasSimpleSections: false, richSectionCount: 0 };
 
   const richWrapper = doc.createElement("div");
   richWrapper.className = "email-section email-section--rich";
 
-  topLevelNodes.forEach((node, index) => {
-    const target = index < firstRichIndex ? plainWrapper : richWrapper;
-    target.appendChild(node);
-  });
-
-  root.replaceChildren(plainWrapper, richWrapper);
+  while (root.firstChild) {
+    richWrapper.appendChild(root.firstChild);
+  }
+  root.appendChild(richWrapper);
 
   return {
     html: root.innerHTML,
     hasRichSections: true,
+    hasSimpleSections: false,
     richSectionCount: 1,
   };
 }
@@ -325,57 +339,68 @@ const EMAIL_ALLOWED_ATTR = [
 
 const EMAIL_BODY_STYLES = `
   .email-body {
+    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     word-wrap: break-word;
     overflow-wrap: break-word;
   }
   .email-body * { box-sizing: border-box; }
+  .email-body :is(div, span, p, td, th, li, a, strong, em, b, i, font) {
+    font-family: inherit !important;
+  }
   .email-body--simple {
-    font-family: var(--font-family-serif), Georgia, serif;
+    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
     background: transparent;
     font-size: 1.08rem;
     line-height: 1.85;
   }
   .email-section--simple {
-    font-family: var(--font-family-serif), Georgia, serif;
+    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
     font-size: 1.08rem;
     line-height: 1.85;
   }
+  /* ── Newsletter / rich-email card ─────────────────────────── */
   .email-section--rich {
-    margin-top: 2.25rem;
     overflow-x: auto;
-    border-radius: 20px;
-    background: color-mix(in srgb, var(--radius-bg-primary, #ffffff) 96%, transparent);
-    padding: 1rem;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-    outline: 1px solid rgba(0, 0, 0, 0.08);
   }
-  .dark .email-section--rich {
-    background: #fbfbfa;
-    outline: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  /* Newsletter view: minimal safety styles only. Let the email's own HTML
+     dominate typography — no reading-oriented margins, serif fonts, etc. */
+  .newsletter-view {
+    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
-  /* In dark mode, strip hardcoded pure-white backgrounds from email content
-     so it sits cleanly on the #fbfbfa card instead of creating a harsh edge. */
-  .dark .email-section--rich [bgcolor="#ffffff"],
-  .dark .email-section--rich [bgcolor="#fff"],
-  .dark .email-section--rich [bgcolor="white"],
-  .dark .email-section--rich [style*="background-color:#ffffff"],
-  .dark .email-section--rich [style*="background-color: #ffffff"],
-  .dark .email-section--rich [style*="background-color:#fff"],
-  .dark .email-section--rich [style*="background-color: #fff"],
-  .dark .email-section--rich [style*="background-color:rgb(255,255,255"],
-  .dark .email-section--rich [style*="background-color: rgb(255, 255, 255"],
-  .dark .email-section--rich [style*="background:#ffffff"],
-  .dark .email-section--rich [style*="background: #ffffff"],
-  .dark .email-section--rich [style*="background:#fff"],
-  .dark .email-section--rich [style*="background: #fff"],
-  .dark .email-section--rich [style*="background:rgb(255,255,255"],
-  .dark .email-section--rich [style*="background: rgb(255, 255, 255"] {
-    background: transparent !important;
-    background-color: transparent !important;
+  .newsletter-view * { box-sizing: border-box; }
+  .newsletter-view img {
+    max-width: 100%;
+    height: auto;
+    display: inline-block;
   }
+  .newsletter-view a {
+    color: var(--radius-accent, #C4785A);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .newsletter-view a:hover {
+    color: var(--radius-accent-hover, #B56A4D);
+  }
+  .newsletter-view table {
+    max-width: 100%;
+  }
+  .newsletter-view figure {
+    margin: 1em 0;
+  }
+  .newsletter-view figcaption {
+    font-size: 0.85em;
+    color: #6e6a62;
+    text-align: center;
+    margin-top: 0.3em;
+  }
+  .dark .newsletter-view figcaption {
+    color: #8c8a87;
+  }
+
   .email-body p { margin: 0 0 1em; }
   .email-body p:last-child { margin-bottom: 0; }
   .email-body br { display: block; content: ""; margin-bottom: 0.3em; }
@@ -393,17 +418,13 @@ const EMAIL_BODY_STYLES = `
   }
   .email-section--simple h1, .email-section--simple h2, .email-section--simple h3,
   .email-section--simple h4, .email-section--simple h5, .email-section--simple h6 {
-    font-family: var(--font-family-serif), Georgia, serif;
+    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
   }
-  .email-section--rich h1, .email-section--rich h2, .email-section--rich h3,
-  .email-section--rich h4, .email-section--rich h5, .email-section--rich h6 {
-    font-family: Arial, Helvetica, sans-serif;
-    color: #202124;
-  }
+
   .email-body--simple h1, .email-body--simple h2, .email-body--simple h3,
   .email-body--simple h4, .email-body--simple h5, .email-body--simple h6 {
-    font-family: var(--font-family-serif), Georgia, serif;
+    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
   }
   .email-body h1 { font-size: 1.5em; }
@@ -559,13 +580,23 @@ export const ReaderView = memo(function ReaderView({
       FORCE_BODY: true,
     });
   }, [rawHtml]);
+
+  const hasRichHtml = useMemo(() => {
+    if (!sanitizedHtml) return false;
+    return hasActualRichContent(sanitizedHtml);
+  }, [sanitizedHtml]);
+
   const htmlRender = useMemo(
-    () =>
-      sanitizedHtml
-        ? splitHtmlIntoSections(sanitizedHtml)
-        : { html: null, hasRichSections: false, richSectionCount: 0 },
-    [sanitizedHtml]
+    () => {
+      if (!sanitizedHtml || !hasRichHtml) {
+        return { html: null, hasRichSections: false, hasSimpleSections: false, richSectionCount: 0 };
+      }
+      return splitHtmlIntoSections(sanitizedHtml);
+    },
+    [sanitizedHtml, hasRichHtml]
   );
+
+  const isPureNewsletter = htmlRender.hasRichSections && !htmlRender.hasSimpleSections;
 
   if (!message) {
     return (
@@ -594,65 +625,100 @@ export const ReaderView = memo(function ReaderView({
 
   const sender = parseAddress(message.from);
   const recipient = parseAddress(message.to);
-  const hasHtmlBody = Boolean(sanitizedHtml);
 
   return (
     <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-11">
       <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
 
       <div className="flex-1 email-enter" key={message.id}>
-        <article className="w-full px-6 pt-8 pb-24">
-          <header className="max-w-[720px] mx-auto">
-            <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-wide mb-4">
-              {message.subject}
-            </h1>
-
-            <div className="mb-8">
-              <MessageStatusWidget message={message} />
-            </div>
-
-            <div className="mb-10 pb-8 border-b border-radius-border-subtle space-y-2">
-              <div className="flex items-start gap-6">
-                <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
-                  From
-                </span>
-                <AddressReveal name={sender.name} email={sender.email} />
-              </div>
-              <div className="flex items-start gap-6">
-                <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
-                  To
-                </span>
-                <AddressReveal name={recipient.name} email={recipient.email} />
-              </div>
-              <div className="flex items-baseline gap-6 pt-1">
-                <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]"></span>
-                <time className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-serif)]">
+        {isPureNewsletter ? (
+          /* ═════ DOCUMENT MODE — Newsletters ═════ */
+          <article className="w-full px-6 pt-6 pb-24">
+            {/* Compact sender bar */}
+            <div className="max-w-[720px] mx-auto mb-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-[15px] font-semibold text-radius-text-primary truncate font-[family-name:var(--font-family-sans)]">
+                    {sender.name || sender.email}
+                  </span>
+                  <span className="shrink-0 inline-flex items-center gap-[5px] text-[11px] font-medium font-[family-name:var(--font-family-sans)] px-2 py-0.5 rounded-full bg-[rgba(163,90,196,0.10)] text-[#a35ac4]">
+                    <span className="inline-block rounded-full bg-[#a35ac4]" style={{ width: 4, height: 4 }} />
+                    Newsletter
+                  </span>
+                </div>
+                <time className="shrink-0 text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
                   {formatFullDate(message.internalDate)}
                 </time>
               </div>
             </div>
-          </header>
 
-          {hasHtmlBody ? (
-            <div className={`mx-auto ${htmlRender.hasRichSections ? "max-w-[1160px]" : "max-w-[720px]"}`}>
+            {/* Newsletter card — contained document */}
+            <div className="max-w-[720px] mx-auto">
               <div
-                className={`email-body min-w-0 ${
-                  htmlRender.hasRichSections
-                    ? "text-[15px] leading-[1.6]"
-                    : "email-body--simple"
-                }`}
+                className="newsletter-view min-w-0"
                 onClick={handleBodyClick}
                 dangerouslySetInnerHTML={{
                   __html: htmlRender.html ?? sanitizedHtml ?? "",
                 }}
               />
+              <AttachmentList attachments={message.attachments} messageId={message.id} />
             </div>
-          ) : (
-            <div className="max-w-[720px] mx-auto font-[family-name:var(--font-family-serif)] text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
-              {message.bodyText || message.snippet}
-            </div>
-          )}
-        </article>
+          </article>
+        ) : (
+          /* ═════ READING MODE — Text emails ═════ */
+          <article className="w-full px-6 pt-8 pb-24">
+            <header className="max-w-[720px] mx-auto">
+              <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-wide mb-4">
+                {message.subject}
+              </h1>
+
+              <div className="mb-8">
+                <MessageStatusWidget message={message} />
+              </div>
+
+              <div className="mb-10 pb-8 border-b border-radius-border-subtle space-y-2">
+                <div className="flex items-start gap-6">
+                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
+                    From
+                  </span>
+                  <AddressReveal name={sender.name} email={sender.email} />
+                </div>
+                <div className="flex items-start gap-6">
+                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
+                    To
+                  </span>
+                  <AddressReveal name={recipient.name} email={recipient.email} />
+                </div>
+                <div className="flex items-baseline gap-6 pt-1">
+                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]"></span>
+                  <time className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-serif)]">
+                    {formatFullDate(message.internalDate)}
+                  </time>
+                </div>
+              </div>
+            </header>
+
+            {sanitizedHtml ? (
+              <div className="max-w-[720px] mx-auto">
+                <div
+                  className={hasRichHtml ? "email-body min-w-0 text-[15px] leading-[1.6]" : "email-body email-body--simple min-w-0 text-[17px] leading-[1.85]"}
+                  onClick={handleBodyClick}
+                  dangerouslySetInnerHTML={{
+                    __html: hasRichHtml ? (htmlRender.html ?? sanitizedHtml) : sanitizedHtml,
+                  }}
+                />
+                <AttachmentList attachments={message.attachments} messageId={message.id} />
+              </div>
+            ) : (
+              <div className="max-w-[720px] mx-auto">
+                <div className="font-[family-name:var(--font-family-sans)] text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
+                  {message.bodyText || message.snippet}
+                </div>
+                <AttachmentList attachments={message.attachments} messageId={message.id} />
+              </div>
+            )}
+          </article>
+        )}
       </div>
 
       <style>{EMAIL_BODY_STYLES}</style>

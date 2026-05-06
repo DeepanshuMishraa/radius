@@ -758,6 +758,7 @@ async function flushInsertBuffer(
         snippet: msg.snippet,
         bodyText: bodies.text,
         bodyHtml: bodies.html,
+        attachments: bodies.attachments,
         category: classifyMessageNature({
           labelIds: msg.labelIds,
           from: headers["from"],

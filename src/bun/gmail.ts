@@ -442,14 +442,22 @@ function escapeRegExp(string: string): string {
 // Extract plain text and HTML from Gmail message payload.
 // Fetches large bodies and inline images via attachment IDs, and embeds
 // images as data URLs so the HTML is self-contained.
+export interface ExtractedAttachment {
+  filename: string;
+  mimeType: string;
+  size: number;
+  attachmentId: string;
+}
+
 export async function extractBodies(
   payload: GmailMessagePart,
   accessToken: string,
   messageId: string
-): Promise<{ text: string | null; html: string | null }> {
+): Promise<{ text: string | null; html: string | null; attachments: ExtractedAttachment[] }> {
   let text: string | null = null;
   let html: string | null = null;
   const inlineImages: InlineImage[] = [];
+  const attachments: ExtractedAttachment[] = [];
 
   async function traverse(part: GmailMessagePart, depth = 0): Promise<void> {
     // Normalize: "text/html; charset=utf-8" → "text/html"
@@ -498,7 +506,21 @@ export async function extractBodies(
           mimeType,
           data: normalizeBase64Url(raw),
         });
+      } else if (hasFilename) {
+        attachments.push({
+          filename: part.filename!,
+          mimeType: rawMime,
+          size: part.body.size ?? 0,
+          attachmentId: part.body.attachmentId,
+        });
       }
+    } else if (hasFilename && part.body?.attachmentId) {
+      attachments.push({
+        filename: part.filename!,
+        mimeType: rawMime,
+        size: part.body.size ?? 0,
+        attachmentId: part.body.attachmentId,
+      });
     }
 
     if (part.parts) {
@@ -513,7 +535,7 @@ export async function extractBodies(
 
   const textLen = text ? (text as unknown as string).length : 0;
   const htmlLen = html ? (html as unknown as string).length : 0;
-  console.log(`[extractBodies] ${messageId.slice(0, 16)}… → text=${textLen}, html=${htmlLen}, images=${inlineImages.length}`);
+  console.log(`[extractBodies] ${messageId.slice(0, 16)}… → text=${textLen}, html=${htmlLen}, images=${inlineImages.length}, attachments=${attachments.length}`);
 
   // Replace cid: references in HTML with embedded data URLs
   if (html && inlineImages.length > 0) {
@@ -541,7 +563,7 @@ export async function extractBodies(
     html = processedHtml;
   }
 
-  return { text, html };
+  return { text, html, attachments };
 }
 
 export function parseHeaders(

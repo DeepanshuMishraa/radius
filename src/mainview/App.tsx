@@ -16,7 +16,7 @@ import {
 } from "@phosphor-icons/react";
 import { Toaster, toast } from "sonner";
 import { radiusRpc } from "./lib/rpc";
-import type { SyncMode, UpdateInfo } from "../shared/types";
+import type { SyncMode, UpdateInfo, LocalReleaseInfo } from "../shared/types";
 
 const INBOX_PAGE_STEP = 500;
 const INITIAL_INBOX_LIMIT = 3000;
@@ -67,10 +67,14 @@ function App() {
   const [inboxLimit, setInboxLimit] = useState(INITIAL_INBOX_LIMIT);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [updateDownloaded, setUpdateDownloaded] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
   const [accountSwitching, setAccountSwitching] = useState(false);
   const [switchTarget, setSwitchTarget] = useState<string | null>(null);
   const [addAccountOpen, setAddAccountOpen] = useState(false);
   const [addAccountMode, setAddAccountMode] = useState<SyncMode | null>(null);
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [aboutInfo, setAboutInfo] = useState<LocalReleaseInfo | null>(null);
 
   const { isAuthenticated, startOAuth } = useAuth();
   const { accounts, activeAccount, refresh: refreshAccounts, removeAccount } = useAccounts();
@@ -354,11 +358,16 @@ function App() {
 
       if (result.updateAvailable && !result.updateReady) {
         console.log(`⬇️  Update v${result.version} available — downloading...`);
-        const downloadResult = await radiusRpc.request.downloadUpdate({});
-        if (!downloadResult.success) {
-          console.error("❌ Download failed:", downloadResult.error);
-        } else {
-          console.log("✅ Update download started");
+        setIsDownloading(true);
+        try {
+          const downloadResult = await radiusRpc.request.downloadUpdate({});
+          if (!downloadResult.success) {
+            console.error("❌ Download failed:", downloadResult.error);
+          } else {
+            console.log("✅ Update download started");
+          }
+        } finally {
+          setIsDownloading(false);
         }
       } else if (result.updateReady) {
         console.log("✅ Update already downloaded and ready");
@@ -376,24 +385,34 @@ function App() {
   }, []);
 
   const handleDownloadUpdate = useCallback(async () => {
+    setIsDownloading(true);
     try {
       const result = await radiusRpc.request.downloadUpdate({});
       if (!result.success) {
         console.error("Download update failed:", result.error);
+        toast.error(result.error ?? "Download failed");
       }
     } catch (err) {
       console.error("Download update error:", err);
+      toast.error("Download failed");
+    } finally {
+      setIsDownloading(false);
     }
   }, []);
 
   const handleApplyUpdate = useCallback(async () => {
+    setIsApplying(true);
     try {
       const result = await radiusRpc.request.applyUpdate({});
       if (!result.success) {
         console.error("Apply update failed:", result.error);
+        toast.error(result.error ?? "Restart failed");
+        setIsApplying(false);
       }
     } catch (err) {
       console.error("Apply update error:", err);
+      toast.error("Restart failed");
+      setIsApplying(false);
     }
   }, []);
 
@@ -461,6 +480,21 @@ function App() {
     setAddAccountMode(null);
     void refreshAccounts();
   }, [refreshAccounts]);
+
+  const handleOpenAbout = useCallback(async () => {
+    setCmdOpen(false);
+    setAboutOpen(true);
+    try {
+      const info = await radiusRpc.request.getLocalReleaseInfo({});
+      setAboutInfo(info);
+    } catch (err) {
+      console.error("Failed to get release info:", err);
+    }
+  }, []);
+
+  const handleCloseAbout = useCallback(() => {
+    setAboutOpen(false);
+  }, []);
 
   const handleSubmitSearch = useCallback(() => {
     if (searchedMessages.length > 0) {
@@ -545,6 +579,7 @@ function App() {
             onSwitchAccount={handleSwitchAccount}
             onAddAccount={handleAddAccount}
             onRemoveAccount={handleRemoveAccount}
+            onAbout={handleOpenAbout}
             accounts={accounts}
             activeAccount={activeAccount}
           />
@@ -565,6 +600,8 @@ function App() {
         <UpdateNotification
           updateInfo={updateInfo}
           updateDownloaded={updateDownloaded}
+          isDownloading={isDownloading}
+          isApplying={isApplying}
           onDownload={handleDownloadUpdate}
           onApply={handleApplyUpdate}
           onDismiss={dismissUpdateNotification}
@@ -605,6 +642,11 @@ function App() {
         onConnect={handleConnectNewAccount}
         selectedMode={addAccountMode}
         onSelectMode={setAddAccountMode}
+      />
+      <AboutDialog
+        open={aboutOpen}
+        onClose={handleCloseAbout}
+        info={aboutInfo}
       />
       </div>
     </ThemeProvider>
@@ -772,12 +814,16 @@ function NotificationPermissionPrompt({
 function UpdateNotification({
   updateInfo,
   updateDownloaded,
+  isDownloading,
+  isApplying,
   onDownload,
   onApply,
   onDismiss,
 }: {
   updateInfo: UpdateInfo | null;
   updateDownloaded: boolean;
+  isDownloading: boolean;
+  isApplying: boolean;
   onDownload: () => void | Promise<void>;
   onApply: () => void | Promise<void>;
   onDismiss: () => void;
@@ -811,9 +857,13 @@ function UpdateNotification({
             </button>
           </div>
           <p className="mt-1 text-[11px] leading-[1.5] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-            {updateDownloaded
-              ? "Downloaded and ready to install. The app will restart automatically."
-              : "Download now to get the latest improvements and fixes."}
+            {isDownloading
+              ? "Downloading update…"
+              : isApplying
+                ? "Restarting to install update…"
+                : updateDownloaded
+                  ? "Downloaded and ready to install. The app will restart automatically."
+                  : "Download now to get the latest improvements and fixes."}
           </p>
         </div>
       </div>
@@ -821,18 +871,30 @@ function UpdateNotification({
         {updateDownloaded ? (
           <button
             type="button"
+            disabled={isApplying}
             onClick={() => void onApply()}
-            className="inline-flex items-center rounded-lg bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Install & Restart
+            {isApplying && (
+              <svg className="animate-spin text-current" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+            )}
+            <span>Install & Restart</span>
           </button>
         ) : (
           <button
             type="button"
+            disabled={isDownloading}
             onClick={() => void onDownload()}
-            className="inline-flex items-center rounded-lg bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Download
+            {isDownloading && (
+              <svg className="animate-spin text-current" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+            )}
+            <span>Download</span>
           </button>
         )}
       </div>
@@ -880,6 +942,55 @@ function SyncPill({
               ? `${pct}% · ${current.toLocaleString()}/${total.toLocaleString()}`
               : "Syncing")}
       </span>
+    </div>
+  );
+}
+
+function AboutDialog({
+  open,
+  onClose,
+  info,
+}: {
+  open: boolean;
+  onClose: () => void;
+  info: LocalReleaseInfo | null;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-radius-bg-primary/80 backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="relative w-full max-w-[360px] rounded-2xl border border-radius-border-subtle bg-radius-bg-primary p-8 shadow-[0_16px_48px_rgba(0,0,0,0.16)] animate-in zoom-in-95 duration-200 text-center">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 inline-flex h-6 w-6 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
+          aria-label="Close"
+        >
+          <X size={14} weight="bold" />
+        </button>
+
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-radius-accent-subtle">
+          <EnvelopeSimple weight="fill" size={28} className="text-radius-accent" />
+        </div>
+
+        <h2 className="text-[18px] font-semibold text-radius-text-primary font-[family-name:var(--font-family-sans)] tracking-tight">
+          Radius
+        </h2>
+        <p className="mt-1 text-[13px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+          A Minimal and Clean Distraction Free Client
+        </p>
+
+        <div className="mt-5 inline-flex items-center rounded-full border border-radius-border-subtle bg-radius-bg-secondary px-3 py-1">
+          <span className="text-[11px] font-medium text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
+            Version {info?.version ?? "…"}
+          </span>
+        </div>
+
+        <div className="mt-6 flex items-center justify-center gap-4 text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+          <span className="inline-flex h-2 w-2 rounded-full bg-radius-accent" />
+          <span>Built with care</span>
+        </div>
+      </div>
     </div>
   );
 }
