@@ -1,0 +1,19 @@
+landing/src/components/DownloadButton.astro
+  s_931cba5ca4fd70::t_dad70d5871e4d9 3-4,9,37,62-74,79,81-94,97,99,102,104,107,112-120,122,126,128-129,131-151,156-165,167,170-182
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "c60f325ca50ef685a1337009a2fba89181d45236",
+  "prompts": {},
+  "sessions": {
+    "s_931cba5ca4fd70": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_201b5a58affeFyE6J61mvbnUoz",
+        "model": "glm-5.1"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
