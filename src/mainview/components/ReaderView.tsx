@@ -183,21 +183,36 @@ function getDeclaredWidth(value: string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function isNonTransparentValue(value: string): boolean {
+  return Boolean(value) && !/^(?:transparent|none|initial|unset|inherit|0(?:px|em|rem)?)$/i.test(value.trim());
+}
+
+function stylePropertyValue(style: string, property: string): string | null {
+  const regex = new RegExp(`${property}\\s*:\\s*([^;]+)`, "i");
+  const match = style.match(regex);
+  return match ? match[1].trim() : null;
+}
+
 function isRichNode(node: Element): boolean {
   const element = node as HTMLElement;
   const tagName = element.tagName.toLowerCase();
   const style = element.getAttribute("style")?.toLowerCase() ?? "";
   const textLength = (element.textContent ?? "").replace(/\s+/g, " ").trim().length;
 
-  if (
-    element.hasAttribute("bgcolor") ||
-    element.hasAttribute("background") ||
-    style.includes("background") ||
-    style.includes("box-shadow") ||
-    style.includes("border-radius")
-  ) {
-    return true;
+  if (element.hasAttribute("bgcolor")) {
+    const bg = element.getAttribute("bgcolor")?.toLowerCase() ?? "";
+    if (isNonTransparentValue(bg)) return true;
   }
+  if (element.hasAttribute("background")) {
+    const bg = element.getAttribute("background")?.toLowerCase() ?? "";
+    if (isNonTransparentValue(bg)) return true;
+  }
+  const bgValue = stylePropertyValue(style, "background") ?? stylePropertyValue(style, "background-color");
+  if (bgValue && isNonTransparentValue(bgValue)) return true;
+  const shadowValue = stylePropertyValue(style, "box-shadow");
+  if (shadowValue && isNonTransparentValue(shadowValue)) return true;
+  const radiusValue = stylePropertyValue(style, "border-radius");
+  if (radiusValue && isNonTransparentValue(radiusValue)) return true;
 
   if (tagName === "table") {
     const widthAttr = getDeclaredWidth(element.getAttribute("width"));
@@ -222,14 +237,58 @@ function isRichNode(node: Element): boolean {
   return false;
 }
 
+function hasActualRichContent(html: string): boolean {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const body = doc.body;
+  if (!body) return false;
+
+  if (body.querySelector("table")) return true;
+
+  for (const img of body.querySelectorAll("img")) {
+    const w = img.getAttribute("width");
+    const h = img.getAttribute("height");
+    const sw = img.style.width;
+    const sh = img.style.height;
+    const pw = w ? Number.parseInt(w, 10) : NaN;
+    const ph = h ? Number.parseInt(h, 10) : NaN;
+    const psw = sw ? Number.parseInt(sw, 10) : NaN;
+    const psh = sh ? Number.parseInt(sh, 10) : NaN;
+    if (
+      (!Number.isNaN(pw) && pw > 200) ||
+      (!Number.isNaN(ph) && ph > 200) ||
+      (!Number.isNaN(psw) && psw > 200) ||
+      (!Number.isNaN(psh) && psh > 200)
+    ) {
+      return true;
+    }
+  }
+
+  for (const el of body.querySelectorAll("[bgcolor], [background], [style]")) {
+    const s = (el as HTMLElement).getAttribute("style")?.toLowerCase() ?? "";
+    if (el.hasAttribute("bgcolor")) {
+      const bg = el.getAttribute("bgcolor")?.toLowerCase() ?? "";
+      if (isNonTransparentValue(bg)) return true;
+    }
+    if (el.hasAttribute("background")) {
+      const bg = el.getAttribute("background")?.toLowerCase() ?? "";
+      if (isNonTransparentValue(bg)) return true;
+    }
+    const bgValue = stylePropertyValue(s, "background") ?? stylePropertyValue(s, "background-color");
+    if (bgValue && isNonTransparentValue(bgValue)) return true;
+  }
+
+  return false;
+}
+
 function splitHtmlIntoSections(html: string): {
   html: string;
   hasRichSections: boolean;
+  hasSimpleSections: boolean;
   richSectionCount: number;
 } {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const root = doc.body;
-  if (!root) return { html, hasRichSections: false, richSectionCount: 0 };
+  if (!root) return { html, hasRichSections: false, hasSimpleSections: false, richSectionCount: 0 };
 
   const topLevelNodes = Array.from(root.childNodes).filter((node) => {
     if (node.nodeType === Node.TEXT_NODE) {
@@ -239,7 +298,7 @@ function splitHtmlIntoSections(html: string): {
   });
 
   if (topLevelNodes.length === 0) {
-    return { html, hasRichSections: false, richSectionCount: 0 };
+    return { html, hasRichSections: false, hasSimpleSections: false, richSectionCount: 0 };
   }
 
   const firstRichIndex = topLevelNodes.findIndex((node) => {
@@ -247,14 +306,22 @@ function splitHtmlIntoSections(html: string): {
     return isRichNode(node as Element);
   });
 
-  if (firstRichIndex <= 0) {
-    return {
-      html,
-      hasRichSections: firstRichIndex === 0,
-      richSectionCount: firstRichIndex === 0 ? 1 : 0,
-    };
+  // No rich content at all
+  if (firstRichIndex === -1) {
+    return { html, hasRichSections: false, hasSimpleSections: true, richSectionCount: 0 };
   }
 
+  // All content is rich — wrap entire body in a rich section so it renders
+  // as a contained newsletter card, not as flowing reading text.
+  if (firstRichIndex === 0) {
+    const richWrapper = doc.createElement("div");
+    richWrapper.className = "email-section email-section--rich";
+    topLevelNodes.forEach((node) => richWrapper.appendChild(node));
+    root.replaceChildren(richWrapper);
+    return { html: root.innerHTML, hasRichSections: true, hasSimpleSections: false, richSectionCount: 1 };
+  }
+
+  // Mixed: plain text intro followed by rich content
   const plainWrapper = doc.createElement("div");
   plainWrapper.className = "email-section email-section--simple";
 
@@ -271,6 +338,7 @@ function splitHtmlIntoSections(html: string): {
   return {
     html: root.innerHTML,
     hasRichSections: true,
+    hasSimpleSections: true,
     richSectionCount: 1,
   };
 }
@@ -342,22 +410,63 @@ const EMAIL_BODY_STYLES = `
     font-size: 1.08rem;
     line-height: 1.85;
   }
+  /* ── Newsletter / rich-email card ─────────────────────────── */
   .email-section--rich {
-    margin-top: 2.25rem;
+    margin-top: 1.5rem;
     overflow-x: auto;
-    border-radius: 20px;
-    background: color-mix(in srgb, var(--radius-bg-primary, #ffffff) 96%, transparent);
-    padding: 1rem;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-    outline: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    background: #ffffff;
+    padding: 2rem;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.05);
   }
   .dark .email-section--rich {
     background: #fbfbfa;
-    outline: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.2);
   }
-  /* In dark mode, strip hardcoded pure-white backgrounds from email content
-     so it sits cleanly on the #fbfbfa card instead of creating a harsh edge. */
+  .light .email-section--rich {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+  }
+  /* Newsletter view: minimal safety styles only. Let the email's own HTML
+     dominate typography — no reading-oriented margins, serif fonts, etc. */
+  .newsletter-view {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  .newsletter-view * { box-sizing: border-box; }
+  .newsletter-view img {
+    max-width: 100%;
+    height: auto;
+    display: inline-block;
+  }
+  .newsletter-view a {
+    color: var(--radius-accent, #C4785A);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .newsletter-view a:hover {
+    color: var(--radius-accent-hover, #B56A4D);
+  }
+  .newsletter-view table {
+    max-width: 100%;
+  }
+  .newsletter-view figure {
+    margin: 1em 0;
+  }
+  .newsletter-view figcaption {
+    font-size: 0.85em;
+    color: #6e6a62;
+    text-align: center;
+    margin-top: 0.3em;
+  }
+  .dark .newsletter-view figcaption {
+    color: #8c8a87;
+  }
+  /* Strip hardcoded white backgrounds in dark mode so content sits cleanly
+     on the light newsletter card. */
   .dark .email-section--rich [bgcolor="#ffffff"],
   .dark .email-section--rich [bgcolor="#fff"],
   .dark .email-section--rich [bgcolor="white"],
@@ -373,6 +482,31 @@ const EMAIL_BODY_STYLES = `
   .dark .email-section--rich [style*="background: #fff"],
   .dark .email-section--rich [style*="background:rgb(255,255,255"],
   .dark .email-section--rich [style*="background: rgb(255, 255, 255"] {
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+  /* In light mode, strip pure-white and pure-black backgrounds */
+  .light .email-section--rich [bgcolor="#ffffff"],
+  .light .email-section--rich [bgcolor="#fff"],
+  .light .email-section--rich [bgcolor="white"],
+  .light .email-section--rich [style*="background-color:#ffffff"],
+  .light .email-section--rich [style*="background-color: #ffffff"],
+  .light .email-section--rich [style*="background-color:#fff"],
+  .light .email-section--rich [style*="background-color: #fff"],
+  .light .email-section--rich [style*="background-color:rgb(255,255,255"],
+  .light .email-section--rich [style*="background-color: rgb(255, 255, 255"],
+  .light .email-section--rich [style*="background:#ffffff"],
+  .light .email-section--rich [style*="background: #ffffff"],
+  .light .email-section--rich [style*="background:#fff"],
+  .light .email-section--rich [style*="background: #fff"],
+  .light .email-section--rich [style*="background:rgb(255,255,255"],
+  .light .email-section--rich [style*="background: rgb(255, 255, 255"],
+  .light .email-section--rich [style*="background-color:rgb(0,0,0"],
+  .light .email-section--rich [style*="background-color: rgb(0, 0, 0"],
+  .light .email-section--rich [style*="background:#000000"],
+  .light .email-section--rich [style*="background: #000000"],
+  .light .email-section--rich [style*="background:#000"],
+  .light .email-section--rich [style*="background: #000"] {
     background: transparent !important;
     background-color: transparent !important;
   }
@@ -399,7 +533,7 @@ const EMAIL_BODY_STYLES = `
   .email-section--rich h1, .email-section--rich h2, .email-section--rich h3,
   .email-section--rich h4, .email-section--rich h5, .email-section--rich h6 {
     font-family: Arial, Helvetica, sans-serif;
-    color: #202124;
+    color: #1a1a1a;
   }
   .email-body--simple h1, .email-body--simple h2, .email-body--simple h3,
   .email-body--simple h4, .email-body--simple h5, .email-body--simple h6 {
@@ -559,13 +693,23 @@ export const ReaderView = memo(function ReaderView({
       FORCE_BODY: true,
     });
   }, [rawHtml]);
+
+  const hasRichHtml = useMemo(() => {
+    if (!sanitizedHtml) return false;
+    return hasActualRichContent(sanitizedHtml);
+  }, [sanitizedHtml]);
+
   const htmlRender = useMemo(
-    () =>
-      sanitizedHtml
-        ? splitHtmlIntoSections(sanitizedHtml)
-        : { html: null, hasRichSections: false, richSectionCount: 0 },
-    [sanitizedHtml]
+    () => {
+      if (!sanitizedHtml || !hasRichHtml) {
+        return { html: null, hasRichSections: false, hasSimpleSections: false, richSectionCount: 0 };
+      }
+      return splitHtmlIntoSections(sanitizedHtml);
+    },
+    [sanitizedHtml, hasRichHtml]
   );
+
+  const isPureNewsletter = htmlRender.hasRichSections && !htmlRender.hasSimpleSections;
 
   if (!message) {
     return (
@@ -594,7 +738,6 @@ export const ReaderView = memo(function ReaderView({
 
   const sender = parseAddress(message.from);
   const recipient = parseAddress(message.to);
-  const hasHtmlBody = Boolean(sanitizedHtml);
 
   return (
     <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-11">
@@ -633,19 +776,25 @@ export const ReaderView = memo(function ReaderView({
             </div>
           </header>
 
-          {hasHtmlBody ? (
-            <div className={`mx-auto ${htmlRender.hasRichSections ? "max-w-[1160px]" : "max-w-[720px]"}`}>
-              <div
-                className={`email-body min-w-0 ${
-                  htmlRender.hasRichSections
-                    ? "text-[15px] leading-[1.6]"
-                    : "email-body--simple"
-                }`}
-                onClick={handleBodyClick}
-                dangerouslySetInnerHTML={{
-                  __html: htmlRender.html ?? sanitizedHtml ?? "",
-                }}
-              />
+          {hasRichHtml ? (
+            <div className="max-w-[720px] mx-auto">
+              {isPureNewsletter ? (
+                <div
+                  className="newsletter-view min-w-0"
+                  onClick={handleBodyClick}
+                  dangerouslySetInnerHTML={{
+                    __html: htmlRender.html ?? sanitizedHtml ?? "",
+                  }}
+                />
+              ) : (
+                <div
+                  className="email-body min-w-0 text-[15px] leading-[1.6]"
+                  onClick={handleBodyClick}
+                  dangerouslySetInnerHTML={{
+                    __html: htmlRender.html ?? sanitizedHtml ?? "",
+                  }}
+                />
+              )}
             </div>
           ) : (
             <div className="max-w-[720px] mx-auto font-[family-name:var(--font-family-serif)] text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">

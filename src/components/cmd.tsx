@@ -17,6 +17,7 @@ import {
   PlusIcon,
   CheckIcon,
   TrashIcon,
+  InfoIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import type { Account } from "@/mainview/hooks/useInbox";
@@ -27,6 +28,7 @@ interface CommandKProps {
   onSwitchAccount: (email: string) => void;
   onAddAccount: () => void;
   onRemoveAccount: (email: string) => void;
+  onAbout: () => void;
   accounts: Account[];
   activeAccount: string | null;
 }
@@ -39,6 +41,7 @@ export function CommandK({
   onSwitchAccount,
   onAddAccount,
   onRemoveAccount,
+  onAbout,
   accounts,
   activeAccount,
 }: CommandKProps) {
@@ -192,6 +195,10 @@ export function CommandK({
             <CommandItem value="accounts" onSelect={() => setPage("accounts")}>
               <UserCircleIcon />
               <span>Accounts</span>
+            </CommandItem>
+            <CommandItem value="about" onSelect={onAbout}>
+              <InfoIcon />
+              <span>About</span>
             </CommandItem>
           </CommandGroup>
         ) : (
