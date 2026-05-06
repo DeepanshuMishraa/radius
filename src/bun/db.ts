@@ -43,7 +43,6 @@ export async function deleteAccountDb(email: string): Promise<void> {
     try {
       db.close();
     } catch {
-      // ignore close errors
     }
     db = null;
     currentAccountEmail = null;
@@ -89,6 +88,7 @@ export async function createSchema(): Promise<void> {
       snippet TEXT,
       body_text TEXT,
       body_html TEXT,
+      attachments TEXT,
       category TEXT DEFAULT 'regular',
       is_read INTEGER NOT NULL DEFAULT 1,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
@@ -145,6 +145,9 @@ export async function createSchema(): Promise<void> {
   }
   if (!existingMessageColumns.has("is_read")) {
     db.exec("ALTER TABLE messages ADD COLUMN is_read INTEGER NOT NULL DEFAULT 1");
+  }
+  if (!existingMessageColumns.has("attachments")) {
+    db.exec("ALTER TABLE messages ADD COLUMN attachments TEXT");
   }
 
   const existingColumns = new Set(syncStateColumns.map((column) => column.name));
@@ -249,14 +252,15 @@ export async function insertMessage(message: {
   snippet: string;
   bodyText: string | null;
   bodyHtml: string | null;
+  attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>;
   category: string;
   isRead: boolean;
 }): Promise<void> {
   const db = await getDb();
   db.run(
     `INSERT OR REPLACE INTO messages
-     (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, category, is_read)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       message.id,
       message.threadId,
@@ -268,6 +272,7 @@ export async function insertMessage(message: {
       message.snippet,
       message.bodyText,
       message.bodyHtml,
+      message.attachments.length > 0 ? JSON.stringify(message.attachments) : null,
       message.category,
       message.isRead ? 1 : 0,
     ]
@@ -287,6 +292,7 @@ export async function insertMessages(
     snippet: string;
     bodyText: string | null;
     bodyHtml: string | null;
+    attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>;
     category: string;
     isRead: boolean;
   }>
@@ -297,8 +303,8 @@ export async function insertMessages(
     for (const message of messages) {
       db.run(
         `INSERT OR REPLACE INTO messages
-         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, category, is_read)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           message.id,
           message.threadId,
@@ -310,6 +316,7 @@ export async function insertMessages(
           message.snippet,
           message.bodyText,
           message.bodyHtml,
+          message.attachments.length > 0 ? JSON.stringify(message.attachments) : null,
           message.category,
           message.isRead ? 1 : 0,
         ]
@@ -355,7 +362,8 @@ export async function getMessageById(
     .query(
       `SELECT id, thread_id as threadId, history_id as historyId,
               internal_date as internalDate, from_addr as \`from\`, to_addr as \`to\`,
-              subject, snippet, body_text as bodyText, body_html as bodyHtml, category,
+              subject, snippet, body_text as bodyText, body_html as bodyHtml,
+              attachments, category,
               CAST(COALESCE(is_read, 1) AS INTEGER) as isRead
        FROM messages WHERE id = ?`
     )

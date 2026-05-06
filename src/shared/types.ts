@@ -28,6 +28,13 @@ export interface LocalReleaseInfo {
   channel: string;
 }
 
+export interface Attachment {
+  filename: string;
+  mimeType: string;
+  size: number;
+  attachmentId: string;
+}
+
 export interface Message {
   id: string;
   threadId: string;
@@ -39,6 +46,7 @@ export interface Message {
   snippet: string;
   bodyText: string | null;
   bodyHtml: string | null;
+  attachments: Attachment[];
   category: EmailCategory;
   isRead: boolean;
 }
@@ -136,6 +144,14 @@ export type RadiusRPC = {
       };
       removeAccount: {
         params: { email: string };
+        response: { success: boolean; error?: string };
+      };
+      downloadAttachment: {
+        params: { messageId: string; attachmentId: string };
+        response: { success: boolean; data?: string; mimeType?: string; filename?: string; error?: string };
+      };
+      previewAttachment: {
+        params: { messageId: string; attachmentId: string; filename: string };
         response: { success: boolean; error?: string };
       };
     };

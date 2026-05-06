@@ -17,11 +17,13 @@ import {
   handleGetMessage,
   handleGetSyncStatus,
   handleMarkMessageRead,
+  handleDownloadAttachment,
 } from "./rpc-handlers";
 import {
   handleOpenExternalUrl,
   handleRequestNotificationPermission,
   handleOpenNotificationSettings,
+  handlePreviewAttachment,
   showNewMailNotification,
 } from "./ui";
 import {
@@ -68,6 +70,8 @@ async function createMainWindow() {
         getAccounts: handleGetAccounts,
         switchAccount: handleSwitchAccount,
         removeAccount: handleRemoveAccount,
+        downloadAttachment: handleDownloadAttachment,
+        previewAttachment: handlePreviewAttachment,
 
         // Update handlers need rpc to send status — kept inline to avoid circular type
         async checkForUpdate() {

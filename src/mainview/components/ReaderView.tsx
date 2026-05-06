@@ -2,7 +2,7 @@ import DOMPurify from "dompurify";
 import { memo, useCallback, useMemo } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import type { Message, EmailCategory } from "../hooks/useInbox";
-import { ListIcon } from "@phosphor-icons/react";
+import { ListIcon, FileIcon, ArrowSquareOut } from "@phosphor-icons/react";
 import { radiusRpc } from "../lib/rpc";
 
 interface ReaderViewProps {
@@ -140,6 +140,60 @@ function MessageStatusWidget({ message }: { message: Message }) {
   );
 }
 
+function AttachmentList({ attachments, messageId }: { attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>; messageId: string }) {
+  if (attachments.length === 0) return null;
+
+  const handlePreview = useCallback(async (attachment: { filename: string; attachmentId: string }) => {
+    try {
+      const result = await radiusRpc.request.previewAttachment({
+        messageId,
+        attachmentId: attachment.attachmentId,
+        filename: attachment.filename,
+      });
+      if (!result.success) {
+        console.error("Failed to preview attachment:", result.error);
+      }
+    } catch (err) {
+      console.error("Preview attachment error:", err);
+    }
+  }, [messageId]);
+
+  const formatSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  return (
+    <div className="mt-6 space-y-2">
+      <div className="text-[11px] font-medium text-radius-text-muted uppercase tracking-wide font-[family-name:var(--font-family-sans)]">
+        {attachments.length} attachment{attachments.length > 1 ? "s" : ""}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {attachments.map((att) => (
+          <button
+            key={att.attachmentId}
+            onClick={() => void handlePreview(att)}
+            className="inline-flex items-center gap-2 rounded-lg border border-radius-border-subtle bg-radius-bg-secondary px-3 py-2 text-left transition-colors hover:bg-radius-bg-tertiary"
+            title={`Open ${att.filename}`}
+          >
+            <FileIcon size={16} className="shrink-0 text-radius-text-muted" />
+            <div className="min-w-0">
+              <div className="truncate text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)] max-w-[200px]">
+                {att.filename}
+              </div>
+              <div className="text-[10px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                {formatSize(att.size)}
+              </div>
+            </div>
+            <ArrowSquareOut size={14} className="shrink-0 text-radius-text-muted ml-1" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function InboxWidget({
   visible,
   onClick,
@@ -175,106 +229,35 @@ function InboxWidget({
   );
 }
 
-function getDeclaredWidth(value: string | null): number | null {
-  if (!value) return null;
-  const match = value.match(/(\d+(?:\.\d+)?)px/i) ?? value.match(/^(\d+(?:\.\d+)?)$/);
-  if (!match) return null;
-  const parsed = Number.parseFloat(match[1]);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function isNonTransparentValue(value: string): boolean {
-  return Boolean(value) && !/^(?:transparent|none|initial|unset|inherit|0(?:px|em|rem)?)$/i.test(value.trim());
-}
-
-function stylePropertyValue(style: string, property: string): string | null {
-  const regex = new RegExp(`${property}\\s*:\\s*([^;]+)`, "i");
-  const match = style.match(regex);
-  return match ? match[1].trim() : null;
-}
-
-function isRichNode(node: Element): boolean {
-  const element = node as HTMLElement;
-  const tagName = element.tagName.toLowerCase();
-  const style = element.getAttribute("style")?.toLowerCase() ?? "";
-  const textLength = (element.textContent ?? "").replace(/\s+/g, " ").trim().length;
-
-  if (element.hasAttribute("bgcolor")) {
-    const bg = element.getAttribute("bgcolor")?.toLowerCase() ?? "";
-    if (isNonTransparentValue(bg)) return true;
-  }
-  if (element.hasAttribute("background")) {
-    const bg = element.getAttribute("background")?.toLowerCase() ?? "";
-    if (isNonTransparentValue(bg)) return true;
-  }
-  const bgValue = stylePropertyValue(style, "background") ?? stylePropertyValue(style, "background-color");
-  if (bgValue && isNonTransparentValue(bgValue)) return true;
-  const shadowValue = stylePropertyValue(style, "box-shadow");
-  if (shadowValue && isNonTransparentValue(shadowValue)) return true;
-  const radiusValue = stylePropertyValue(style, "border-radius");
-  if (radiusValue && isNonTransparentValue(radiusValue)) return true;
-
-  if (tagName === "table") {
-    const widthAttr = getDeclaredWidth(element.getAttribute("width"));
-    const styleWidth = getDeclaredWidth(element.style.width);
-    if ((widthAttr ?? 0) >= 320 || (styleWidth ?? 0) >= 320) return true;
-    if (element.querySelectorAll("img").length > 0) return true;
-    if (element.querySelectorAll("tr").length >= 2) return true;
-  }
-
-  if (tagName === "img") {
-    const widthAttr = getDeclaredWidth(element.getAttribute("width"));
-    const styleWidth = getDeclaredWidth(element.style.width);
-    return (widthAttr ?? 0) >= 220 || (styleWidth ?? 0) >= 220;
-  }
-
-  if (tagName === "div" || tagName === "section" || tagName === "article") {
-    if (element.querySelector("table")) return true;
-    if (element.querySelectorAll("img").length >= 2) return true;
-    if (style.includes("border") && textLength < 500) return true;
-  }
-
-  return false;
-}
-
 function hasActualRichContent(html: string): boolean {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const body = doc.body;
   if (!body) return false;
 
-  if (body.querySelector("table")) return true;
+  const text = body.textContent ?? "";
+  const textLength = text.trim().length;
+  if (textLength < 50) return false;
 
-  for (const img of body.querySelectorAll("img")) {
+  const htmlLength = body.innerHTML.length;
+  const ratio = htmlLength / textLength;
+
+  // Newsletters have lots of markup relative to text (styled divs, images, etc.)
+  // Transactional emails are mostly text with minimal HTML wrapper → low ratio
+  if (ratio > 2.0) return true;
+
+  // Tables for layout = newsletter
+  if (body.querySelectorAll("table").length > 0) return true;
+
+  // Multiple images = newsletter
+  const images = body.querySelectorAll("img");
+  if (images.length >= 2) return true;
+
+  // Single large image
+  for (const img of images) {
     const w = img.getAttribute("width");
     const h = img.getAttribute("height");
-    const sw = img.style.width;
-    const sh = img.style.height;
-    const pw = w ? Number.parseInt(w, 10) : NaN;
-    const ph = h ? Number.parseInt(h, 10) : NaN;
-    const psw = sw ? Number.parseInt(sw, 10) : NaN;
-    const psh = sh ? Number.parseInt(sh, 10) : NaN;
-    if (
-      (!Number.isNaN(pw) && pw > 200) ||
-      (!Number.isNaN(ph) && ph > 200) ||
-      (!Number.isNaN(psw) && psw > 200) ||
-      (!Number.isNaN(psh) && psh > 200)
-    ) {
-      return true;
-    }
-  }
-
-  for (const el of body.querySelectorAll("[bgcolor], [background], [style]")) {
-    const s = (el as HTMLElement).getAttribute("style")?.toLowerCase() ?? "";
-    if (el.hasAttribute("bgcolor")) {
-      const bg = el.getAttribute("bgcolor")?.toLowerCase() ?? "";
-      if (isNonTransparentValue(bg)) return true;
-    }
-    if (el.hasAttribute("background")) {
-      const bg = el.getAttribute("background")?.toLowerCase() ?? "";
-      if (isNonTransparentValue(bg)) return true;
-    }
-    const bgValue = stylePropertyValue(s, "background") ?? stylePropertyValue(s, "background-color");
-    if (bgValue && isNonTransparentValue(bgValue)) return true;
+    if (w && Number.parseInt(w, 10) > 150) return true;
+    if (h && Number.parseInt(h, 10) > 150) return true;
   }
 
   return false;
@@ -290,55 +273,18 @@ function splitHtmlIntoSections(html: string): {
   const root = doc.body;
   if (!root) return { html, hasRichSections: false, hasSimpleSections: false, richSectionCount: 0 };
 
-  const topLevelNodes = Array.from(root.childNodes).filter((node) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      return (node.textContent ?? "").trim().length > 0;
-    }
-    return node.nodeType === Node.ELEMENT_NODE;
-  });
-
-  if (topLevelNodes.length === 0) {
-    return { html, hasRichSections: false, hasSimpleSections: false, richSectionCount: 0 };
-  }
-
-  const firstRichIndex = topLevelNodes.findIndex((node) => {
-    if (node.nodeType !== Node.ELEMENT_NODE) return false;
-    return isRichNode(node as Element);
-  });
-
-  // No rich content at all
-  if (firstRichIndex === -1) {
-    return { html, hasRichSections: false, hasSimpleSections: true, richSectionCount: 0 };
-  }
-
-  // All content is rich — wrap entire body in a rich section so it renders
-  // as a contained newsletter card, not as flowing reading text.
-  if (firstRichIndex === 0) {
-    const richWrapper = doc.createElement("div");
-    richWrapper.className = "email-section email-section--rich";
-    topLevelNodes.forEach((node) => richWrapper.appendChild(node));
-    root.replaceChildren(richWrapper);
-    return { html: root.innerHTML, hasRichSections: true, hasSimpleSections: false, richSectionCount: 1 };
-  }
-
-  // Mixed: plain text intro followed by rich content
-  const plainWrapper = doc.createElement("div");
-  plainWrapper.className = "email-section email-section--simple";
-
   const richWrapper = doc.createElement("div");
   richWrapper.className = "email-section email-section--rich";
 
-  topLevelNodes.forEach((node, index) => {
-    const target = index < firstRichIndex ? plainWrapper : richWrapper;
-    target.appendChild(node);
-  });
-
-  root.replaceChildren(plainWrapper, richWrapper);
+  while (root.firstChild) {
+    richWrapper.appendChild(root.firstChild);
+  }
+  root.appendChild(richWrapper);
 
   return {
     html: root.innerHTML,
     hasRichSections: true,
-    hasSimpleSections: true,
+    hasSimpleSections: false,
     richSectionCount: 1,
   };
 }
@@ -393,19 +339,23 @@ const EMAIL_ALLOWED_ATTR = [
 
 const EMAIL_BODY_STYLES = `
   .email-body {
+    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     word-wrap: break-word;
     overflow-wrap: break-word;
   }
   .email-body * { box-sizing: border-box; }
+  .email-body :is(div, span, p, td, th, li, a, strong, em, b, i, font) {
+    font-family: inherit !important;
+  }
   .email-body--simple {
-    font-family: var(--font-family-serif), Georgia, serif;
+    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
     background: transparent;
     font-size: 1.08rem;
     line-height: 1.85;
   }
   .email-section--simple {
-    font-family: var(--font-family-serif), Georgia, serif;
+    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
     font-size: 1.08rem;
     line-height: 1.85;
@@ -417,6 +367,7 @@ const EMAIL_BODY_STYLES = `
   /* Newsletter view: minimal safety styles only. Let the email's own HTML
      dominate typography — no reading-oriented margins, serif fonts, etc. */
   .newsletter-view {
+    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     word-wrap: break-word;
     overflow-wrap: break-word;
   }
@@ -467,13 +418,13 @@ const EMAIL_BODY_STYLES = `
   }
   .email-section--simple h1, .email-section--simple h2, .email-section--simple h3,
   .email-section--simple h4, .email-section--simple h5, .email-section--simple h6 {
-    font-family: var(--font-family-serif), Georgia, serif;
+    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
   }
 
   .email-body--simple h1, .email-body--simple h2, .email-body--simple h3,
   .email-body--simple h4, .email-body--simple h5, .email-body--simple h6 {
-    font-family: var(--font-family-serif), Georgia, serif;
+    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
   }
   .email-body h1 { font-size: 1.5em; }
@@ -710,6 +661,7 @@ export const ReaderView = memo(function ReaderView({
                   __html: htmlRender.html ?? sanitizedHtml ?? "",
                 }}
               />
+              <AttachmentList attachments={message.attachments} messageId={message.id} />
             </div>
           </article>
         ) : (
@@ -755,10 +707,14 @@ export const ReaderView = memo(function ReaderView({
                     __html: htmlRender.html ?? sanitizedHtml ?? "",
                   }}
                 />
+                <AttachmentList attachments={message.attachments} messageId={message.id} />
               </div>
             ) : (
-              <div className="max-w-[720px] mx-auto font-[family-name:var(--font-family-serif)] text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
-                {message.bodyText || message.snippet}
+              <div className="max-w-[720px] mx-auto">
+                <div className="font-[family-name:var(--font-family-sans)] text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
+                  {message.bodyText || message.snippet}
+                </div>
+                <AttachmentList attachments={message.attachments} messageId={message.id} />
               </div>
             )}
           </article>

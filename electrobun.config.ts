@@ -4,11 +4,12 @@ export default {
   app: {
     name: "Radius",
     identifier: "radius.dipxsy.app",
-    version: "1.0.3",
+    version: "1.0.4",
     urlSchemes: ["radius"],
   },
   release: {
     baseUrl:
+      
       "https://github.com/DeepanshuMishraa/radius/releases/latest/download",
   },
   build: {
