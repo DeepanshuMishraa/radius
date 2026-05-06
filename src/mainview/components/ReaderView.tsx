@@ -412,23 +412,7 @@ const EMAIL_BODY_STYLES = `
   }
   /* ── Newsletter / rich-email card ─────────────────────────── */
   .email-section--rich {
-    margin-top: 1.5rem;
     overflow-x: auto;
-    border-radius: 16px;
-    background: #ffffff;
-    padding: 2rem;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-  }
-  .dark .email-section--rich {
-    background: #fbfbfa;
-    border-color: rgba(255, 255, 255, 0.06);
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.2);
-  }
-  .light .email-section--rich {
-    background: #ffffff;
-    border-color: rgba(0, 0, 0, 0.05);
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
   }
   /* Newsletter view: minimal safety styles only. Let the email's own HTML
      dominate typography — no reading-oriented margins, serif fonts, etc. */
@@ -465,51 +449,7 @@ const EMAIL_BODY_STYLES = `
   .dark .newsletter-view figcaption {
     color: #8c8a87;
   }
-  /* Strip hardcoded white backgrounds in dark mode so content sits cleanly
-     on the light newsletter card. */
-  .dark .email-section--rich [bgcolor="#ffffff"],
-  .dark .email-section--rich [bgcolor="#fff"],
-  .dark .email-section--rich [bgcolor="white"],
-  .dark .email-section--rich [style*="background-color:#ffffff"],
-  .dark .email-section--rich [style*="background-color: #ffffff"],
-  .dark .email-section--rich [style*="background-color:#fff"],
-  .dark .email-section--rich [style*="background-color: #fff"],
-  .dark .email-section--rich [style*="background-color:rgb(255,255,255"],
-  .dark .email-section--rich [style*="background-color: rgb(255, 255, 255"],
-  .dark .email-section--rich [style*="background:#ffffff"],
-  .dark .email-section--rich [style*="background: #ffffff"],
-  .dark .email-section--rich [style*="background:#fff"],
-  .dark .email-section--rich [style*="background: #fff"],
-  .dark .email-section--rich [style*="background:rgb(255,255,255"],
-  .dark .email-section--rich [style*="background: rgb(255, 255, 255"] {
-    background: transparent !important;
-    background-color: transparent !important;
-  }
-  /* In light mode, strip pure-white and pure-black backgrounds */
-  .light .email-section--rich [bgcolor="#ffffff"],
-  .light .email-section--rich [bgcolor="#fff"],
-  .light .email-section--rich [bgcolor="white"],
-  .light .email-section--rich [style*="background-color:#ffffff"],
-  .light .email-section--rich [style*="background-color: #ffffff"],
-  .light .email-section--rich [style*="background-color:#fff"],
-  .light .email-section--rich [style*="background-color: #fff"],
-  .light .email-section--rich [style*="background-color:rgb(255,255,255"],
-  .light .email-section--rich [style*="background-color: rgb(255, 255, 255"],
-  .light .email-section--rich [style*="background:#ffffff"],
-  .light .email-section--rich [style*="background: #ffffff"],
-  .light .email-section--rich [style*="background:#fff"],
-  .light .email-section--rich [style*="background: #fff"],
-  .light .email-section--rich [style*="background:rgb(255,255,255"],
-  .light .email-section--rich [style*="background: rgb(255, 255, 255"],
-  .light .email-section--rich [style*="background-color:rgb(0,0,0"],
-  .light .email-section--rich [style*="background-color: rgb(0, 0, 0"],
-  .light .email-section--rich [style*="background:#000000"],
-  .light .email-section--rich [style*="background: #000000"],
-  .light .email-section--rich [style*="background:#000"],
-  .light .email-section--rich [style*="background: #000"] {
-    background: transparent !important;
-    background-color: transparent !important;
-  }
+
   .email-body p { margin: 0 0 1em; }
   .email-body p:last-child { margin-bottom: 0; }
   .email-body br { display: block; content: ""; margin-bottom: 0.3em; }
@@ -530,11 +470,7 @@ const EMAIL_BODY_STYLES = `
     font-family: var(--font-family-serif), Georgia, serif;
     color: var(--radius-text-primary, #292827);
   }
-  .email-section--rich h1, .email-section--rich h2, .email-section--rich h3,
-  .email-section--rich h4, .email-section--rich h5, .email-section--rich h6 {
-    font-family: Arial, Helvetica, sans-serif;
-    color: #1a1a1a;
-  }
+
   .email-body--simple h1, .email-body--simple h2, .email-body--simple h3,
   .email-body--simple h4, .email-body--simple h5, .email-body--simple h6 {
     font-family: var(--font-family-serif), Georgia, serif;
@@ -744,49 +680,74 @@ export const ReaderView = memo(function ReaderView({
       <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
 
       <div className="flex-1 email-enter" key={message.id}>
-        <article className="w-full px-6 pt-8 pb-24">
-          <header className="max-w-[720px] mx-auto">
-            <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-wide mb-4">
-              {message.subject}
-            </h1>
-
-            <div className="mb-8">
-              <MessageStatusWidget message={message} />
-            </div>
-
-            <div className="mb-10 pb-8 border-b border-radius-border-subtle space-y-2">
-              <div className="flex items-start gap-6">
-                <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
-                  From
-                </span>
-                <AddressReveal name={sender.name} email={sender.email} />
-              </div>
-              <div className="flex items-start gap-6">
-                <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
-                  To
-                </span>
-                <AddressReveal name={recipient.name} email={recipient.email} />
-              </div>
-              <div className="flex items-baseline gap-6 pt-1">
-                <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]"></span>
-                <time className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-serif)]">
+        {isPureNewsletter ? (
+          /* ═════ DOCUMENT MODE — Newsletters ═════ */
+          <article className="w-full px-6 pt-6 pb-24">
+            {/* Compact sender bar */}
+            <div className="max-w-[720px] mx-auto mb-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-[15px] font-semibold text-radius-text-primary truncate font-[family-name:var(--font-family-sans)]">
+                    {sender.name || sender.email}
+                  </span>
+                  <span className="shrink-0 inline-flex items-center gap-[5px] text-[11px] font-medium font-[family-name:var(--font-family-sans)] px-2 py-0.5 rounded-full bg-[rgba(163,90,196,0.10)] text-[#a35ac4]">
+                    <span className="inline-block rounded-full bg-[#a35ac4]" style={{ width: 4, height: 4 }} />
+                    Newsletter
+                  </span>
+                </div>
+                <time className="shrink-0 text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
                   {formatFullDate(message.internalDate)}
                 </time>
               </div>
             </div>
-          </header>
 
-          {hasRichHtml ? (
+            {/* Newsletter card — contained document */}
             <div className="max-w-[720px] mx-auto">
-              {isPureNewsletter ? (
-                <div
-                  className="newsletter-view min-w-0"
-                  onClick={handleBodyClick}
-                  dangerouslySetInnerHTML={{
-                    __html: htmlRender.html ?? sanitizedHtml ?? "",
-                  }}
-                />
-              ) : (
+              <div
+                className="newsletter-view min-w-0"
+                onClick={handleBodyClick}
+                dangerouslySetInnerHTML={{
+                  __html: htmlRender.html ?? sanitizedHtml ?? "",
+                }}
+              />
+            </div>
+          </article>
+        ) : (
+          /* ═════ READING MODE — Text emails ═════ */
+          <article className="w-full px-6 pt-8 pb-24">
+            <header className="max-w-[720px] mx-auto">
+              <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-wide mb-4">
+                {message.subject}
+              </h1>
+
+              <div className="mb-8">
+                <MessageStatusWidget message={message} />
+              </div>
+
+              <div className="mb-10 pb-8 border-b border-radius-border-subtle space-y-2">
+                <div className="flex items-start gap-6">
+                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
+                    From
+                  </span>
+                  <AddressReveal name={sender.name} email={sender.email} />
+                </div>
+                <div className="flex items-start gap-6">
+                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
+                    To
+                  </span>
+                  <AddressReveal name={recipient.name} email={recipient.email} />
+                </div>
+                <div className="flex items-baseline gap-6 pt-1">
+                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]"></span>
+                  <time className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-serif)]">
+                    {formatFullDate(message.internalDate)}
+                  </time>
+                </div>
+              </div>
+            </header>
+
+            {hasRichHtml ? (
+              <div className="max-w-[720px] mx-auto">
                 <div
                   className="email-body min-w-0 text-[15px] leading-[1.6]"
                   onClick={handleBodyClick}
@@ -794,14 +755,14 @@ export const ReaderView = memo(function ReaderView({
                     __html: htmlRender.html ?? sanitizedHtml ?? "",
                   }}
                 />
-              )}
-            </div>
-          ) : (
-            <div className="max-w-[720px] mx-auto font-[family-name:var(--font-family-serif)] text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
-              {message.bodyText || message.snippet}
-            </div>
-          )}
-        </article>
+              </div>
+            ) : (
+              <div className="max-w-[720px] mx-auto font-[family-name:var(--font-family-serif)] text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
+                {message.bodyText || message.snippet}
+              </div>
+            )}
+          </article>
+        )}
       </div>
 
       <style>{EMAIL_BODY_STYLES}</style>
