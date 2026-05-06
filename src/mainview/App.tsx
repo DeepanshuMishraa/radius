@@ -358,11 +358,16 @@ function App() {
 
       if (result.updateAvailable && !result.updateReady) {
         console.log(`⬇️  Update v${result.version} available — downloading...`);
-        const downloadResult = await radiusRpc.request.downloadUpdate({});
-        if (!downloadResult.success) {
-          console.error("❌ Download failed:", downloadResult.error);
-        } else {
-          console.log("✅ Update download started");
+        setIsDownloading(true);
+        try {
+          const downloadResult = await radiusRpc.request.downloadUpdate({});
+          if (!downloadResult.success) {
+            console.error("❌ Download failed:", downloadResult.error);
+          } else {
+            console.log("✅ Update download started");
+          }
+        } finally {
+          setIsDownloading(false);
         }
       } else if (result.updateReady) {
         console.log("✅ Update already downloaded and ready");

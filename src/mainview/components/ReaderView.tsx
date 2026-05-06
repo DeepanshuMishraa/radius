@@ -698,13 +698,13 @@ export const ReaderView = memo(function ReaderView({
               </div>
             </header>
 
-            {hasRichHtml ? (
+            {sanitizedHtml ? (
               <div className="max-w-[720px] mx-auto">
                 <div
-                  className="email-body min-w-0 text-[15px] leading-[1.6]"
+                  className={hasRichHtml ? "email-body min-w-0 text-[15px] leading-[1.6]" : "email-body email-body--simple min-w-0 text-[17px] leading-[1.85]"}
                   onClick={handleBodyClick}
                   dangerouslySetInnerHTML={{
-                    __html: htmlRender.html ?? sanitizedHtml ?? "",
+                    __html: hasRichHtml ? (htmlRender.html ?? sanitizedHtml) : sanitizedHtml,
                   }}
                 />
                 <AttachmentList attachments={message.attachments} messageId={message.id} />
