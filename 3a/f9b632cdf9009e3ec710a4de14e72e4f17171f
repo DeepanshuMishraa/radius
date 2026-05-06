@@ -1,0 +1,21 @@
+src/mainview/components/ReaderView.tsx
+  s_7204c0996fd058::t_4d927410bf9344 701,704,707
+src/mainview/App.tsx
+  s_7204c0996fd058::t_ce458d19161d4c 361-370
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "3af9b632cdf9009e3ec710a4de14e72e4f17171f",
+  "prompts": {},
+  "sessions": {
+    "s_7204c0996fd058": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_202f14c5dffe3Rl4Fc1GnWbcZ9",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
