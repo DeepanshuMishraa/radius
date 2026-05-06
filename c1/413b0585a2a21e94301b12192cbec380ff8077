@@ -1,0 +1,60 @@
+src/bun/sync.ts
+  s_7204c0996fd058::t_92564b4cce009b 761
+src/shared/types.ts
+  s_7204c0996fd058::t_e3361705c4e581 31-37,49
+  s_7204c0996fd058::t_b12a32d9b472be 153-156
+  s_7204c0996fd058::t_4ca7addc93bbaf 149-152
+src/mainview/components/ReaderView.tsx
+  s_7204c0996fd058::t_933b9236ba334e 421,427
+  s_7204c0996fd058::t_ece735756a9374 351,358
+  s_7204c0996fd058::t_91f41c1b73b790 237-253,255-256,259-260
+  s_7204c0996fd058::t_72b9d3421e629c 370
+  s_7204c0996fd058::t_2dc92715283dbe 176,178,189
+  s_7204c0996fd058::t_20563e056d4172 5
+  s_7204c0996fd058::t_a3fec10b2ee94c 664
+  s_7204c0996fd058::t_a12ea034641a4a 279-282,287
+  s_7204c0996fd058::t_59996932b09f84 714
+  s_7204c0996fd058::t_75730eba605056 347-349
+  s_7204c0996fd058::t_f80acc2cd32c09 342
+  s_7204c0996fd058::t_9be130513d7378 143-145,147,149-150,152,155-156,158-175,177,179-188,190-196
+  s_7204c0996fd058::t_3077f4caf9141e 710,713,715-717
+  s_7204c0996fd058::t_7953e2387cb9be 146,148,151,153-154,157
+src/bun/gmail.ts
+  s_7204c0996fd058::t_6e4f84336277e8 445-451,456,460,509-515,517-523,538,566
+src/mainview/hooks/useInbox.ts
+  s_7204c0996fd058::t_a1186c700527d6 15-21,33
+src/bun/index.ts
+  s_7204c0996fd058::t_901365fb3d774b 73
+  s_7204c0996fd058::t_b6e3413c515b07 74
+  s_7204c0996fd058::t_d0e49ba3b6b5fc 20
+  s_7204c0996fd058::t_d7913fe51cafea 26
+src/bun/ui.ts
+  s_7204c0996fd058::t_697233181b08d7 75-94
+  s_7204c0996fd058::t_a07a69f93a223d 2-4,7-8
+src/bun/db.ts
+  s_7204c0996fd058::t_a3a5e3031790ed 91
+  s_7204c0996fd058::t_4988f5f7928b59 255,262-263,275,295,306-307,319
+  s_7204c0996fd058::t_843c31a6b88d76 365-366
+  s_7204c0996fd058::t_c3a3b4195017e2 149-151
+src/bun/rpc-handlers.ts
+  s_7204c0996fd058::t_72aab7b192d69b 90
+  s_7204c0996fd058::t_85a0667e72003a 22,38-46,49
+  s_7204c0996fd058::t_7f1450cf2d355f 4
+  s_7204c0996fd058::t_e46d23ae134889 182-198
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "c1413b0585a2a21e94301b12192cbec380ff8077",
+  "prompts": {},
+  "sessions": {
+    "s_7204c0996fd058": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_202f14c5dffe3Rl4Fc1GnWbcZ9",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
