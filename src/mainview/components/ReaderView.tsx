@@ -1,5 +1,5 @@
 import DOMPurify from "dompurify";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import type { Message, EmailCategory } from "../hooks/useInbox";
 import { ListIcon, FileIcon, ArrowSquareOut } from "@phosphor-icons/react";
@@ -289,6 +289,112 @@ function splitHtmlIntoSections(html: string): {
   };
 }
 
+function buildNewsletterSrcDoc(html: string, frameId: string): string {
+  const escapedFrameId = JSON.stringify(frameId);
+
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light only" />
+    <base target="_blank" />
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+        color: #1f1f1f;
+        overflow-x: hidden;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      img, video {
+        max-width: 100%;
+        height: auto;
+      }
+      table {
+        max-width: 100% !important;
+      }
+      body {
+        display: flex;
+        justify-content: center;
+      }
+      .radius-email-root {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+      .radius-email-inner {
+        width: max-content;
+        max-width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="radius-email-root">
+      <div class="radius-email-inner">${html}</div>
+    </div>
+    <script>
+      const frameId = ${escapedFrameId};
+      const postHeight = () => {
+        const body = document.body;
+        const html = document.documentElement;
+        const height = Math.max(
+          body ? body.scrollHeight : 0,
+          html ? html.scrollHeight : 0,
+          body ? body.offsetHeight : 0,
+          html ? html.offsetHeight : 0
+        );
+        parent.postMessage({ type: "radius-newsletter-height", frameId, height }, "*");
+      };
+
+      window.addEventListener("load", () => {
+        postHeight();
+        setTimeout(postHeight, 50);
+        setTimeout(postHeight, 250);
+      });
+
+      new ResizeObserver(() => postHeight()).observe(document.documentElement);
+    </script>
+  </body>
+</html>`;
+}
+
+function NewsletterFrame({ html, messageId }: { html: string; messageId: string }) {
+  const [height, setHeight] = useState(900);
+  const frameId = useMemo(() => `newsletter-${messageId}`, [messageId]);
+  const srcDoc = useMemo(() => buildNewsletterSrcDoc(html, frameId), [frameId, html]);
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const data = event.data as
+        | { type?: string; frameId?: string; height?: number }
+        | undefined;
+      if (!data || data.type !== "radius-newsletter-height" || data.frameId !== frameId) {
+        return;
+      }
+      if (typeof data.height === "number" && Number.isFinite(data.height)) {
+        setHeight(Math.max(320, Math.ceil(data.height)));
+      }
+    };
+
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [frameId]);
+
+  return (
+    <iframe
+      title="Newsletter content"
+      className="newsletter-frame"
+      sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox"
+      srcDoc={srcDoc}
+      style={{ height }}
+    />
+  );
+}
+
 // Comprehensive allowlists for email HTML — tables, inline styles, images,
 // alignment attributes, and common legacy email markup.
 const EMAIL_ALLOWED_TAGS = [
@@ -308,7 +414,7 @@ const EMAIL_ALLOWED_TAGS = [
   "table", "thead", "tbody", "tfoot", "tr", "td", "th", "caption",
   "colgroup", "col",
   // Layout / legacy
-  "div", "hr", "wbr", "noscript",
+  "div", "hr", "wbr", "noscript", "style",
 ];
 
 const EMAIL_ALLOWED_ATTR = [
@@ -364,41 +470,16 @@ const EMAIL_BODY_STYLES = `
   .email-section--rich {
     overflow-x: auto;
   }
-  /* Newsletter view: minimal safety styles only. Let the email's own HTML
-     dominate typography — no reading-oriented margins, serif fonts, etc. */
-  .newsletter-view {
-    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+  .newsletter-stage {
+    padding-top: 4px;
   }
-  .newsletter-view * { box-sizing: border-box; }
-  .newsletter-view img {
-    max-width: 100%;
-    height: auto;
-    display: inline-block;
-  }
-  .newsletter-view a {
-    color: var(--radius-accent, #C4785A);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-  .newsletter-view a:hover {
-    color: var(--radius-accent-hover, #B56A4D);
-  }
-  .newsletter-view table {
-    max-width: 100%;
-  }
-  .newsletter-view figure {
-    margin: 1em 0;
-  }
-  .newsletter-view figcaption {
-    font-size: 0.85em;
-    color: #6e6a62;
-    text-align: center;
-    margin-top: 0.3em;
-  }
-  .dark .newsletter-view figcaption {
-    color: #8c8a87;
+  .newsletter-frame {
+    width: 100%;
+    display: block;
+    border: 0;
+    border-radius: 20px;
+    background: #ffffff;
+    box-shadow: 0 0 0 1px rgba(229, 224, 217, 0.12);
   }
 
   .email-body p { margin: 0 0 1em; }
@@ -634,33 +715,33 @@ export const ReaderView = memo(function ReaderView({
         {isPureNewsletter ? (
           /* ═════ DOCUMENT MODE — Newsletters ═════ */
           <article className="w-full px-6 pt-6 pb-24">
-            {/* Compact sender bar */}
-            <div className="max-w-[720px] mx-auto mb-6">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-[15px] font-semibold text-radius-text-primary truncate font-[family-name:var(--font-family-sans)]">
-                    {sender.name || sender.email}
-                  </span>
-                  <span className="shrink-0 inline-flex items-center gap-[5px] text-[11px] font-medium font-[family-name:var(--font-family-sans)] px-2 py-0.5 rounded-full bg-[rgba(163,90,196,0.10)] text-[#a35ac4]">
-                    <span className="inline-block rounded-full bg-[#a35ac4]" style={{ width: 4, height: 4 }} />
+            <div className="mx-auto max-w-[920px]">
+              <header className="mb-6 flex flex-col gap-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="inline-flex items-center gap-[6px] rounded-full border border-[rgba(163,90,196,0.22)] bg-[rgba(163,90,196,0.10)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a35ac4] font-[family-name:var(--font-family-sans)]">
+                    <span className="inline-block rounded-full bg-[#a35ac4]" style={{ width: 5, height: 5 }} />
                     Newsletter
                   </span>
+                  <span className="truncate text-[12px] uppercase tracking-[0.16em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                    {sender.name || sender.email}
+                  </span>
                 </div>
-                <time className="shrink-0 text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-                  {formatFullDate(message.internalDate)}
-                </time>
-              </div>
-            </div>
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <h1 className="min-w-0 max-w-[42rem] text-[28px] leading-[1.08] tracking-[-0.02em] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
+                    {message.subject || "Newsletter"}
+                  </h1>
+                  <time className="shrink-0 text-[12px] uppercase tracking-[0.16em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                    {formatFullDate(message.internalDate)}
+                  </time>
+                </div>
+              </header>
 
-            {/* Newsletter card — contained document */}
-            <div className="max-w-[720px] mx-auto">
-              <div
-                className="newsletter-view min-w-0"
-                onClick={handleBodyClick}
-                dangerouslySetInnerHTML={{
-                  __html: htmlRender.html ?? sanitizedHtml ?? "",
-                }}
-              />
+              <div className="newsletter-stage">
+                <NewsletterFrame
+                  messageId={message.id}
+                  html={htmlRender.html ?? sanitizedHtml ?? ""}
+                />
+              </div>
               <AttachmentList attachments={message.attachments} messageId={message.id} />
             </div>
           </article>
