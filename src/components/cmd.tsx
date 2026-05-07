@@ -6,6 +6,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandShortcut,
 } from "@/components/ui/command";
 import { useTheme } from "./theme-provider";
 import {
@@ -33,7 +34,7 @@ interface CommandKProps {
   activeAccount: string | null;
 }
 
-type Page = "home" | "accounts";
+type Page = "home" | "accounts" | "themes";
 
 export function CommandK({
   onSearchEmails,
@@ -46,11 +47,31 @@ export function CommandK({
   activeAccount,
 }: CommandKProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const { setTheme, theme } = useTheme();
+  const { setTheme, theme, themes } = useTheme();
   const [page, setPage] = React.useState<Page>("home");
   const [search, setSearch] = React.useState("");
   const [selectedValue, setSelectedValue] = React.useState("");
   const [deleteTarget, setDeleteTarget] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (page === "home") {
+      setSelectedValue((current) => current || "toggle-theme");
+      return;
+    }
+
+    if (page === "accounts") {
+      const nextValue = accounts[0]?.email ?? "add-account";
+      setSelectedValue((current) => current || nextValue);
+      return;
+    }
+
+    const nextThemeValue = themes[0]?.name ?? "";
+    setSelectedValue((current) => current || nextThemeValue);
+  }, [accounts, page, themes]);
+
+  React.useEffect(() => {
+    setSelectedValue("");
+  }, [page]);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -120,7 +141,7 @@ export function CommandK({
       className="w-full max-w-xl border border-radius-border-subtle overflow-hidden"
       onKeyDown={handleKeyDown}
     >
-      {page === "accounts" && (
+      {page !== "home" && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-radius-border-subtle">
           <button
             type="button"
@@ -131,7 +152,7 @@ export function CommandK({
             <ArrowLeftIcon size={14} />
           </button>
           <span className="text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-            Accounts
+            {page === "accounts" ? "Accounts" : "Themes"}
           </span>
         </div>
       )}
@@ -164,7 +185,7 @@ export function CommandK({
           </div>
         </div>
       )}
-      <div className={page === "accounts" ? "sr-only" : undefined}>
+      <div className={page !== "home" ? "sr-only" : undefined}>
         <CommandInput
           ref={inputRef}
           placeholder={page === "home" ? "Type a command or search..." : ""}
@@ -178,34 +199,51 @@ export function CommandK({
         {page === "home" ? (
           <CommandGroup heading="Suggestions">
             <CommandItem
+              active={selectedValue === "toggle-theme"}
               value="toggle-theme"
-              onSelect={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onSelect={() => {
+                setPage("themes");
+                setSearch("");
+              }}
             >
               <SunDimIcon />
               <span>Toggle Theme</span>
             </CommandItem>
-            <CommandItem value="search-emails" onSelect={onSearchEmails}>
+            <CommandItem
+              active={selectedValue === "search-emails"}
+              value="search-emails"
+              onSelect={onSearchEmails}
+            >
               <MagnifyingGlassIcon />
               <span>Search Emails</span>
             </CommandItem>
-            <CommandItem value="check-updates" onSelect={onCheckForUpdates}>
+            <CommandItem
+              active={selectedValue === "check-updates"}
+              value="check-updates"
+              onSelect={onCheckForUpdates}
+            >
               <ArrowsClockwiseIcon />
               <span>Check for Updates</span>
             </CommandItem>
-            <CommandItem value="accounts" onSelect={() => setPage("accounts")}>
+            <CommandItem
+              active={selectedValue === "accounts"}
+              value="accounts"
+              onSelect={() => setPage("accounts")}
+            >
               <UserCircleIcon />
               <span>Accounts</span>
             </CommandItem>
-            <CommandItem value="about" onSelect={onAbout}>
+            <CommandItem active={selectedValue === "about"} value="about" onSelect={onAbout}>
               <InfoIcon />
               <span>About</span>
             </CommandItem>
           </CommandGroup>
-        ) : (
+        ) : page === "accounts" ? (
           <>
             <CommandGroup heading="Your accounts">
               {accounts.map((account) => (
                 <CommandItem
+                  active={selectedValue === account.email}
                   key={account.email}
                   value={account.email}
                   onSelect={() => {
@@ -223,20 +261,48 @@ export function CommandK({
                     {account.email === activeAccount && (
                       <CheckIcon size={14} className="text-radius-accent" />
                     )}
-                    <span className="inline-flex h-5 items-center rounded border border-radius-border-subtle bg-radius-bg-secondary px-1.5 text-[10px] font-medium text-radius-text-muted opacity-0 transition-opacity duration-150 group-data-selected/command-item:opacity-100 font-[family-name:var(--font-family-sans)]">
+                    <CommandShortcut className="inline-flex h-5 items-center rounded border border-radius-border-subtle bg-radius-bg-secondary px-1.5 text-[10px] font-medium text-radius-text-muted duration-150 font-[family-name:var(--font-family-sans)]">
                       D
-                    </span>
+                    </CommandShortcut>
                   </div>
                 </CommandItem>
               ))}
             </CommandGroup>
             <CommandGroup heading="Actions">
-              <CommandItem value="add-account" onSelect={onAddAccount}>
+              <CommandItem
+                active={selectedValue === "add-account"}
+                value="add-account"
+                onSelect={onAddAccount}
+              >
                 <PlusIcon />
                 <span>Add Account</span>
               </CommandItem>
             </CommandGroup>
           </>
+        ) : (
+          <CommandGroup heading="Available themes">
+            {themes.map((item) => (
+              <CommandItem
+                active={selectedValue === item.name}
+                key={item.id}
+                value={item.name}
+                onSelect={() => {
+                  if (item.id !== theme) {
+                    setTheme(item.id);
+                  }
+                }}
+                className="justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <SunDimIcon />
+                  <span className="text-sm">{item.name}</span>
+                </div>
+                {item.id === theme && (
+                  <CheckIcon size={14} className="text-radius-accent" />
+                )}
+              </CommandItem>
+            ))}
+          </CommandGroup>
         )}
       </CommandList>
     </Command>

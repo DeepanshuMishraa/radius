@@ -1,0 +1,28 @@
+{
+  "$schema": "../theme.schema.json",
+  "id": "catpucchin-frappe",
+  "name": "Catppuccin Frappe",
+  "description": "Cool berry-toned dark theme based on Catppuccin Frappe.",
+  "appearance": "dark",
+  "tokens": {
+    "bg": "rgb(48, 52, 70)",
+    "bgSidebar": "rgb(57, 62, 84)",
+    "bgTitlebar": "rgb(48, 52, 70)",
+    "separator": "rgba(255, 255, 255, 0.12)",
+    "text": "rgba(198, 208, 245, 0.95)",
+    "textSecondary": "rgba(165, 173, 206, 0.84)",
+    "textTertiary": "rgba(165, 173, 206, 0.62)",
+    "controlHover": "rgba(98, 104, 128, 0.28)",
+    "controlActive": "rgba(98, 104, 128, 0.18)",
+    "accent": "#8caaee",
+    "accentSelection": "rgba(140, 170, 238, 0.24)",
+    "focusRing": "rgba(140, 170, 238, 0.5)",
+    "sheetBg": "rgb(57, 62, 84)",
+    "sheetBorder": "rgba(255, 255, 255, 0.15)",
+    "sheetShadow": "none",
+    "pageShadow": "none",
+    "pageShadowLoading": "none",
+    "success": "#a6d189",
+    "danger": "#e78284"
+  }
+}

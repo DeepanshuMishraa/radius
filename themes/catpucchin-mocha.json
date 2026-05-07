@@ -1,0 +1,28 @@
+{
+  "$schema": "../theme.schema.json",
+  "id": "catpucchin-mocha",
+  "name": "Catppuccin Mocha",
+  "description": "Rich mauve dark theme based on Catppuccin Mocha.",
+  "appearance": "dark",
+  "tokens": {
+    "bg": "rgb(30, 30, 46)",
+    "bgSidebar": "rgb(49, 50, 68)",
+    "bgTitlebar": "rgb(30, 30, 46)",
+    "separator": "rgba(255, 255, 255, 0.12)",
+    "text": "rgba(205, 214, 244, 0.96)",
+    "textSecondary": "rgba(166, 173, 200, 0.84)",
+    "textTertiary": "rgba(166, 173, 200, 0.62)",
+    "controlHover": "rgba(88, 91, 112, 0.28)",
+    "controlActive": "rgba(88, 91, 112, 0.18)",
+    "accent": "#89b4fa",
+    "accentSelection": "rgba(137, 180, 250, 0.24)",
+    "focusRing": "rgba(137, 180, 250, 0.52)",
+    "sheetBg": "rgb(49, 50, 68)",
+    "sheetBorder": "rgba(255, 255, 255, 0.15)",
+    "sheetShadow": "none",
+    "pageShadow": "none",
+    "pageShadowLoading": "none",
+    "success": "#a6e3a1",
+    "danger": "#f38ba8"
+  }
+}

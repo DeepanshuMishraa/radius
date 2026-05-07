@@ -1,0 +1,28 @@
+{
+  "$schema": "../theme.schema.json",
+  "id": "gruvbox-dark",
+  "name": "Gruvbox Dark",
+  "description": "Earthy low-glare dark theme with warm parchment text and muted Radius surfaces.",
+  "appearance": "dark",
+  "tokens": {
+    "bg": "#4C4642",
+    "bgSidebar": "#3A3735",
+    "bgTitlebar": "#282828",
+    "separator": "#494340",
+    "text": "#FBF1C7",
+    "textSecondary": "#C5B597",
+    "textTertiary": "#998B78",
+    "controlHover": "#494340",
+    "controlActive": "#5B524C",
+    "accent": "#83A598",
+    "accentSelection": "rgba(131, 165, 152, 0.24)",
+    "focusRing": "#303A36",
+    "sheetBg": "#3A3735",
+    "sheetBorder": "#5B534D",
+    "sheetShadow": "none",
+    "pageShadow": "none",
+    "pageShadowLoading": "none",
+    "success": "#B7BB26",
+    "danger": "#FB4A35"
+  }
+}

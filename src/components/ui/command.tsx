@@ -146,15 +146,19 @@ function CommandSeparator({
 }
 
 function CommandItem({
+  active = false,
   className,
   children,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Item>) {
+}: React.ComponentProps<typeof CommandPrimitive.Item> & {
+  active?: boolean
+}) {
   return (
     <CommandPrimitive.Item
       data-slot="command-item"
+      data-active={active ? "true" : undefined}
       className={cn(
-        "group/command-item relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none in-data-[slot=dialog-content]:rounded-lg! data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-radius-bg-secondary data-selected:text-radius-text-primary [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-selected:*:[svg]:text-radius-text-primary",
+        "group/command-item relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none transition-colors in-data-[slot=dialog-content]:rounded-lg! data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[active=true]:bg-radius-bg-secondary data-[active=true]:text-radius-text-primary data-[active=true]:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--radius-border)_55%,transparent)] data-[active=true]:[&_svg]:text-radius-text-primary data-[active=true]:[&_[data-slot=command-shortcut]]:opacity-100 before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-0.5 before:rounded-full before:bg-radius-accent before:opacity-0 before:transition-opacity data-[active=true]:before:opacity-100 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
@@ -173,7 +177,7 @@ function CommandShortcut({
     <span
       data-slot="command-shortcut"
       className={cn(
-        "ml-auto text-xs tracking-widest text-radius-text-muted group-data-selected/command-item:text-radius-text-primary",
+        "ml-auto text-xs tracking-widest text-radius-text-muted opacity-0 transition-opacity group-data-selected/command-item:text-radius-text-primary",
         className
       )}
       {...props}

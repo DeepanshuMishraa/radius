@@ -1,0 +1,153 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://radius.app/schemas/theme.schema.json",
+  "title": "Radius UI Theme",
+  "description": "Theme definition for Radius desktop UI surfaces, typography, controls, and feedback colors.",
+  "type": "object",
+  "required": ["$schema", "id", "name", "appearance", "tokens"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "../theme.schema.json",
+      "description": "Relative path from a theme file in /themes to this schema file."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "description": "Stable machine ID for persistence."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 48,
+      "description": "Human-friendly name shown in the UI."
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 180,
+      "description": "Optional short summary for the theme picker."
+    },
+    "appearance": {
+      "type": "string",
+      "enum": ["dark", "light"],
+      "description": "Controls preferred color-scheme behavior for controls/inputs."
+    },
+    "tokens": {
+      "$ref": "#/definitions/themeTokens"
+    }
+  },
+  "definitions": {
+    "cssColor": {
+      "type": "string",
+      "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|rgba?\\([^\\n]+\\)|hsla?\\([^\\n]+\\)|transparent)$"
+    },
+    "cssShadow": {
+      "type": "string",
+      "minLength": 3
+    },
+    "themeTokens": {
+      "type": "object",
+      "required": [
+        "bg",
+        "bgSidebar",
+        "bgTitlebar",
+        "separator",
+        "text",
+        "textSecondary",
+        "textTertiary",
+        "controlHover",
+        "controlActive",
+        "accent",
+        "accentSelection",
+        "focusRing",
+        "sheetBg",
+        "sheetBorder",
+        "sheetShadow",
+        "pageShadow",
+        "pageShadowLoading",
+        "success",
+        "danger"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "bg": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Main app background."
+        },
+        "bgSidebar": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Sidebar and viewer panel background."
+        },
+        "bgTitlebar": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Header/titlebar background."
+        },
+        "separator": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Subtle separators and borders."
+        },
+        "text": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Primary readable text."
+        },
+        "textSecondary": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Secondary/supporting text."
+        },
+        "textTertiary": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Muted/metadata text."
+        },
+        "controlHover": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Hover background for controls."
+        },
+        "controlActive": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Pressed/active control background."
+        },
+        "accent": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Primary brand/action color."
+        },
+        "accentSelection": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Selection tint and accent background."
+        },
+        "focusRing": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Keyboard focus ring."
+        },
+        "sheetBg": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Modal/popover background."
+        },
+        "sheetBorder": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Modal/popover border."
+        },
+        "sheetShadow": {
+          "$ref": "#/definitions/cssShadow",
+          "description": "Modal/popover shadow."
+        },
+        "pageShadow": {
+          "$ref": "#/definitions/cssShadow",
+          "description": "PDF page resting shadow."
+        },
+        "pageShadowLoading": {
+          "$ref": "#/definitions/cssShadow",
+          "description": "PDF page loading shadow."
+        },
+        "success": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Success indicator color."
+        },
+        "danger": {
+          "$ref": "#/definitions/cssColor",
+          "description": "Error/destructive indicator color."
+        }
+      }
+    }
+  }
+}

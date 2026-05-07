@@ -1,0 +1,28 @@
+{
+  "$schema": "../theme.schema.json",
+  "id": "tokyo-night-dark",
+  "name": "Tokyo Night Dark",
+  "description": "Deep indigo dark theme inspired by Tokyo Night's muted neon tones.",
+  "appearance": "dark",
+  "tokens": {
+    "bg": "rgb(21, 23, 32)",
+    "bgSidebar": "rgb(26, 27, 38)",
+    "bgTitlebar": "rgb(21, 22, 30)",
+    "separator": "rgba(255, 255, 255, 0.12)",
+    "text": "rgba(169, 177, 214, 0.92)",
+    "textSecondary": "rgba(169, 177, 214, 0.7)",
+    "textTertiary": "rgba(169, 177, 214, 0.5)",
+    "controlHover": "rgba(122, 162, 247, 0.15)",
+    "controlActive": "rgba(122, 162, 247, 0.1)",
+    "accent": "#7aa2f7",
+    "accentSelection": "rgba(122, 162, 247, 0.24)",
+    "focusRing": "rgba(122, 162, 247, 0.55)",
+    "sheetBg": "rgb(34, 36, 56)",
+    "sheetBorder": "rgba(255, 255, 255, 0.15)",
+    "sheetShadow": "none",
+    "pageShadow": "none",
+    "pageShadowLoading": "none",
+    "success": "#9ece6a",
+    "danger": "#f7768e"
+  }
+}

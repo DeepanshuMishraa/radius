@@ -1,0 +1,28 @@
+{
+  "$schema": "../theme.schema.json",
+  "id": "rose-pine",
+  "name": "Rose Pine",
+  "description": "Muted mauve dark theme based on Ros\u00e9 Pine.",
+  "appearance": "dark",
+  "tokens": {
+    "bg": "rgb(25, 23, 36)",
+    "bgSidebar": "rgb(38, 35, 58)",
+    "bgTitlebar": "rgb(31, 29, 46)",
+    "separator": "rgba(255, 255, 255, 0.12)",
+    "text": "rgba(224, 222, 244, 0.96)",
+    "textSecondary": "rgba(196, 167, 231, 0.82)",
+    "textTertiary": "rgba(110, 106, 134, 0.86)",
+    "controlHover": "rgba(64, 61, 82, 0.3)",
+    "controlActive": "rgba(64, 61, 82, 0.2)",
+    "accent": "#9ccfd8",
+    "accentSelection": "rgba(156, 207, 216, 0.24)",
+    "focusRing": "rgba(156, 207, 216, 0.5)",
+    "sheetBg": "rgb(38, 35, 58)",
+    "sheetBorder": "rgba(255, 255, 255, 0.15)",
+    "sheetShadow": "none",
+    "pageShadow": "none",
+    "pageShadowLoading": "none",
+    "success": "#31748f",
+    "danger": "#eb6f92"
+  }
+}

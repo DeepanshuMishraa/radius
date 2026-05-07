@@ -1,0 +1,28 @@
+{
+  "$schema": "../theme.schema.json",
+  "id": "github-dark",
+  "name": "GitHub Dark",
+  "description": "Dark theme based on GitHub's default dark theme.",
+  "appearance": "dark",
+  "tokens": {
+    "bg": "rgb(16, 18, 22)",
+    "bgSidebar": "rgb(22, 27, 34)",
+    "bgTitlebar": "rgb(22, 27, 34)",
+    "separator": "rgba(255, 255, 255, 0.12)",
+    "text": "rgba(201, 209, 217, 0.95)",
+    "textSecondary": "rgba(139, 148, 158, 0.86)",
+    "textTertiary": "rgba(139, 148, 158, 0.62)",
+    "controlHover": "rgba(108, 164, 248, 0.16)",
+    "controlActive": "rgba(108, 164, 248, 0.1)",
+    "accent": "#6ca4f8",
+    "accentSelection": "rgba(108, 164, 248, 0.24)",
+    "focusRing": "rgba(108, 164, 248, 0.52)",
+    "sheetBg": "rgb(22, 27, 34)",
+    "sheetBorder": "rgba(255, 255, 255, 0.15)",
+    "sheetShadow": "none",
+    "pageShadow": "none",
+    "pageShadowLoading": "none",
+    "success": "#56d364",
+    "danger": "#f78166"
+  }
+}

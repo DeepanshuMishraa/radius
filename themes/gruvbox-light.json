@@ -1,0 +1,28 @@
+{
+  "$schema": "../theme.schema.json",
+  "id": "gruvbox-light",
+  "name": "Gruvbox Light",
+  "description": "Warm parchment light theme with muted earthy accents tuned to Radius surfaces.",
+  "appearance": "light",
+  "tokens": {
+    "bg": "#F9F5D7",
+    "bgSidebar": "#FBF1C7",
+    "bgTitlebar": "#F2E5BC",
+    "separator": "#D5C4A1",
+    "text": "#3C3836",
+    "textSecondary": "#665C54",
+    "textTertiary": "#928374",
+    "controlHover": "#EFE2B3",
+    "controlActive": "#E2CCA9",
+    "accent": "#458588",
+    "accentSelection": "rgba(69, 133, 136, 0.18)",
+    "focusRing": "rgba(69, 133, 136, 0.38)",
+    "sheetBg": "#FBF1C7",
+    "sheetBorder": "#D5C4A1",
+    "sheetShadow": "none",
+    "pageShadow": "none",
+    "pageShadowLoading": "none",
+    "success": "#79740E",
+    "danger": "#CC241D"
+  }
+}

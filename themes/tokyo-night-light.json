@@ -1,0 +1,28 @@
+{
+  "$schema": "../theme.schema.json",
+  "id": "tokyo-night-light",
+  "name": "Tokyo Night Light",
+  "description": "Soft slate light theme with restrained contrast and clear typographic hierarchy.",
+  "appearance": "light",
+  "tokens": {
+    "bg": "rgb(244, 246, 250)",
+    "bgSidebar": "rgb(236, 238, 244)",
+    "bgTitlebar": "rgb(244, 246, 250)",
+    "separator": "rgba(0, 0, 0, 0.12)",
+    "text": "rgba(52, 59, 88, 0.92)",
+    "textSecondary": "rgba(52, 59, 88, 0.68)",
+    "textTertiary": "rgba(52, 59, 88, 0.48)",
+    "controlHover": "rgba(52, 59, 88, 0.09)",
+    "controlActive": "rgba(52, 59, 88, 0.06)",
+    "accent": "#34548a",
+    "accentSelection": "rgba(52, 84, 138, 0.16)",
+    "focusRing": "rgba(52, 84, 138, 0.38)",
+    "sheetBg": "rgb(249, 250, 253)",
+    "sheetBorder": "rgba(0, 0, 0, 0.15)",
+    "sheetShadow": "none",
+    "pageShadow": "none",
+    "pageShadowLoading": "none",
+    "success": "#485e30",
+    "danger": "#8c4351"
+  }
+}

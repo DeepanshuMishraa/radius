@@ -1,0 +1,28 @@
+{
+  "$schema": "../theme.schema.json",
+  "id": "github-light",
+  "name": "GitHub Light",
+  "description": "Light theme based on GitHub's default light theme.",
+  "appearance": "light",
+  "tokens": {
+    "bg": "rgb(248, 250, 252)",
+    "bgSidebar": "rgb(255, 255, 255)",
+    "bgTitlebar": "rgb(255, 255, 255)",
+    "separator": "rgba(0, 0, 0, 0.12)",
+    "text": "rgba(31, 35, 40, 0.95)",
+    "textSecondary": "rgba(87, 96, 106, 0.82)",
+    "textTertiary": "rgba(87, 96, 106, 0.62)",
+    "controlHover": "rgba(31, 35, 40, 0.06)",
+    "controlActive": "rgba(31, 35, 40, 0.04)",
+    "accent": "#0969da",
+    "accentSelection": "rgba(9, 105, 218, 0.16)",
+    "focusRing": "rgba(9, 105, 218, 0.38)",
+    "sheetBg": "rgb(255, 255, 255)",
+    "sheetBorder": "rgba(0, 0, 0, 0.15)",
+    "sheetShadow": "none",
+    "pageShadow": "none",
+    "pageShadowLoading": "none",
+    "success": "#116329",
+    "danger": "#cf222e"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "../theme.schema.json",
+  "id": "nothing-dark",
+  "name": "Nothing (Dark)",
+  "description": "True OLED Nothing Design System theme. Pure blacks, Space Grotesk, precise borders and the iconic red signal accent.",
+  "appearance": "dark",
+  "tokens": {
+    "bg": "#000000",
+    "bgSidebar": "#111111",
+    "bgTitlebar": "#1A1A1A",
+    "separator": "#333333",
+    "text": "#E8E8E8",
+    "textSecondary": "#999999",
+    "textTertiary": "#666666",
+    "controlHover": "#222222",
+    "controlActive": "#333333",
+    "accent": "#D71921",
+    "accentSelection": "rgba(215, 25, 33, 0.15)",
+    "focusRing": "rgba(215, 25, 33, 0.5)",
+    "sheetBg": "#1A1A1A",
+    "sheetBorder": "#333333",
+    "sheetShadow": "none",
+    "pageShadow": "none",
+    "pageShadowLoading": "none",
+    "success": "#4A9E5C",
+    "danger": "#D71921"
+  }
+}

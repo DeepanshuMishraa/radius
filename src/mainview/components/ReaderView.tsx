@@ -1,6 +1,7 @@
 import DOMPurify from "dompurify";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
+import { useTheme } from "@/components/theme-provider";
 import type { Message, EmailCategory } from "../hooks/useInbox";
 import { ListIcon, FileIcon, ArrowSquareOut } from "@phosphor-icons/react";
 import { radiusRpc } from "../lib/rpc";
@@ -289,22 +290,43 @@ function splitHtmlIntoSections(html: string): {
   };
 }
 
-function buildNewsletterSrcDoc(html: string, frameId: string): string {
+function buildNewsletterSrcDoc(
+  html: string,
+  frameId: string,
+  theme: {
+    appearance: "light" | "dark";
+    surface: string;
+    elevatedSurface: string;
+    text: string;
+    mutedText: string;
+    border: string;
+    accent: string;
+  }
+): string {
   const escapedFrameId = JSON.stringify(frameId);
+  const escapedTheme = JSON.stringify(theme);
 
   return `<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light only" />
+    <meta name="color-scheme" content="${theme.appearance}" />
     <base target="_blank" />
     <style>
+      :root {
+        --radius-newsletter-surface: ${theme.surface};
+        --radius-newsletter-elevated: ${theme.elevatedSurface};
+        --radius-newsletter-text: ${theme.text};
+        --radius-newsletter-muted: ${theme.mutedText};
+        --radius-newsletter-border: ${theme.border};
+        --radius-newsletter-accent: ${theme.accent};
+      }
       html, body {
         margin: 0;
         padding: 0;
-        background: #ffffff;
-        color: #1f1f1f;
+        background: var(--radius-newsletter-surface);
+        color: var(--radius-newsletter-text);
         overflow-x: hidden;
       }
       * {
@@ -330,14 +352,169 @@ function buildNewsletterSrcDoc(html: string, frameId: string): string {
         width: max-content;
         max-width: 100%;
       }
+      .radius-email-root,
+      .radius-email-inner {
+        color: var(--radius-newsletter-text);
+      }
+      body[data-radius-appearance="dark"] .radius-email-inner,
+      body[data-radius-appearance="dark"] .radius-email-inner :is(body, table, tbody, thead, tfoot, tr, td, th, div, section, article, main, aside, p, span, li, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, font) {
+        background-color: transparent !important;
+        color: var(--radius-newsletter-text) !important;
+        border-color: var(--radius-newsletter-border) !important;
+      }
+      body[data-radius-appearance="dark"] .radius-email-inner table,
+      body[data-radius-appearance="dark"] .radius-email-inner td,
+      body[data-radius-appearance="dark"] .radius-email-inner th {
+        background-image: none !important;
+      }
+      body[data-radius-appearance="dark"] .radius-email-inner a {
+        color: var(--radius-newsletter-accent) !important;
+      }
+      body[data-radius-appearance="dark"] .radius-email-inner :is(svg, path) {
+        color: inherit;
+      }
+      body[data-radius-appearance="dark"] .radius-email-inner img {
+        background: transparent !important;
+      }
     </style>
   </head>
-  <body>
+  <body data-radius-appearance="${theme.appearance}">
     <div class="radius-email-root">
       <div class="radius-email-inner">${html}</div>
     </div>
     <script>
       const frameId = ${escapedFrameId};
+      const theme = ${escapedTheme};
+      const IGNORED_TAGS = new Set(["IMG", "SVG", "PATH", "VIDEO", "SOURCE", "PICTURE", "CANVAS"]);
+      const SURFACE_TAGS = new Set(["TABLE", "TBODY", "THEAD", "TFOOT", "TR", "TD", "TH", "DIV", "SECTION", "ARTICLE", "MAIN", "ASIDE"]);
+
+      const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+      const parseColor = (input) => {
+        if (!input) return null;
+        const value = input.trim().toLowerCase();
+        if (!value || value === "transparent" || value === "inherit" || value === "initial") {
+          return null;
+        }
+
+        if (value.startsWith("#")) {
+          const hex = value.slice(1);
+          const expanded =
+            hex.length === 3 || hex.length === 4
+              ? hex.split("").map((part) => part + part).join("")
+              : hex;
+          if (expanded.length !== 6 && expanded.length !== 8) return null;
+          const r = parseInt(expanded.slice(0, 2), 16);
+          const g = parseInt(expanded.slice(2, 4), 16);
+          const b = parseInt(expanded.slice(4, 6), 16);
+          const a = expanded.length === 8 ? parseInt(expanded.slice(6, 8), 16) / 255 : 1;
+          return { r, g, b, a };
+        }
+
+        const match = value.match(/rgba?\\(([^)]+)\\)/);
+        if (!match) return null;
+        const parts = match[1].split(",").map((part) => part.trim());
+        if (parts.length < 3) return null;
+        const r = Number(parts[0]);
+        const g = Number(parts[1]);
+        const b = Number(parts[2]);
+        const a = parts.length > 3 ? Number(parts[3]) : 1;
+        if ([r, g, b, a].some((part) => Number.isNaN(part))) return null;
+        return { r, g, b, a };
+      };
+
+      const luminance = (color) => {
+        if (!color) return null;
+        const toLinear = (channel) => {
+          const normalized = clamp(channel / 255, 0, 1);
+          return normalized <= 0.03928
+            ? normalized / 12.92
+            : Math.pow((normalized + 0.055) / 1.055, 2.4);
+        };
+        return 0.2126 * toLinear(color.r) + 0.7152 * toLinear(color.g) + 0.0722 * toLinear(color.b);
+      };
+
+      const adaptNewsletterForTheme = () => {
+        const root = document.querySelector(".radius-email-inner");
+        if (!root) return;
+
+        document.documentElement.style.setProperty("background-color", theme.surface, "important");
+        document.body.style.setProperty("background-color", theme.surface, "important");
+        document.body.style.setProperty("color", theme.text, "important");
+        root.style.setProperty("background-color", theme.surface, "important");
+        root.style.setProperty("color", theme.text, "important");
+
+        for (const element of root.querySelectorAll("*")) {
+          if (!(element instanceof HTMLElement)) continue;
+          if (IGNORED_TAGS.has(element.tagName)) continue;
+
+          const computed = window.getComputedStyle(element);
+          const bg = parseColor(computed.backgroundColor);
+          const fg = parseColor(computed.color);
+          const borderTop = parseColor(computed.borderTopColor);
+          const borderRight = parseColor(computed.borderRightColor);
+          const borderBottom = parseColor(computed.borderBottomColor);
+          const borderLeft = parseColor(computed.borderLeftColor);
+
+          const bgLum = luminance(bg);
+          const fgLum = luminance(fg);
+          const borderValues = [borderTop, borderRight, borderBottom, borderLeft]
+            .filter(Boolean)
+            .map((color) => luminance(color));
+
+          const shouldAdaptLightSurface =
+            theme.appearance === "dark" &&
+            bg &&
+            bg.a > 0.75 &&
+            bgLum !== null &&
+            bgLum > 0.72;
+
+          const shouldAdaptPaperSurface =
+            theme.appearance === "light" &&
+            bg &&
+            bg.a > 0.82 &&
+            bgLum !== null &&
+            bgLum > 0.94;
+
+          if (shouldAdaptLightSurface || shouldAdaptPaperSurface) {
+            element.style.setProperty("background-image", "none", "important");
+            element.style.setProperty(
+              "background-color",
+              SURFACE_TAGS.has(element.tagName) ? theme.elevatedSurface : "transparent",
+              "important"
+            );
+            element.style.setProperty("background", "none", "important");
+            if (element.hasAttribute("bgcolor")) {
+              element.removeAttribute("bgcolor");
+            }
+            if (element.hasAttribute("background")) {
+              element.removeAttribute("background");
+            }
+          }
+
+          if (
+            fg &&
+            fg.a > 0.4 &&
+            fgLum !== null &&
+            ((theme.appearance === "dark" && fgLum < 0.3) ||
+              (theme.appearance === "light" && fgLum > 0.96)) &&
+            element.tagName !== "A"
+          ) {
+            element.style.setProperty("color", theme.text, "important");
+          }
+
+          if (
+            borderValues.some((value) =>
+              value !== null &&
+              ((theme.appearance === "dark" && value > 0.75) ||
+                (theme.appearance === "light" && value > 0.94))
+            )
+          ) {
+            element.style.setProperty("border-color", theme.border, "important");
+          }
+        }
+      };
+
       const postHeight = () => {
         const body = document.body;
         const html = document.documentElement;
@@ -350,7 +527,10 @@ function buildNewsletterSrcDoc(html: string, frameId: string): string {
         parent.postMessage({ type: "radius-newsletter-height", frameId, height }, "*");
       };
 
+      document.documentElement.style.colorScheme = theme.appearance;
+
       window.addEventListener("load", () => {
+        adaptNewsletterForTheme();
         postHeight();
         setTimeout(postHeight, 50);
         setTimeout(postHeight, 250);
@@ -362,10 +542,30 @@ function buildNewsletterSrcDoc(html: string, frameId: string): string {
 </html>`;
 }
 
-function NewsletterFrame({ html, messageId }: { html: string; messageId: string }) {
+function NewsletterFrame({
+  html,
+  messageId,
+  themeConfig,
+}: {
+  html: string;
+  messageId: string;
+  themeConfig: {
+    id: string;
+    appearance: "light" | "dark";
+    surface: string;
+    elevatedSurface: string;
+    text: string;
+    mutedText: string;
+    border: string;
+    accent: string;
+  };
+}) {
   const [height, setHeight] = useState(900);
   const frameId = useMemo(() => `newsletter-${messageId}`, [messageId]);
-  const srcDoc = useMemo(() => buildNewsletterSrcDoc(html, frameId), [frameId, html]);
+  const srcDoc = useMemo(
+    () => buildNewsletterSrcDoc(html, frameId, themeConfig),
+    [frameId, html, themeConfig]
+  );
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -478,8 +678,8 @@ const EMAIL_BODY_STYLES = `
     display: block;
     border: 0;
     border-radius: 20px;
-    background: #ffffff;
-    box-shadow: 0 0 0 1px rgba(229, 224, 217, 0.12);
+    background: var(--radius-bg-primary, #ffffff);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--radius-border-subtle, #E5E0D9) 72%, transparent);
   }
 
   .email-body p { margin: 0 0 1em; }
@@ -619,6 +819,21 @@ export const ReaderView = memo(function ReaderView({
   sidebarOpen,
   onOpenSidebar,
 }: ReaderViewProps) {
+  const { theme, appearance, resolvedTheme } = useTheme();
+  const newsletterThemeConfig = useMemo(() => {
+    const variables = resolvedTheme?.variables ?? {};
+
+    return {
+      id: theme,
+      appearance,
+      surface: variables["--radius-bg-primary"] ?? "#ffffff",
+      elevatedSurface: variables["--radius-bg-secondary"] ?? "#f7f6f3",
+      text: variables["--radius-text-primary"] ?? "#292827",
+      mutedText: variables["--radius-text-secondary"] ?? "#5c5a57",
+      border: variables["--radius-border-subtle"] ?? "#e5e0d9",
+      accent: variables["--radius-accent"] ?? "#c4785a",
+    };
+  }, [appearance, resolvedTheme, theme]);
   const handleBodyClick = useCallback(async (event: MouseEvent<HTMLDivElement>) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
@@ -740,6 +955,7 @@ export const ReaderView = memo(function ReaderView({
                 <NewsletterFrame
                   messageId={message.id}
                   html={htmlRender.html ?? sanitizedHtml ?? ""}
+                  themeConfig={newsletterThemeConfig}
                 />
               </div>
               <AttachmentList attachments={message.attachments} messageId={message.id} />

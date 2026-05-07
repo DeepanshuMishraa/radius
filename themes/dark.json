@@ -1,0 +1,28 @@
+{
+  "$schema": "../theme.schema.json",
+  "id": "dark",
+  "name": "Radius Dark",
+  "description": "Neutral graphite dark theme with high legibility for long reading sessions.",
+  "appearance": "dark",
+  "tokens": {
+    "bg": "rgb(22, 22, 24)",
+    "bgSidebar": "rgb(30, 30, 30)",
+    "bgTitlebar": "rgb(28, 28, 30)",
+    "separator": "rgba(255, 255, 255, 0.12)",
+    "text": "rgba(255, 255, 255, 0.85)",
+    "textSecondary": "rgba(255, 255, 255, 0.55)",
+    "textTertiary": "rgba(255, 255, 255, 0.35)",
+    "controlHover": "rgba(255, 255, 255, 0.08)",
+    "controlActive": "rgba(255, 255, 255, 0.04)",
+    "accent": "#0a84ff",
+    "accentSelection": "rgba(10, 132, 255, 0.22)",
+    "focusRing": "rgba(10, 132, 255, 0.5)",
+    "sheetBg": "rgb(36, 36, 40)",
+    "sheetBorder": "rgba(255, 255, 255, 0.15)",
+    "sheetShadow": "none",
+    "pageShadow": "none",
+    "pageShadowLoading": "none",
+    "success": "#34c759",
+    "danger": "#ff695e"
+  }
+}

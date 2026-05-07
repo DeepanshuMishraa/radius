@@ -1,0 +1,28 @@
+{
+  "$schema": "../theme.schema.json",
+  "id": "nothing-light",
+  "name": "Nothing (Light)",
+  "description": "Printed technical-manual take on Nothing Design. Warm paper surfaces, black ink hierarchy, and the signature red signal accent.",
+  "appearance": "light",
+  "tokens": {
+    "bg": "#F5F5F5",
+    "bgSidebar": "#FFFFFF",
+    "bgTitlebar": "#F0F0F0",
+    "separator": "#CCCCCC",
+    "text": "#1A1A1A",
+    "textSecondary": "#666666",
+    "textTertiary": "#999999",
+    "controlHover": "#F0F0F0",
+    "controlActive": "#E8E8E8",
+    "accent": "#D71921",
+    "accentSelection": "rgba(215, 25, 33, 0.12)",
+    "focusRing": "rgba(215, 25, 33, 0.42)",
+    "sheetBg": "#FFFFFF",
+    "sheetBorder": "#CCCCCC",
+    "sheetShadow": "none",
+    "pageShadow": "none",
+    "pageShadowLoading": "none",
+    "success": "#4A9E5C",
+    "danger": "#D71921"
+  }
+}
