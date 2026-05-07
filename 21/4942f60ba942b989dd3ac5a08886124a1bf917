@@ -1,0 +1,28 @@
+src/mainview/components/ReaderView.tsx
+  s_e5f2f6f47c841a::t_292f09090a42ff 391
+  s_e5f2f6f47c841a::t_c1696e935018f0 718,720-722,726,733-737,739,744
+  s_e5f2f6f47c841a::t_5825d1fea7fc1b 719,725,729-732
+  s_e5f2f6f47c841a::t_f04c66959daf3b 2,417
+  s_e5f2f6f47c841a::t_c15da886f6c3e6 740-743
+  s_e5f2f6f47c841a::t_da79aedc73f2f7 473
+  s_e5f2f6f47c841a::t_dbfb19cdfaa22f 292-390,392-397
+  s_e5f2f6f47c841a::t_edfd9857f75920 474,476-482
+src/mainview/App.tsx
+  s_e5f2f6f47c841a::t_26fc8e0a09abfa 912-918,925-971
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "214942f60ba942b989dd3ac5a08886124a1bf917",
+  "prompts": {},
+  "sessions": {
+    "s_e5f2f6f47c841a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e0308-be3f-7db3-b1cd-4a0f35bc32fa",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
