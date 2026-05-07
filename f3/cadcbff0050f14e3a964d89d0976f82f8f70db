@@ -1,0 +1,47 @@
+src/mainview/index.css
+  s_8da310f2d55e00::t_c040d778efbf9a 235-236,246-249,278-280
+src/mainview/index.html
+  s_8da310f2d55e00::t_33002e581b4d18 19-34
+src/components/cmd.tsx
+  s_8da310f2d55e00::t_056944aa9458f5 37,50,144,155,188,204-207,241,282-285,287-305
+  s_8da310f2d55e00::t_0915cff49de88a 57-75,202,212-216,220-224,228-232,236,246,272-276,286
+  s_8da310f2d55e00::t_0e2913439dcf88 9,264,266
+src/components/theme-provider.tsx
+  s_8da310f2d55e00::t_e089d6ddbaffe8 1-7,10,13-16,19-21,24,27,29,32,34,38,42-59,61-63,65-67,70-71,75-76,78,81,87,91,93-95,97-98
+  s_8da310f2d55e00::t_f35ab8d0fe1cdb 8,22-23,30-31,79-80
+themes/gruvbox-light.json
+  s_8da310f2d55e00::t_ba10f389c82afc 1-28
+theme.schema.json
+  s_8da310f2d55e00::t_eceb6e02a25b34 3-12
+src/components/ui/command.tsx
+  s_8da310f2d55e00::t_1f07d65f15af96 149,153-155,159,161
+  s_8da310f2d55e00::t_6b404753a5c0f8 180
+themes/gruvbox.json
+  s_8da310f2d55e00::t_108735e4ce7124 1-28
+src/components/theme-registry.ts
+  s_8da310f2d55e00::t_c1e7214e3a5c0c 1-326
+src/mainview/components/ReaderView.tsx
+  s_8da310f2d55e00::t_3a2de870983694 388-440,447-464,487-498,501-502,504-505,514-517,533
+  s_8da310f2d55e00::t_18e1c7d631e86d 465-479,499-500,506-512
+  s_8da310f2d55e00::t_9d713444f1a12a 681-682
+  s_8da310f2d55e00::t_bdd05caea2533b 822,824,829-834,836
+  s_8da310f2d55e00::t_2371f03f41539e 4,293-305,307,314,317-324,328-329,355-378,381,387,530,545-547,549-551,562
+  s_8da310f2d55e00::t_e19c27e1ef0df2 548,552-561,565-568,823,825-828,835,958
+  s_8da310f2d55e00::t_ab674f01725a5b 441-446,480-486,503,513
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "f3cadcbff0050f14e3a964d89d0976f82f8f70db",
+  "prompts": {},
+  "sessions": {
+    "s_8da310f2d55e00": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e031d-0f06-7763-ba73-20999d55bd85",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
