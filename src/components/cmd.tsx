@@ -2,27 +2,21 @@ import * as React from "react";
 import {
   Command,
   CommandEmpty,
-  CommandGroup,
   CommandInput,
-  CommandItem,
   CommandList,
-  CommandShortcut,
 } from "@/components/ui/command";
 import { useTheme } from "./theme-provider";
 import {
-  SunDimIcon,
-  MagnifyingGlassIcon,
-  ArrowsClockwiseIcon,
-  UserCircleIcon,
   ArrowLeftIcon,
-  PlusIcon,
-  CheckIcon,
   TrashIcon,
-  InfoIcon,
-  EnvelopeSimpleIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import type { Account } from "@/mainview/hooks/useInbox";
+import { Home } from "./home";
+import { Accounts } from "./accounts";
+import { Themes } from "./themes";
+
+type Page = "home" | "accounts" | "themes";
 
 interface CommandKProps {
   onSearchEmails: () => void;
@@ -35,8 +29,6 @@ interface CommandKProps {
   accounts: Account[];
   activeAccount: string | null;
 }
-
-type Page = "home" | "accounts" | "themes";
 
 export function CommandK({
   onSearchEmails,
@@ -200,120 +192,34 @@ export function CommandK({
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         {page === "home" ? (
-          <CommandGroup heading="Suggestions">
-            <CommandItem
-              active={selectedValue === "toggle-theme"}
-              value="toggle-theme"
-              onSelect={() => {
-                setPage("themes");
-                setSearch("");
-              }}
-            >
-              <SunDimIcon />
-              <span>Toggle Theme</span>
-            </CommandItem>
-            <CommandItem
-              active={selectedValue === "search-emails"}
-              value="search-emails"
-              onSelect={onSearchEmails}
-            >
-              <MagnifyingGlassIcon />
-              <span>Search Emails</span>
-            </CommandItem>
-            <CommandItem
-              active={selectedValue === "compose-email"}
-              value="compose-email"
-              onSelect={onComposeEmail}
-            >
-              <EnvelopeSimpleIcon />
-              <span>Compose Email</span>
-            </CommandItem>
-            <CommandItem
-              active={selectedValue === "check-updates"}
-              value="check-updates"
-              onSelect={onCheckForUpdates}
-            >
-              <ArrowsClockwiseIcon />
-              <span>Check for Updates</span>
-            </CommandItem>
-            <CommandItem
-              active={selectedValue === "accounts"}
-              value="accounts"
-              onSelect={() => setPage("accounts")}
-            >
-              <UserCircleIcon />
-              <span>Accounts</span>
-            </CommandItem>
-            <CommandItem active={selectedValue === "about"} value="about" onSelect={onAbout}>
-              <InfoIcon />
-              <span>About</span>
-            </CommandItem>
-          </CommandGroup>
+          <Home
+            selectedValue={selectedValue}
+            onSelectTheme={() => {
+              setPage("themes");
+              setSearch("");
+            }}
+            onSearchEmails={onSearchEmails}
+            onComposeEmail={onComposeEmail}
+            onCheckForUpdates={onCheckForUpdates}
+            onSelectAccounts={() => setPage("accounts")}
+            onAbout={onAbout}
+          />
         ) : page === "accounts" ? (
-          <>
-            <CommandGroup heading="Your accounts">
-              {accounts.map((account) => (
-                <CommandItem
-                  active={selectedValue === account.email}
-                  key={account.email}
-                  value={account.email}
-                  onSelect={() => {
-                    if (account.email !== activeAccount) {
-                      onSwitchAccount(account.email);
-                    }
-                  }}
-                  className="justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <UserCircleIcon />
-                    <span className="text-sm">{account.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {account.email === activeAccount && (
-                      <CheckIcon size={14} className="text-radius-accent" />
-                    )}
-                    <CommandShortcut className="inline-flex h-5 items-center rounded border border-radius-border-subtle bg-radius-bg-secondary px-1.5 text-[10px] font-medium text-radius-text-muted duration-150 font-[family-name:var(--font-family-sans)]">
-                      D
-                    </CommandShortcut>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-            <CommandGroup heading="Actions">
-              <CommandItem
-                active={selectedValue === "add-account"}
-                value="add-account"
-                onSelect={onAddAccount}
-              >
-                <PlusIcon />
-                <span>Add Account</span>
-              </CommandItem>
-            </CommandGroup>
-          </>
+          <Accounts
+            selectedValue={selectedValue}
+            accounts={accounts}
+            activeAccount={activeAccount}
+            deleteTarget={deleteTarget}
+            onSwitchAccount={onSwitchAccount}
+            onAddAccount={onAddAccount}
+          />
         ) : (
-          <CommandGroup heading="Available themes">
-            {themes.map((item) => (
-              <CommandItem
-                active={selectedValue === item.name}
-                key={item.id}
-                value={item.name}
-                onSelect={() => {
-                  if (item.id !== theme) {
-                    setTheme(item.id);
-                  }
-                }}
-                className="justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  <SunDimIcon />
-                  <span className="text-sm">{item.name}</span>
-                </div>
-                {item.id === theme && (
-                  <CheckIcon size={14} className="text-radius-accent" />
-                )}
-              </CommandItem>
-            ))}
-          </CommandGroup>
+          <Themes
+            selectedValue={selectedValue}
+            themes={themes}
+            currentTheme={theme}
+            onSetTheme={setTheme}
+          />
         )}
       </CommandList>
     </Command>
