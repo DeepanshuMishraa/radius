@@ -4,7 +4,10 @@ const CLIENT_ID = "234277816966-3ct835d3fmh5r1uqsjrrj9njin42b57t.apps.googleuser
 const CLIENT_SECRET = "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";
 
 const REDIRECT_URI = "http://127.0.0.1:3333";
-const SCOPE = "https://www.googleapis.com/auth/gmail.modify";
+const SCOPE = [
+  "https://www.googleapis.com/auth/gmail.modify",
+  "https://www.googleapis.com/auth/gmail.compose",
+].join(" ");
 
 export interface TokenData {
   access_token: string;

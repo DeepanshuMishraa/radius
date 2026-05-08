@@ -19,12 +19,14 @@ import {
   CheckIcon,
   TrashIcon,
   InfoIcon,
+  EnvelopeSimpleIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import type { Account } from "@/mainview/hooks/useInbox";
 
 interface CommandKProps {
   onSearchEmails: () => void;
+  onComposeEmail: () => void;
   onCheckForUpdates: () => void;
   onSwitchAccount: (email: string) => void;
   onAddAccount: () => void;
@@ -38,6 +40,7 @@ type Page = "home" | "accounts" | "themes";
 
 export function CommandK({
   onSearchEmails,
+  onComposeEmail,
   onCheckForUpdates,
   onSwitchAccount,
   onAddAccount,
@@ -216,6 +219,14 @@ export function CommandK({
             >
               <MagnifyingGlassIcon />
               <span>Search Emails</span>
+            </CommandItem>
+            <CommandItem
+              active={selectedValue === "compose-email"}
+              value="compose-email"
+              onSelect={onComposeEmail}
+            >
+              <EnvelopeSimpleIcon />
+              <span>Compose Email</span>
             </CommandItem>
             <CommandItem
               active={selectedValue === "check-updates"}

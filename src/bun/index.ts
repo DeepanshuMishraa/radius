@@ -18,6 +18,8 @@ import {
   handleGetSyncStatus,
   handleMarkMessageRead,
   handleDownloadAttachment,
+  handleSaveDraft,
+  handleSendEmail,
 } from "./rpc-handlers";
 import {
   handleOpenExternalUrl,
@@ -63,6 +65,8 @@ async function createMainWindow() {
         startOAuth: handleStartOAuth,
         startSync: handleStartSync,
         markMessageRead: handleMarkMessageRead,
+        saveDraft: handleSaveDraft,
+        sendEmail: handleSendEmail,
         requestNotificationPermission: handleRequestNotificationPermission,
         openNotificationSettings: handleOpenNotificationSettings,
         applyUpdate: handleApplyUpdate,

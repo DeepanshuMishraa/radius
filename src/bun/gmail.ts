@@ -391,6 +391,84 @@ export async function modifyMessageLabels(
   return (await res.json()) as ModifyMessageLabelsResponse;
 }
 
+function escapeHeaderValue(value: string): string {
+  return value.replace(/[\r\n]+/g, " ").trim();
+}
+
+function encodeBase64Url(value: string): string {
+  return Buffer.from(value, "utf-8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function buildRawEmail(payload: {
+  from: string;
+  to: string[];
+  subject: string;
+  bodyText: string;
+}): string {
+  const from = escapeHeaderValue(payload.from);
+  const to = payload.to.map((item) => escapeHeaderValue(item)).join(", ");
+  const subject = escapeHeaderValue(payload.subject);
+  const bodyText = payload.bodyText.replace(/\r?\n/g, "\r\n");
+  const mime = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    "MIME-Version: 1.0",
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    bodyText,
+  ].join("\r\n");
+
+  return encodeBase64Url(mime);
+}
+
+export async function createDraft(
+  accessToken: string,
+  payload: {
+    from: string;
+    to: string[];
+    subject: string;
+    bodyText: string;
+  }
+): Promise<{ id: string; message: { id: string } }> {
+  const res = await fetchWithRetry(`${GMAIL_API_BASE}/drafts`, {
+    method: "POST",
+    headers: getAuthHeaders(accessToken),
+    body: JSON.stringify({
+      message: {
+        raw: buildRawEmail(payload),
+      },
+    }),
+  });
+
+  return (await res.json()) as { id: string; message: { id: string } };
+}
+
+export async function sendMessage(
+  accessToken: string,
+  payload: {
+    from: string;
+    to: string[];
+    subject: string;
+    bodyText: string;
+  }
+): Promise<{ id: string }> {
+  const res = await fetchWithRetry(`${GMAIL_API_BASE}/messages/send`, {
+    method: "POST",
+    headers: getAuthHeaders(accessToken),
+    body: JSON.stringify({
+      raw: buildRawEmail(payload),
+    }),
+  });
+
+  return (await res.json()) as { id: string };
+}
+
 export class GmailAPIError extends Error {
   constructor(
     message: string,

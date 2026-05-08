@@ -107,6 +107,35 @@ export type RadiusRPC = {
           localStateApplied?: boolean;
         };
       };
+      saveDraft: {
+        params: {
+          from: string;
+          to: string[];
+          subject: string;
+          bodyText: string;
+        };
+        response: {
+          success: boolean;
+          draftId?: string;
+          messageId?: string;
+          error?: string;
+          code?: "reauth_required" | "scope_insufficient";
+        };
+      };
+      sendEmail: {
+        params: {
+          from: string;
+          to: string[];
+          subject: string;
+          bodyText: string;
+        };
+        response: {
+          success: boolean;
+          messageId?: string;
+          error?: string;
+          code?: "reauth_required" | "scope_insufficient";
+        };
+      };
       requestNotificationPermission: {
         params: {};
         response: { success: boolean; error?: string };
