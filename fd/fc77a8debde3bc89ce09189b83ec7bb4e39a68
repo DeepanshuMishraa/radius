@@ -1,0 +1,54 @@
+src/components/add-account.tsx
+  s_ace2c38ae872e3::t_9fa6dfcb541821 1-111
+src/components/accounts.tsx
+  s_ace2c38ae872e3::t_eb3f7d67cdb4bd 1-65
+src/components/drag-region.tsx
+  s_ace2c38ae872e3::t_d0315ce6156ad4 1-15
+src/components/notification-prompt.tsx
+  s_ace2c38ae872e3::t_b8eb69277762ba 1-69
+src/components/home.tsx
+  s_ace2c38ae872e3::t_93b71e20336676 10-31,76-78
+  s_ace2c38ae872e3::t_0401e71bca67a9 1-9,32-75
+src/components/cmd.tsx
+  s_ace2c38ae872e3::t_08347fc32b6d0a 15-19,195-206,208-215,217-222
+src/components/themes.tsx
+  s_ace2c38ae872e3::t_b9f08197bccad7 1-47
+src/components/update-notification.tsx
+  s_ace2c38ae872e3::t_3029e16464415e 1-95
+src/components/compose.tsx
+  s_ace2c38ae872e3::t_091750125f81eb 1-30,32-124,126-168,170-388
+  s_ace2c38ae872e3::t_bd6ccb49306dd2 31,125,169,389-390
+src/components/search-spotlight.tsx
+  s_ace2c38ae872e3::t_7477ceeeafdd39 1-81
+src/components/sync-pill.tsx
+  s_ace2c38ae872e3::t_f96bac51664d63 1-71
+src/mainview/App.tsx
+  s_49194d7e095deb::t_7682295e2f2916 10-17
+src/components/about.tsx
+  s_ace2c38ae872e3::t_8dd1391b2fe145 1-7,10-12,14-47
+  s_ace2c38ae872e3::t_cc4f7900d72627 8-9,13,48-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "fdfc77a8debde3bc89ce09189b83ec7bb4e39a68",
+  "prompts": {},
+  "sessions": {
+    "s_49194d7e095deb": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1f72eaeb7ffeHPULsZkhbVG2E2",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    },
+    "s_ace2c38ae872e3": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1f73c7bf0ffevkn7zp6OKzScEz",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
