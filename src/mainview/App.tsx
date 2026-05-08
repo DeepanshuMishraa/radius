@@ -691,11 +691,11 @@ function App() {
         position="bottom-right"
         toastOptions={{
           style: {
-            background: "transparent",
-            border: "none",
-            boxShadow: "none",
-            padding: 0,
+            background: "var(--radius-bg-primary)",
+            color: "var(--radius-text-primary)",
+            borderColor: "var(--radius-border-subtle)",
           },
+          className: "font-[family-name:var(--font-family-sans)] antialiased shadow-lg",
         }}
       />
       {accountSwitching && (

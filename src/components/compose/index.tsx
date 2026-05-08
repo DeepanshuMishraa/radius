@@ -70,10 +70,9 @@ export function ComposeEmailDialog({
         if (action === "draft") {
           setDraftSavedAt(Date.now());
           toast.success("Draft saved to Gmail");
-          return;
+        } else {
+          toast.success("Email sent");
         }
-
-        toast.success("Email sent");
         onClose();
       } catch (error) {
         console.error(`Compose ${action} failed:`, error);
