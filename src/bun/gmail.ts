@@ -334,7 +334,7 @@ export async function getHistory(
 ): Promise<GetHistoryResponse> {
   const params = new URLSearchParams();
   params.set("startHistoryId", startHistoryId);
-  if (options.labelId) params.set("labelId", options.labelId);
+  params.set("labelId", options.labelId ?? "INBOX");
   params.set("maxResults", "100");
   if (options.pageToken) params.set("pageToken", options.pageToken);
   for (const historyType of options.historyTypes ?? [
