@@ -1,0 +1,42 @@
+src/components/compose/index.tsx
+  s_c367ee3f88c014::t_acb2051d352f7e 84-89,95,99,132,134-137,280-287
+src/components/add-account.tsx
+  s_c367ee3f88c014::t_648bc374351868 23
+src/components/compose/types.ts
+  s_c367ee3f88c014::t_54940a63aa759e 1-2,28
+src/mainview/App.tsx
+  s_c367ee3f88c014::t_dd44b59767f102 113,490,497
+  s_c367ee3f88c014::t_132bbc50e562e4 102
+src/shared/types.ts
+  s_c367ee3f88c014::t_10915316c1717a 4-5,120-137
+src/components/compose/ComposeRecipients.tsx
+  s_c367ee3f88c014::t_639696bf810f8b 25,36-37,41-42,45,58
+bun.lock
+  ai_agent 26,1167,1177-1178,1231
+src/components/compose/ComposeSend.tsx
+  s_c367ee3f88c014::t_4d78f85e3faf77 77
+src/components/update-notification.tsx
+  s_c367ee3f88c014::t_e723db17696bc1 36,54,61
+src/components/compose/ComposeAttachmentList.tsx
+  s_c367ee3f88c014::t_8019409ea82e69 51,64
+package.json
+  s_c367ee3f88c014::t_0cb0913a8521f4 33-34
+src/bun/compose.ts
+  s_c367ee3f88c014::t_735174457b3175 261-267
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "707df69c428e062b46fdedc7cb9ce1550fdecc66",
+  "prompts": {},
+  "sessions": {
+    "s_c367ee3f88c014": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e0c9d-d22c-7350-baa8-15ab5cf99e53",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
