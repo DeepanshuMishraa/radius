@@ -8,15 +8,13 @@ import {
 type Mailbox = "sent" | "drafts" | "trash";
 
 interface MailboxesProps {
-  selectedValue: string;
   onSelectMailbox: (mailbox: Mailbox) => void;
 }
 
-export function Mailboxes({ selectedValue, onSelectMailbox }: MailboxesProps) {
+export function Mailboxes({ onSelectMailbox }: MailboxesProps) {
   return (
     <CommandGroup heading="Mailroom">
       <CommandItem
-        active={selectedValue === "sent"}
         value="sent"
         onSelect={() => onSelectMailbox("sent")}
       >
@@ -24,7 +22,6 @@ export function Mailboxes({ selectedValue, onSelectMailbox }: MailboxesProps) {
         <span>Sent</span>
       </CommandItem>
       <CommandItem
-        active={selectedValue === "drafts"}
         value="drafts"
         onSelect={() => onSelectMailbox("drafts")}
       >
@@ -32,7 +29,6 @@ export function Mailboxes({ selectedValue, onSelectMailbox }: MailboxesProps) {
         <span>Drafts</span>
       </CommandItem>
       <CommandItem
-        active={selectedValue === "trash"}
         value="trash"
         onSelect={() => onSelectMailbox("trash")}
       >

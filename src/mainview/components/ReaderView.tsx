@@ -894,27 +894,55 @@ export const ReaderView = memo(function ReaderView({
 
   const isPureNewsletter = htmlRender.hasRichSections && !htmlRender.hasSimpleSections;
 
+  const [systemName, setSystemName] = useState<string>("there");
+
+  useEffect(() => {
+    radiusRpc.request.getSystemFullName({}).then(res => {
+      // Use just the first name if available
+      const firstName = res.name.split(' ')[0];
+      setSystemName(firstName);
+    }).catch(err => {
+      console.error("Failed to fetch system name", err);
+    });
+  }, []);
+
   if (!message) {
+    const hour = new Date().getHours();
+    let timeGreeting = "evening";
+    let subtext = "Ready to wrap up your day?";
+    
+    if (hour < 12) {
+      timeGreeting = "morning";
+      subtext = "Ready to start your day?";
+    } else if (hour < 17) {
+      timeGreeting = "afternoon";
+      subtext = "Hope your day is going well.";
+    }
+
+    const greeting = `Good ${timeGreeting}, ${systemName}.`;
+
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-radius-bg-primary relative pt-11">
+      <div className="flex flex-col items-center justify-center h-full bg-radius-bg-primary relative w-full overflow-hidden">
+        {/* Subtle Background Matrix */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-[0.03] dark:opacity-[0.05]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='currentColor'/%3E%3C/svg%3E")`,
+            backgroundSize: '24px 24px',
+            color: 'var(--radius-text-primary)'
+          }}
+        />
+        
         <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
-        <div className="w-10 h-10 rounded-2xl border border-radius-border-subtle flex items-center justify-center mb-4">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            className="text-radius-text-muted"
-          >
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-            <polyline points="22,6 12,13 2,6" />
-          </svg>
+        
+        <div className="relative z-10 flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] fill-mode-both">
+          <h1 className="text-[32px] md:text-[42px] font-medium tracking-[-0.03em] text-radius-text-primary font-[family-name:var(--font-family-serif)] mb-3 text-center leading-[1.1]">
+            {greeting}
+          </h1>
+          <p className="text-[15px] text-radius-text-secondary font-[family-name:var(--font-family-sans)] tracking-[-0.01em]">
+            {subtext}
+          </p>
         </div>
-        <p className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-serif)]">
-          Select an email to read
-        </p>
       </div>
     );
   }

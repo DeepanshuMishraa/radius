@@ -1,3 +1,5 @@
+import os from "os";
+import { execSync } from "child_process";
 import Electrobun, {
   BrowserView,
   BrowserWindow,
@@ -87,6 +89,13 @@ async function createMainWindow() {
         openNotificationSettings: handleOpenNotificationSettings,
         applyUpdate: handleApplyUpdate,
         getLocalReleaseInfo: handleGetLocalReleaseInfo,
+        getSystemFullName: () => {
+          try {
+            return { name: execSync("id -F", { encoding: "utf-8" }).trim() };
+          } catch {
+            return { name: os.userInfo().username };
+          }
+        },
         getAccounts: handleGetAccounts,
         switchAccount: handleSwitchAccount,
         removeAccount: handleRemoveAccount,

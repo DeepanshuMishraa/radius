@@ -259,6 +259,10 @@ export type RadiusRPC = {
         params: {};
         response: LocalReleaseInfo;
       };
+      getSystemFullName: {
+        params: {};
+        response: { name: string };
+      };
       getAccounts: {
         params: {};
         response: {

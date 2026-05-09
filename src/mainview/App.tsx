@@ -20,6 +20,7 @@ import {
   EnvelopeSimple,
 } from "@phosphor-icons/react";
 import { Toaster, toast } from "sonner";
+import { useHotkey } from "@tanstack/react-hotkeys";
 import { radiusRpc } from "./lib/rpc";
 import type {
   ComposeContactSuggestion,
@@ -126,6 +127,16 @@ function App() {
       void refreshAccounts();
     }
   }, [cmdOpen, refreshAccounts]);
+
+  useHotkey(
+    "Mod+B",
+    (e) => {
+      e.preventDefault();
+      setSidebarOpen((prev) => !prev);
+    },
+    { ignoreInputs: true }
+  );
+
   const { messages, total } = useInbox(
     inboxLimit,
     0,
@@ -317,7 +328,9 @@ function App() {
     const handleComposeStatus = (message: ComposeStatusMessage) => {
       if (message.status === "send_sent") {
         const timer = window.setTimeout(() => {
-          toast.success("Email sent");
+          toast.success("Message sent", {
+            description: "Your email has been successfully sent.",
+          });
           composeToastTimersRef.current = composeToastTimersRef.current.filter(
             (id) => id !== timer,
           );
@@ -737,7 +750,7 @@ function App() {
         />
       </main>
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen} modal={false}>
-        <DialogContent className="w-full max-w-xl p-0 overflow-hidden border-0 bg-transparent shadow-none">
+        <DialogContent showCloseButton={false} className="w-full max-w-[720px] sm:max-w-[720px] p-0 overflow-hidden border-0 ring-0 bg-transparent shadow-none pt-[10vh]">
           <DialogTitle className="sr-only">Command palette</DialogTitle>
           <DialogDescription className="sr-only">
             Search for commands and actions in Radius.

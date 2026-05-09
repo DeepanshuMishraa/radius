@@ -68,19 +68,19 @@ const CommandInput = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
 >(function CommandInput({ className, ...props }, ref) {
   return (
-    <div data-slot="command-input-wrapper" className="p-1 pb-0">
-      <InputGroup className="h-8! rounded-md! border-radius-border-subtle bg-transparent dark:bg-transparent shadow-none! *:data-[slot=input-group-addon]:pl-2!">
+    <div data-slot="command-input-wrapper" className="px-3 py-2 pb-1">
+      <InputGroup className="h-10! rounded-md! border-none! bg-transparent dark:bg-transparent shadow-none! *:data-[slot=input-group-addon]:pl-0!">
         <CommandPrimitive.Input
           ref={ref}
           data-slot="command-input"
           className={cn(
-            "w-full text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+            "w-full text-[15px] font-medium outline-hidden disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-radius-text-muted/70",
             className
           )}
           {...props}
         />
-        <InputGroupAddon className="text-radius-text-muted">
-          <SearchIcon className="size-4 shrink-0 opacity-50" />
+        <InputGroupAddon className="text-radius-text-muted pr-2">
+          <SearchIcon className="size-5 shrink-0 opacity-50" />
         </InputGroupAddon>
       </InputGroup>
     </div>
@@ -146,19 +146,15 @@ function CommandSeparator({
 }
 
 function CommandItem({
-  active = false,
   className,
   children,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Item> & {
-  active?: boolean
-}) {
+}: React.ComponentProps<typeof CommandPrimitive.Item>) {
   return (
     <CommandPrimitive.Item
       data-slot="command-item"
-      data-active={active ? "true" : undefined}
       className={cn(
-        "group/command-item relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none transition-colors in-data-[slot=dialog-content]:rounded-lg! data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[active=true]:bg-radius-bg-secondary data-[active=true]:text-radius-text-primary data-[active=true]:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--radius-border)_55%,transparent)] data-[active=true]:[&_svg]:text-radius-text-primary data-[active=true]:[&_[data-slot=command-shortcut]]:opacity-100 before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-0.5 before:rounded-full before:bg-radius-accent before:opacity-0 before:transition-opacity data-[active=true]:before:opacity-100 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "group/command-item relative flex cursor-default items-center gap-2 rounded-md px-3 py-2 text-[13px] outline-hidden select-none transition-colors in-data-[slot=dialog-content]:rounded-lg! data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[selected=true]:bg-radius-text-primary/10 data-[selected=true]:text-radius-text-primary data-[selected=true]:[&_svg]:text-radius-text-primary data-[selected=true]:[&_[data-slot=command-shortcut]]:opacity-100 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}

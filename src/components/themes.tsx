@@ -7,14 +7,12 @@ interface ThemeItem {
 }
 
 interface ThemesProps {
-  selectedValue: string;
   themes: ThemeItem[];
   currentTheme: string;
   onSetTheme: (id: string) => void;
 }
 
 export function Themes({
-  selectedValue,
   themes,
   currentTheme,
   onSetTheme,
@@ -23,7 +21,6 @@ export function Themes({
     <CommandGroup heading="Available themes">
       {themes.map((item) => (
         <CommandItem
-          active={selectedValue === item.name}
           key={item.id}
           value={item.name}
           onSelect={() => {

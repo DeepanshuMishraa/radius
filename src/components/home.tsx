@@ -1,4 +1,4 @@
-import { CommandGroup, CommandItem, CommandSeparator } from "@/components/ui/command";
+import { CommandGroup, CommandItem } from "@/components/ui/command";
 import {
   SunDimIcon,
   MagnifyingGlassIcon,
@@ -11,7 +11,6 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 
 interface HomeProps {
-  selectedValue: string;
   onSelectTheme: () => void;
   onSearchEmails: () => void;
   onComposeEmail: () => void;
@@ -23,7 +22,6 @@ interface HomeProps {
 }
 
 export function Home({
-  selectedValue,
   onSelectTheme,
   onSearchEmails,
   onComposeEmail,
@@ -37,7 +35,6 @@ export function Home({
     <>
       <CommandGroup heading="Email">
         <CommandItem
-          active={selectedValue === "compose-email"}
           value="compose-email"
           onSelect={onComposeEmail}
         >
@@ -45,7 +42,6 @@ export function Home({
           <span>Compose Email</span>
         </CommandItem>
         <CommandItem
-          active={selectedValue === "search-emails"}
           value="search-emails"
           onSelect={onSearchEmails}
         >
@@ -53,7 +49,6 @@ export function Home({
           <span>Search Emails</span>
         </CommandItem>
         <CommandItem
-          active={selectedValue === "mailroom"}
           value="mailroom"
           onSelect={onOpenMailroom}
         >
@@ -61,7 +56,6 @@ export function Home({
           <span>Mailroom</span>
         </CommandItem>
         <CommandItem
-          active={selectedValue === "show-inbox"}
           value="show-inbox"
           onSelect={onShowInbox}
         >
@@ -69,10 +63,8 @@ export function Home({
           <span>Show Inbox</span>
         </CommandItem>
       </CommandGroup>
-      <CommandSeparator />
       <CommandGroup heading="Workspace">
         <CommandItem
-          active={selectedValue === "accounts"}
           value="accounts"
           onSelect={onSelectAccounts}
         >
@@ -80,7 +72,6 @@ export function Home({
           <span>Accounts</span>
         </CommandItem>
         <CommandItem
-          active={selectedValue === "toggle-theme"}
           value="toggle-theme"
           onSelect={onSelectTheme}
         >
@@ -88,19 +79,20 @@ export function Home({
           <span>Toggle Theme</span>
         </CommandItem>
       </CommandGroup>
-      <CommandSeparator />
       <CommandGroup heading="System">
         <CommandItem
-          active={selectedValue === "check-updates"}
           value="check-updates"
           onSelect={onCheckForUpdates}
         >
           <ArrowsClockwiseIcon />
           <span>Check for Updates</span>
         </CommandItem>
-        <CommandItem active={selectedValue === "about"} value="about" onSelect={onAbout}>
+        <CommandItem
+          value="about-radius"
+          onSelect={onAbout}
+        >
           <InfoIcon />
-          <span>About</span>
+          <span>About Radius</span>
         </CommandItem>
       </CommandGroup>
     </>

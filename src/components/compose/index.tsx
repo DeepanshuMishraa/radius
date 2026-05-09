@@ -198,7 +198,9 @@ export function ComposeEmailDialog({
                   return;
                 }
                 toast.dismiss(t);
-                toast.success("Send undone");
+                toast.success("Message retrieved", {
+                  description: "Your email has been moved back to drafts.",
+                });
               }}
             >
               Undo

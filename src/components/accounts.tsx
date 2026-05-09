@@ -3,7 +3,6 @@ import { UserCircleIcon, PlusIcon, CheckIcon } from "@phosphor-icons/react/dist/
 import type { Account } from "@/mainview/hooks/useInbox";
 
 interface AccountsProps {
-  selectedValue: string;
   accounts: Account[];
   activeAccount: string | null;
   deleteTarget: string | null;
@@ -12,7 +11,6 @@ interface AccountsProps {
 }
 
 export function Accounts({
-  selectedValue,
   accounts,
   activeAccount,
   deleteTarget,
@@ -24,7 +22,6 @@ export function Accounts({
       <CommandGroup heading="Your accounts">
         {accounts.map((account) => (
           <CommandItem
-            active={selectedValue === account.email}
             key={account.email}
             value={account.email}
             onSelect={() => {
@@ -52,7 +49,6 @@ export function Accounts({
       </CommandGroup>
       <CommandGroup heading="Actions">
         <CommandItem
-          active={selectedValue === "add-account"}
           value="add-account"
           onSelect={onAddAccount}
         >
