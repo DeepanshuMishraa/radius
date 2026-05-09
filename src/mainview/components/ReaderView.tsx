@@ -3,13 +3,17 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import { useTheme } from "@/components/theme-provider";
 import type { Message, EmailCategory } from "../hooks/useInbox";
-import { ListIcon, FileIcon, ArrowSquareOut } from "@phosphor-icons/react";
+import { ListIcon, FileIcon, ArrowSquareOut, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { radiusRpc } from "../lib/rpc";
 
 interface ReaderViewProps {
   message: Message | null;
   sidebarOpen: boolean;
   onOpenSidebar: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
+  currentIndex?: number;
+  totalCount?: number;
 }
 
 function formatFullDate(timestamp: number): string {
@@ -818,6 +822,10 @@ export const ReaderView = memo(function ReaderView({
   message,
   sidebarOpen,
   onOpenSidebar,
+  onPrev,
+  onNext,
+  currentIndex = 0,
+  totalCount = 0,
 }: ReaderViewProps) {
   const { theme, appearance, resolvedTheme } = useTheme();
   const newsletterThemeConfig = useMemo(() => {
@@ -834,6 +842,24 @@ export const ReaderView = memo(function ReaderView({
       accent: variables["--radius-accent"] ?? "#c4785a",
     };
   }, [appearance, resolvedTheme, theme]);
+  useEffect(() => {
+    if (!message) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) {
+        return;
+      }
+      if (e.key === "ArrowLeft" && onPrev) {
+        e.preventDefault();
+        onPrev();
+      } else if (e.key === "ArrowRight" && onNext) {
+        e.preventDefault();
+        onNext();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [message, onPrev, onNext]);
+
   const handleBodyClick = useCallback(async (event: MouseEvent<HTMLDivElement>) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
@@ -954,7 +980,7 @@ export const ReaderView = memo(function ReaderView({
     <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-11">
       <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
 
-      <div className="flex-1 email-enter" key={message.id}>
+      <div className="flex-1 email-enter relative" key={message.id}>
         {isPureNewsletter ? (
           /* ═════ DOCUMENT MODE — Newsletters ═════ */
           <article className="w-full px-6 pt-6 pb-24">
@@ -1045,6 +1071,36 @@ export const ReaderView = memo(function ReaderView({
           </article>
         )}
       </div>
+
+      {message && totalCount > 1 && (
+        <div className="pointer-events-none fixed bottom-6 left-0 right-0 z-30 flex justify-center">
+          <div className="pointer-events-auto inline-flex items-center gap-1 rounded-full border border-radius-border-subtle bg-radius-bg-primary/80 px-2 py-1.5 shadow-lg backdrop-blur-xl">
+            <button
+              type="button"
+              onClick={onPrev}
+              disabled={currentIndex <= 0}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full text-radius-text-secondary transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-radius-text-secondary"
+              aria-label="Previous email"
+              title="Previous email"
+            >
+              <CaretLeft size={14} weight="bold" />
+            </button>
+            <span className="min-w-[3.5rem] select-none text-center text-[11px] font-medium tabular-nums text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+              {currentIndex + 1} / {totalCount}
+            </span>
+            <button
+              type="button"
+              onClick={onNext}
+              disabled={currentIndex >= totalCount - 1}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full text-radius-text-secondary transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-radius-text-secondary"
+              aria-label="Next email"
+              title="Next email"
+            >
+              <CaretRight size={14} weight="bold" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <style>{EMAIL_BODY_STYLES}</style>
     </div>

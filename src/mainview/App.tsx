@@ -435,6 +435,27 @@ function App() {
     setSidebarOpen(false);
   }, []);
 
+  const currentMessageIndex = useMemo(() => {
+    if (!selectedMessageId) return -1;
+    return visibleMessages.findIndex((m) => m.id === selectedMessageId);
+  }, [visibleMessages, selectedMessageId]);
+
+  const handlePrevMessage = useCallback(() => {
+    if (currentMessageIndex <= 0) return;
+    const prev = visibleMessages[currentMessageIndex - 1];
+    if (prev) {
+      setSelectedMessageId(prev.id);
+    }
+  }, [currentMessageIndex, visibleMessages]);
+
+  const handleNextMessage = useCallback(() => {
+    if (currentMessageIndex < 0 || currentMessageIndex >= visibleMessages.length - 1) return;
+    const next = visibleMessages[currentMessageIndex + 1];
+    if (next) {
+      setSelectedMessageId(next.id);
+    }
+  }, [currentMessageIndex, visibleMessages]);
+
   useEffect(() => {
     if (!selectedMessage || selectedMessage.isRead) return;
     if (pendingReadRef.current.has(selectedMessage.id)) return;
@@ -747,6 +768,10 @@ function App() {
           message={selectedMessage}
           sidebarOpen={sidebarOpen}
           onOpenSidebar={handleOpenSidebar}
+          onPrev={handlePrevMessage}
+          onNext={handleNextMessage}
+          currentIndex={currentMessageIndex}
+          totalCount={visibleMessages.length}
         />
       </main>
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen} modal={false}>
