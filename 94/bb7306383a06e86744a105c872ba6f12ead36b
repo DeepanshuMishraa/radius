@@ -1,0 +1,19 @@
+src/shared/types.ts
+  s_c367ee3f88c014::t_feabef647cbfe1 127-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "94bb7306383a06e86744a105c872ba6f12ead36b",
+  "prompts": {},
+  "sessions": {
+    "s_c367ee3f88c014": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e0c9d-d22c-7350-baa8-15ab5cf99e53",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
