@@ -1,0 +1,22 @@
+src/mainview/App.tsx
+  s_eefe1f72c64026::t_62b1157c033855 771-774
+  s_eefe1f72c64026::t_f2e2cb903d60c7 438-458
+src/mainview/components/ReaderView.tsx
+  s_eefe1f72c64026::t_52d9f8b73b7d83 6,13-16,825-828,845-862,983,1075-1103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "00ad28adc10f8c8cf51977316603448f7e172d58",
+  "prompts": {},
+  "sessions": {
+    "s_eefe1f72c64026": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e0cba-292d-708b-ba06-3d21aa9689c7",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
