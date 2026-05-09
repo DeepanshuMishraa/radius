@@ -74,6 +74,7 @@ export function ComposeSend({ canSubmit, pendingAction, onAction }: ComposeSendP
             open ? "bg-radius-bg-primary/20" : "hover:bg-radius-bg-primary/10"
           }`}
           aria-label="More send options"
+          aria-expanded={open}
         >
           <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}>
             <CaretDown size={12} weight="bold" />

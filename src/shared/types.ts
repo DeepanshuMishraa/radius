@@ -1,6 +1,8 @@
 // Shared RPC types for Electrobun's defineRPC
 // Imported by both main process (Bun) and renderer (browser)
 
+import { z } from "zod";
+
 export type EmailCategory =
   | "important"
   | "promotional"
@@ -115,6 +117,24 @@ export interface SyncStatus {
 }
 
 // RPC schema for typed communication between main and renderer
+export const urlSchema = z.string().refine(
+  (val) => {
+    const trimmed = val.trim();
+    try {
+      const parsed = new URL(trimmed);
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      try {
+        const parsed = new URL(`https://${trimmed}`);
+        return parsed.protocol === "https:";
+      } catch {
+        return false;
+      }
+    }
+  },
+  { message: "Invalid URL" },
+);
+
 export type RadiusRPC = {
   bun: {
     requests: {

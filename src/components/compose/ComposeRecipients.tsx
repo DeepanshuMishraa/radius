@@ -22,6 +22,7 @@ export function ComposeRecipients({
   const [isRecipientFocused, setIsRecipientFocused] = useState(false);
   const [remoteSuggestions, setRemoteSuggestions] = useState<ContactOption[]>([]);
   const recipientInputRef = useRef<HTMLInputElement>(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -32,13 +33,16 @@ export function ComposeRecipients({
 
   useEffect(() => {
     if (!isRecipientFocused) return;
+    const currentRequestId = ++requestIdRef.current;
+    const query = recipientQuery.trim();
     const timer = window.setTimeout(() => {
       void radiusRpc.request
         .getComposeSuggestions({
-          query: recipientQuery.trim(),
-          limit: recipientQuery.trim() ? 8 : 6,
+          query,
+          limit: query ? 8 : 6,
         })
         .then((result) => {
+          if (requestIdRef.current !== currentRequestId) return;
           setRemoteSuggestions(
             result.contacts.map((contact) => ({
               name: contact.name,
@@ -51,7 +55,7 @@ export function ComposeRecipients({
         .catch((error) => {
           console.error("Failed to fetch compose suggestions:", error);
         });
-    }, recipientQuery.trim() ? 120 : 0);
+    }, query ? 120 : 0);
 
     return () => window.clearTimeout(timer);
   }, [isRecipientFocused, recipientQuery]);

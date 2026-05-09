@@ -3,7 +3,6 @@ import type { UpdateInfo } from "@/shared/types";
 
 interface UpdateNotificationProps {
   updateInfo: UpdateInfo | null;
-  updateDownloaded: boolean;
   isDownloading: boolean;
   isApplying: boolean;
   onDownload: () => void | Promise<void>;
@@ -13,7 +12,6 @@ interface UpdateNotificationProps {
 
 export function UpdateNotification({
   updateInfo,
-  updateDownloaded,
   isDownloading,
   isApplying,
   onDownload,
@@ -35,7 +33,7 @@ export function UpdateNotification({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <p className="text-[12px] font-medium text-radius-text-primary leading-snug font-[family-name:var(--font-family-sans)]">
-              {updateDownloaded
+              {updateInfo.updateReady
                 ? `Radius ${updateInfo.version} ready`
                 : `Radius ${updateInfo.version} available`}
             </p>
@@ -53,14 +51,14 @@ export function UpdateNotification({
               ? "Downloading update…"
               : isApplying
                 ? "Restarting to install update…"
-                : updateDownloaded
+                : updateInfo.updateReady
                   ? "Downloaded and ready to install. The app will restart automatically."
                   : "Download now to get the latest improvements and fixes."}
           </p>
         </div>
       </div>
       <div className="flex items-center gap-2 border-t border-radius-border-subtle px-3.5 py-2.5">
-        {updateDownloaded ? (
+        {updateInfo.updateReady ? (
           <button
             type="button"
             disabled={isApplying}

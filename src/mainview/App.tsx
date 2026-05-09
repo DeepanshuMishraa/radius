@@ -99,7 +99,7 @@ function App() {
   const [selectedSyncMode, setSelectedSyncMode] = useState<SyncMode | null>(null);
   const [inboxLimit, setInboxLimit] = useState(INITIAL_INBOX_LIMIT);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
-  const [updateDownloaded, setUpdateDownloaded] = useState(false);
+
   const [isDownloading, setIsDownloading] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [accountSwitching, setAccountSwitching] = useState(false);
@@ -110,6 +110,7 @@ function App() {
   const [aboutInfo, setAboutInfo] = useState<LocalReleaseInfo | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
   const composeToastTimersRef = useRef<number[]>([]);
+  const activeMailboxRef = useRef<Exclude<MailboxKind, "inbox"> | null>(null);
   const [mailboxView, setMailboxView] = useState<MailboxKind>("inbox");
   const [mailboxMessages, setMailboxMessages] = useState<Record<Exclude<MailboxKind, "inbox">, Message[]>>({
     sent: [],
@@ -261,9 +262,6 @@ function App() {
   useEffect(() => {
     const handleUpdateStatus = (info: UpdateInfo) => {
       setUpdateInfo(info);
-      if (info.updateReady) {
-        setUpdateDownloaded(true);
-      }
     };
 
     radiusRpc.addMessageListener("updateStatus", handleUpdateStatus);
@@ -489,12 +487,14 @@ function App() {
   }, []);
 
   const handleOpenMailbox = useCallback(async (mailbox: Exclude<MailboxKind, "inbox">) => {
+    activeMailboxRef.current = mailbox;
     setCmdOpen(false);
     setSearchOpen(false);
     setSidebarOpen(true);
     setMailboxView(mailbox);
     try {
       const result = await radiusRpc.request.getMailboxMessages({ mailbox, limit: 100 });
+      if (activeMailboxRef.current !== mailbox) return;
       setMailboxMessages((current) => ({
         ...current,
         [mailbox]: result.messages,
@@ -790,7 +790,6 @@ function App() {
       <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
         <UpdateNotification
           updateInfo={updateInfo}
-          updateDownloaded={updateDownloaded}
           isDownloading={isDownloading}
           isApplying={isApplying}
           onDownload={handleDownloadUpdate}

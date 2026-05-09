@@ -57,7 +57,6 @@ export function ComposeEmailDialog({
         name: attachment.name,
         mimeType: attachment.mimeType,
         size: attachment.size,
-        dataBase64: attachment.dataBase64,
         url: attachment.type === "link" ? attachment.url : undefined,
       })),
     [attachments],
@@ -82,15 +81,22 @@ export function ComposeEmailDialog({
       setPendingAction(null);
       setDraftSavedAt(null);
       setHydrating(false);
-      setComposeState(emptyState());
+      setComposeState((current) => {
+        for (const att of current.attachments) {
+          if (att.url) URL.revokeObjectURL(att.url);
+        }
+        return emptyState();
+      });
       return;
     }
     if (!fromAccount?.email) return;
 
     setHydrating(true);
+    let cancelled = false;
     void radiusRpc.request
       .createComposeSession({ from: fromAccount.email })
       .then((result) => {
+        if (cancelled) return;
         if (!result.success || !result.session) {
           toast.error(result.error ?? "Failed to load composer");
           return;
@@ -123,8 +129,12 @@ export function ComposeEmailDialog({
         toast.error("Failed to load composer");
       })
       .finally(() => {
-        setHydrating(false);
+        if (!cancelled) setHydrating(false);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [fromAccount?.email, open]);
 
   useEffect(() => {
@@ -267,10 +277,14 @@ export function ComposeEmailDialog({
   }, []);
 
   const handleRemoveAttachment = useCallback((id: string) => {
-    setComposeState((current) => ({
-      ...current,
-      attachments: current.attachments.filter((attachment) => attachment.id !== id),
-    }));
+    setComposeState((current) => {
+      const removed = current.attachments.find((attachment) => attachment.id === id);
+      if (removed?.url) URL.revokeObjectURL(removed.url);
+      return {
+        ...current,
+        attachments: current.attachments.filter((attachment) => attachment.id !== id),
+      };
+    });
   }, []);
 
   const draftLabel =

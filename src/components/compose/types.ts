@@ -1,3 +1,5 @@
+import { urlSchema } from "@/shared/types";
+
 export interface ContactOption {
   name: string;
   email: string;
@@ -23,5 +25,5 @@ export interface Attachment {
 }
 
 export function isValidUrl(url: string) {
-  return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(url.trim());
+  return urlSchema.safeParse(url).success;
 }

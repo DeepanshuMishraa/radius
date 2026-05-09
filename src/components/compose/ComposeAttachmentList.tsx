@@ -48,7 +48,7 @@ export function ComposeAttachmentList({ attachments, onRemove }: ComposeAttachme
               <span className="truncate text-[11px] font-medium text-radius-text-primary leading-tight">
                 {attachment.name}
               </span>
-              {(attachment.size || attachment.type === "link") && (
+              {(attachment.size !== undefined || attachment.type === "link") && (
                 <span className="truncate text-[9px] text-radius-text-muted leading-tight">
                   {attachment.type === "link" ? "Link" : formatBytes(attachment.size || 0)}
                 </span>
@@ -61,7 +61,7 @@ export function ComposeAttachmentList({ attachments, onRemove }: ComposeAttachme
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => onRemove(attachment.id)}
-              className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-radius-border-subtle bg-radius-bg-primary text-radius-text-muted opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:text-radius-error hover:border-radius-error/30"
+              className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-radius-border-subtle bg-radius-bg-primary text-radius-text-muted opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:text-radius-error hover:border-radius-error/30"
               aria-label="Remove attachment"
             >
               <X size={10} weight="bold" />

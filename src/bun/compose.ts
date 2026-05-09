@@ -258,6 +258,13 @@ async function stageAttachment(
     };
   }
 
+  const estimatedSize = attachment.size ?? Math.ceil(attachment.dataBase64.length * 0.75);
+  if (estimatedSize > MAX_ATTACHMENT_BYTES) {
+    throw new Error(
+      `${attachment.name} exceeds the maximum attachment size of ${MAX_ATTACHMENT_BYTES} bytes.`,
+    );
+  }
+
   await ensureComposeDirs();
   const data = Buffer.from(attachment.dataBase64, "base64");
   const contentHash = createHash("sha256").update(data).digest("hex");
