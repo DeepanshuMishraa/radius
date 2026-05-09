@@ -30,6 +30,7 @@ interface CommandKProps {
   onAbout: () => void;
   onShowMailbox: (mailbox: "sent" | "drafts" | "trash") => void;
   onShowInbox: () => void;
+  onClose: () => void;
   accounts: Account[];
   activeAccount: string | null;
 }
@@ -44,6 +45,7 @@ export function CommandK({
   onAbout,
   onShowMailbox,
   onShowInbox,
+  onClose,
   accounts,
   activeAccount,
 }: CommandKProps) {
@@ -53,9 +55,6 @@ export function CommandK({
   const [search, setSearch] = React.useState("");
   const [selectedValue, setSelectedValue] = React.useState("");
   const [deleteTarget, setDeleteTarget] = React.useState<string | null>(null);
-  
-  // Tasteful micro-interaction state
-  const [isExpanded, setIsExpanded] = React.useState(false);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -64,7 +63,7 @@ export function CommandK({
     return () => clearTimeout(timer);
   }, [page]);
 
-  // Fix Escape key natively to prevent Radix from closing the modal
+  // Handle Escape: go back from submenus, close dialog from home
   React.useEffect(() => {
     const handleNativeEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -81,24 +80,15 @@ export function CommandK({
           setSearch("");
           return;
         }
-        if (isExpanded && search.length === 0) {
-          e.preventDefault();
-          e.stopPropagation();
-          setIsExpanded(false);
-          return;
-        }
+        // On home page, close the dialog
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
       }
     };
     document.addEventListener("keydown", handleNativeEscape, { capture: true });
     return () => document.removeEventListener("keydown", handleNativeEscape, { capture: true });
-  }, [page, deleteTarget, isExpanded, search]);
-
-  // Expand when typing
-  React.useEffect(() => {
-    if (search.length > 0 && !isExpanded) {
-      setIsExpanded(true);
-    }
-  }, [search, isExpanded]);
+  }, [page, deleteTarget, onClose]);
 
   const selectedAccount = React.useMemo(
     () => accounts.find((a) => a.email === selectedValue) ?? null,
@@ -120,16 +110,12 @@ export function CommandK({
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
-      // Expand on arrow keys
-      if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !isExpanded) {
-        setIsExpanded(true);
-      }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
         e.preventDefault();
         inputRef.current?.select();
       }
     },
-    [isExpanded]
+    []
   );
 
   const handleBack = React.useCallback(() => {
@@ -148,13 +134,10 @@ export function CommandK({
     setSearch("");
   }, [deleteTarget, onRemoveAccount]);
 
-  const showList = isExpanded || page !== "home" || deleteTarget;
-
   return (
     <div 
       className={cn(
-        "mx-auto flex flex-col rounded-[1.25rem] border border-radius-border-subtle bg-radius-bg-primary/40 p-2 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] backdrop-blur-2xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-        showList ? "w-full max-w-[720px]" : "w-full max-w-[480px]"
+        "mx-auto flex flex-col rounded-[1.25rem] border border-radius-border-subtle bg-radius-bg-primary/40 p-2 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] backdrop-blur-2xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] w-full max-w-[720px]"
       )}
     >
       <Command
@@ -214,7 +197,7 @@ export function CommandK({
 
       <div className={cn(
         page !== "home" ? "sr-only" : "bg-transparent",
-        showList ? "border-b border-radius-border-subtle" : ""
+        "border-b border-radius-border-subtle"
       )}>
         <CommandInput
           ref={inputRef}
@@ -225,12 +208,7 @@ export function CommandK({
         />
       </div>
 
-      <div 
-        className={cn(
-          "grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-          showList ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-        )}
-      >
+      <div className="grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]">
         <div className="overflow-hidden">
           <CommandList className="max-h-[60vh]">
             <CommandEmpty className="py-12 text-center text-[13px] text-radius-text-muted">

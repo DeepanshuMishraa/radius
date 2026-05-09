@@ -750,7 +750,11 @@ function App() {
         />
       </main>
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen} modal={false}>
-        <DialogContent showCloseButton={false} className="w-full max-w-[720px] sm:max-w-[720px] p-0 overflow-hidden border-0 ring-0 bg-transparent shadow-none pt-[10vh]">
+        <DialogContent
+          showCloseButton={false}
+          className="w-full max-w-[720px] sm:max-w-[720px] p-0 overflow-hidden border-0 ring-0 bg-transparent shadow-none pt-[10vh]"
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogTitle className="sr-only">Command palette</DialogTitle>
           <DialogDescription className="sr-only">
             Search for commands and actions in Radius.
@@ -765,6 +769,7 @@ function App() {
             onAbout={handleOpenAbout}
             onShowMailbox={handleOpenMailbox}
             onShowInbox={handleShowInbox}
+            onClose={() => setCmdOpen(false)}
             accounts={accounts}
             activeAccount={activeAccount}
           />
