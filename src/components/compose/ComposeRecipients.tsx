@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { CheckCircle, X, UserPlus } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { radiusRpc } from "@/mainview/lib/rpc";
 import { type ContactOption, isValidEmail } from "./types";
 
 interface ComposeRecipientsProps {
@@ -19,6 +20,7 @@ export function ComposeRecipients({
 }: ComposeRecipientsProps) {
   const [recipientQuery, setRecipientQuery] = useState("");
   const [isRecipientFocused, setIsRecipientFocused] = useState(false);
+  const [remoteSuggestions, setRemoteSuggestions] = useState<ContactOption[]>([]);
   const recipientInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -28,19 +30,55 @@ export function ComposeRecipients({
     return () => window.clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    if (!isRecipientFocused) return;
+    const timer = window.setTimeout(() => {
+      void radiusRpc.request
+        .getComposeSuggestions({
+          query: recipientQuery.trim(),
+          limit: recipientQuery.trim() ? 8 : 6,
+        })
+        .then((result) => {
+          setRemoteSuggestions(
+            result.contacts.map((contact) => ({
+              name: contact.name,
+              email: contact.email,
+              label: contact.label,
+              source: contact.source,
+            })),
+          );
+        })
+        .catch((error) => {
+          console.error("Failed to fetch compose suggestions:", error);
+        });
+    }, recipientQuery.trim() ? 120 : 0);
+
+    return () => window.clearTimeout(timer);
+  }, [isRecipientFocused, recipientQuery]);
+
   const filteredContacts = useMemo(() => {
     const query = recipientQuery.trim().toLowerCase();
     const selectedSet = new Set(selectedRecipients.map((item) => item.email.toLowerCase()));
+    const merged = [...remoteSuggestions, ...contacts];
+    const deduped: ContactOption[] = [];
+    const seen = new Set<string>();
 
-    return contacts.filter((contact) => {
-      if (selectedSet.has(contact.email.toLowerCase())) return false;
-      if (!query) return true;
-      return (
-        contact.name.toLowerCase().includes(query) ||
-        contact.email.toLowerCase().includes(query)
-      );
-    });
-  }, [contacts, recipientQuery, selectedRecipients]);
+    for (const contact of merged) {
+      const normalized = contact.email.toLowerCase();
+      if (seen.has(normalized) || selectedSet.has(normalized)) continue;
+      if (
+        query &&
+        !contact.name.toLowerCase().includes(query) &&
+        !contact.email.toLowerCase().includes(query)
+      ) {
+        continue;
+      }
+      seen.add(normalized);
+      deduped.push(contact);
+    }
+
+    return deduped;
+  }, [contacts, recipientQuery, remoteSuggestions, selectedRecipients]);
 
   const addRecipient = (contact: ContactOption) => {
     setSelectedRecipients((current) => {

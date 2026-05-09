@@ -15,8 +15,9 @@ import type { Account } from "@/mainview/hooks/useInbox";
 import { Home } from "./home";
 import { Accounts } from "./accounts";
 import { Themes } from "./themes";
+import { Mailboxes } from "./mailboxes";
 
-type Page = "home" | "accounts" | "themes";
+type Page = "home" | "accounts" | "themes" | "mailboxes";
 
 interface CommandKProps {
   onSearchEmails: () => void;
@@ -26,6 +27,8 @@ interface CommandKProps {
   onAddAccount: () => void;
   onRemoveAccount: (email: string) => void;
   onAbout: () => void;
+  onShowMailbox: (mailbox: "sent" | "drafts" | "trash") => void;
+  onShowInbox: () => void;
   accounts: Account[];
   activeAccount: string | null;
 }
@@ -38,6 +41,8 @@ export function CommandK({
   onAddAccount,
   onRemoveAccount,
   onAbout,
+  onShowMailbox,
+  onShowInbox,
   accounts,
   activeAccount,
 }: CommandKProps) {
@@ -57,6 +62,11 @@ export function CommandK({
     if (page === "accounts") {
       const nextValue = accounts[0]?.email ?? "add-account";
       setSelectedValue((current) => current || nextValue);
+      return;
+    }
+
+    if (page === "mailboxes") {
+      setSelectedValue((current) => current || "sent");
       return;
     }
 
@@ -147,7 +157,11 @@ export function CommandK({
             <ArrowLeftIcon size={14} />
           </button>
           <span className="text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-            {page === "accounts" ? "Accounts" : "Themes"}
+            {page === "accounts"
+              ? "Accounts"
+              : page === "mailboxes"
+                ? "Mailroom"
+                : "Themes"}
           </span>
         </div>
       )}
@@ -198,11 +212,16 @@ export function CommandK({
               setPage("themes");
               setSearch("");
             }}
+            onOpenMailroom={() => {
+              setPage("mailboxes");
+              setSearch("");
+            }}
             onSearchEmails={onSearchEmails}
             onComposeEmail={onComposeEmail}
             onCheckForUpdates={onCheckForUpdates}
             onSelectAccounts={() => setPage("accounts")}
             onAbout={onAbout}
+            onShowInbox={onShowInbox}
           />
         ) : page === "accounts" ? (
           <Accounts
@@ -212,6 +231,11 @@ export function CommandK({
             deleteTarget={deleteTarget}
             onSwitchAccount={onSwitchAccount}
             onAddAccount={onAddAccount}
+          />
+        ) : page === "mailboxes" ? (
+          <Mailboxes
+            selectedValue={selectedValue}
+            onSelectMailbox={onShowMailbox}
           />
         ) : (
           <Themes

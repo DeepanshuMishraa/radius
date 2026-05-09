@@ -2,7 +2,7 @@ export interface ContactOption {
   name: string;
   email: string;
   label: string;
-  source: "recent" | "account" | "manual";
+  source: "recent" | "account" | "manual" | "history";
 }
 
 export function isValidEmail(email: string) {

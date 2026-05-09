@@ -15,7 +15,7 @@ import type {
   RadiusRPC,
 } from "../shared/types";
 import { getValidAccessTokenForEmail } from "./auth";
-import { APP_SUPPORT_DIR, getDb } from "./db";
+import { APP_SUPPORT_DIR, getDb, upsertComposeContacts } from "./db";
 import {
   createDraft,
   deleteDraft,
@@ -570,6 +570,10 @@ async function sendPendingSnapshot(sendId: string) {
     }
 
     await markPendingSendStatus(db, sendId, "sent", { sentAt: Date.now() });
+    await upsertComposeContacts(
+      pending.account_email,
+      [...snapshot.to, ...snapshot.cc, ...snapshot.bcc].map((email) => ({ email })),
+    );
     await saveSessionState({
       sessionId: snapshot.sessionId,
       from: snapshot.from,
@@ -750,6 +754,10 @@ export async function saveDraftForSession(
       gmailMessageId: draft.message.id,
       status: "editing",
     });
+    await upsertComposeContacts(
+      session.from,
+      [...session.to, ...session.cc, ...session.bcc].map((email) => ({ email })),
+    );
     emitComposeStatus({
       sessionId: session.id,
       status: "draft_saved",

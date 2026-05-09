@@ -268,14 +268,9 @@ export async function listMessages(
   if (options.pageToken) params.set("pageToken", options.pageToken);
   if (options.q) params.set("q", options.q);
 
-  const res = await fetch(`${GMAIL_API_BASE}/messages?${params.toString()}`, {
+  const res = await fetchWithRetry(`${GMAIL_API_BASE}/messages?${params.toString()}`, {
     headers: getAuthHeaders(accessToken),
   });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new GmailAPIError(`messages.list failed: ${res.status}`, res.status, text);
-  }
 
   return (await res.json()) as ListMessagesResponse;
 }
@@ -284,15 +279,10 @@ export async function getMessage(
   accessToken: string,
   messageId: string
 ): Promise<GmailMessage> {
-  const res = await fetch(
+  const res = await fetchWithRetry(
     `${GMAIL_API_BASE}/messages/${messageId}?format=full`,
     { headers: getAuthHeaders(accessToken) }
   );
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new GmailAPIError(`messages.get failed: ${res.status}`, res.status, text);
-  }
 
   return (await res.json()) as GmailMessage;
 }
@@ -339,11 +329,12 @@ export async function getHistory(
   options: {
     pageToken?: string;
     historyTypes?: string[];
+    labelId?: string;
   } = {}
 ): Promise<GetHistoryResponse> {
   const params = new URLSearchParams();
   params.set("startHistoryId", startHistoryId);
-  params.set("labelId", "INBOX");
+  if (options.labelId) params.set("labelId", options.labelId);
   params.set("maxResults", "100");
   if (options.pageToken) params.set("pageToken", options.pageToken);
   for (const historyType of options.historyTypes ?? [

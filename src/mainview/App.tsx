@@ -22,6 +22,7 @@ import {
 import { Toaster, toast } from "sonner";
 import { radiusRpc } from "./lib/rpc";
 import type {
+  ComposeContactSuggestion,
   ComposeStatusMessage,
   LocalReleaseInfo,
   SyncMode,
@@ -30,6 +31,7 @@ import type {
 
 const INBOX_PAGE_STEP = 500;
 const INITIAL_INBOX_LIMIT = 3000;
+type MailboxKind = "inbox" | "sent" | "drafts" | "trash";
 
 function parseAddressLabel(address: string | null | undefined) {
   if (!address) return { name: "Radius", email: "" };
@@ -107,6 +109,13 @@ function App() {
   const [aboutInfo, setAboutInfo] = useState<LocalReleaseInfo | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
   const composeToastTimersRef = useRef<number[]>([]);
+  const [mailboxView, setMailboxView] = useState<MailboxKind>("inbox");
+  const [mailboxMessages, setMailboxMessages] = useState<Record<Exclude<MailboxKind, "inbox">, Message[]>>({
+    sent: [],
+    drafts: [],
+    trash: [],
+  });
+  const [composeSuggestions, setComposeSuggestions] = useState<ComposeContactSuggestion[]>([]);
 
   const { isAuthenticated, startOAuth } = useAuth();
   const { accounts, activeAccount, refresh: refreshAccounts, removeAccount } = useAccounts();
@@ -153,8 +162,16 @@ function App() {
     [accounts, activeAccount]
   );
   const hasAuthSignal = isAuthenticated === true || Boolean(syncStatus.lastSyncAt);
-  const visibleMessages = searchActive ? mergedSearchMessages : mergedInboxMessages;
-  const visibleTotal = searchActive ? searchedTotal : total;
+  const visibleMessages = searchActive
+    ? mergedSearchMessages
+    : mailboxView === "inbox"
+      ? mergedInboxMessages
+      : mailboxMessages[mailboxView];
+  const visibleTotal = searchActive
+    ? searchedTotal
+    : mailboxView === "inbox"
+      ? total
+      : mailboxMessages[mailboxView].length;
   const messagesById = useMemo(() => {
     return new Map(visibleMessages.map((message) => [message.id, message]));
   }, [visibleMessages]);
@@ -199,8 +216,24 @@ function App() {
       pushContact(`${account.name} <${account.email}>`, "account");
     }
 
+    for (const suggestion of composeSuggestions) {
+      if (items.length >= 24) break;
+      pushContact(suggestion.label, suggestion.source === "history" ? "recent" : suggestion.source);
+    }
+
     return items;
-  }, [accounts, activeAccount, mergedInboxMessages, selectedMessage]);
+  }, [accounts, activeAccount, composeSuggestions, mergedInboxMessages, selectedMessage]);
+
+  useEffect(() => {
+    void radiusRpc.request
+      .getComposeSuggestions({})
+      .then((result) => {
+        setComposeSuggestions(result.contacts);
+      })
+      .catch((error) => {
+        console.error("Failed to load compose suggestions:", error);
+      });
+  }, [activeAccount]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -442,6 +475,34 @@ function App() {
     setComposeOpen(true);
   }, []);
 
+  const handleOpenMailbox = useCallback(async (mailbox: Exclude<MailboxKind, "inbox">) => {
+    setCmdOpen(false);
+    setSearchOpen(false);
+    setSidebarOpen(true);
+    setMailboxView(mailbox);
+    try {
+      const result = await radiusRpc.request.getMailboxMessages({ mailbox, limit: 100 });
+      setMailboxMessages((current) => ({
+        ...current,
+        [mailbox]: result.messages,
+      }));
+      if (result.messages[0]) {
+        setSelectedMessageId(result.messages[0].id);
+        setSidebarOpen(false);
+      }
+    } catch (error) {
+      console.error(`Failed to load ${mailbox}:`, error);
+      toast.error(`Failed to load ${mailbox}`);
+    }
+  }, []);
+
+  const handleShowInbox = useCallback(() => {
+    setCmdOpen(false);
+    setSearchOpen(false);
+    setMailboxView("inbox");
+    setSidebarOpen(true);
+  }, []);
+
   const handleCheckForUpdates = useCallback(async () => {
     setCmdOpen(false);
     try {
@@ -645,14 +706,26 @@ function App() {
           selectedId={selectedMessageId}
           onSelect={handleSelectMessage}
           syncStatus={syncStatus}
-          heading={searchActive ? "Search Results" : "Inbox"}
+          heading={
+            searchActive
+              ? "Search Results"
+              : mailboxView === "inbox"
+                ? "Inbox"
+                : mailboxView === "sent"
+                  ? "Sent"
+                  : mailboxView === "drafts"
+                    ? "Drafts"
+                    : "Trash"
+          }
           detail={searchMeta ?? undefined}
           loading={searchLoading}
-          onReachEnd={searchActive ? undefined : handleLoadMoreInbox}
+          onReachEnd={searchActive || mailboxView !== "inbox" ? undefined : handleLoadMoreInbox}
           emptyMessage={
             searchActive
               ? `No emails match “${deferredSearchQuery.trim()}”`
-              : undefined
+              : mailboxView === "inbox"
+                ? undefined
+                : `No ${mailboxView} emails`
           }
         />
       </aside>
@@ -677,6 +750,8 @@ function App() {
             onAddAccount={handleAddAccount}
             onRemoveAccount={handleRemoveAccount}
             onAbout={handleOpenAbout}
+            onShowMailbox={handleOpenMailbox}
+            onShowInbox={handleShowInbox}
             accounts={accounts}
             activeAccount={activeAccount}
           />

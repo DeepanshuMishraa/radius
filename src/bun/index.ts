@@ -17,11 +17,13 @@ import {
 } from "./compose";
 import {
   handleGetInbox,
+  handleGetMailboxMessages,
   handleSearchInbox,
   handleGetMessage,
   handleGetSyncStatus,
   handleMarkMessageRead,
   handleDownloadAttachment,
+  handleGetComposeSuggestions,
   handleCreateComposeSession,
   handleUpdateComposeSession,
   handleSaveDraft,
@@ -66,8 +68,10 @@ async function createMainWindow() {
     handlers: {
       requests: {
         getInbox: handleGetInbox,
+        getMailboxMessages: handleGetMailboxMessages,
         searchInbox: handleSearchInbox,
         getMessage: handleGetMessage,
+        getComposeSuggestions: handleGetComposeSuggestions,
         getSyncStatus: handleGetSyncStatus,
         openExternalUrl: handleOpenExternalUrl,
         startOAuth: handleStartOAuth,

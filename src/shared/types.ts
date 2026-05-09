@@ -76,6 +76,13 @@ export interface ComposeStatusMessage {
   error?: string;
 }
 
+export interface ComposeContactSuggestion {
+  name: string;
+  email: string;
+  label: string;
+  source: "recent" | "account" | "manual" | "history";
+}
+
 export interface Message {
   id: string;
   threadId: string;
@@ -119,9 +126,17 @@ export type RadiusRPC = {
         params: { query: string; limit: number; offset: number };
         response: { messages: Message[]; total: number };
       };
+      getMailboxMessages: {
+        params: { mailbox: "sent" | "drafts" | "trash"; limit?: number };
+        response: { messages: Message[]; total: number };
+      };
       getMessage: {
         params: { id: string };
         response: Message | null;
+      };
+      getComposeSuggestions: {
+        params: { query?: string; limit?: number };
+        response: { contacts: ComposeContactSuggestion[] };
       };
       getSyncStatus: {
         params: {};
