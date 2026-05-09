@@ -459,7 +459,7 @@ export function buildRawEmail(payload: {
     const attachmentParts = attachments.map((attachment) =>
       [
         `--${mixedBoundary}`,
-        `Content-Type: ${escapeHeaderValue(attachment.mimeType)}; name="${escapeHeaderValue(attachment.filename)}"`,
+        `Content-Type: ${escapeHeaderValue(attachment.mimeType)}; name="${escapeHeaderValue(attachment.filename).replace(/"/g, '\\"')}"`,
         "Content-Transfer-Encoding: base64",
         `Content-Disposition: attachment; ${encodeHeaderFilename(attachment.filename)}`,
         "",
