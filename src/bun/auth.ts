@@ -259,6 +259,8 @@ export function deleteRefreshToken(email?: string): Promise<void> {
   const service = email ? `gmail-refresh-token-${email}` : "gmail-refresh-token";
   if (email) {
     tokenCache.delete(email);
+  } else {
+    tokenCache.delete("__default__");
   }
   return new Promise((resolve) => {
     const child = spawn("security", [
