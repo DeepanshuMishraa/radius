@@ -124,6 +124,9 @@ export const urlSchema = z.string().refine(
       const parsed = new URL(trimmed);
       return parsed.protocol === "http:" || parsed.protocol === "https:";
     } catch {
+      // Only retry with https:// for scheme-less inputs.
+      // If it already looks like a scheme, the first parse failing means it's malformed.
+      if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return false;
       try {
         const parsed = new URL(`https://${trimmed}`);
         return parsed.protocol === "https:";
