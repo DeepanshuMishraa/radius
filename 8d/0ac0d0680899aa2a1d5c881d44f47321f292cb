@@ -1,0 +1,55 @@
+src/shared/types.ts
+  s_5d321da60c463e::t_86ade6a7cf24f6 79-85,129-132,137,139
+  s_5d321da60c463e::t_6d2499f088f8e5 138
+src/bun/db.ts
+  s_5d321da60c463e::t_c77b03b090286c 98-101,226-237,344-347,352-353,368-371,389-395,404-405,420-423,441,451,494-497,516,697-700,711-712,722-726,738-741,784-813
+  s_5d321da60c463e::t_3c320cd3321d3d 834-862,941
+  s_5d321da60c463e::t_ad12494d8c47cc 192-203,863-940
+src/mainview/App.tsx
+  s_5d321da60c463e::t_601569c5772831 25,34,112-118,165-174,219-223,225-236,478-505,709-719,722,726-728,753-754
+src/components/compose/types.ts
+  s_5d321da60c463e::t_9bdda5eb8ecfbf 5
+src/bun/sync.ts
+  s_5d321da60c463e::t_1e239420c5358d 70,77
+  s_5d321da60c463e::t_e36b2a647c1455 150-159,179
+  s_5d321da60c463e::t_de9e85525ff507 235,265
+  s_5d321da60c463e::t_617dbb98bafa24 782
+  s_5d321da60c463e::t_a1e90c103a36db 804-806
+src/components/mailboxes.tsx
+  s_5d321da60c463e::t_2bf710358481de 1-44
+src/bun/compose.ts
+  s_5d321da60c463e::t_777739c9cd82e7 18,573-576,757-760
+src/components/home.tsx
+  s_5d321da60c463e::t_a44801dda4373a 1,9-10,21-22,33-34,37-106
+src/bun/rpc-handlers.ts
+  s_5d321da60c463e::t_ec99d8d1a449a3 3,165-168,171-175,181-185,193,206,214-227
+  s_5d321da60c463e::t_5e6ced580cc09a 118-140,147-164,169-170,176-180,186-192,194-205,207-213
+  s_5d321da60c463e::t_21499c01ff55ba 142-146
+  s_5d321da60c463e::t_09be6317422fba 2,141
+src/bun/index.ts
+  s_5d321da60c463e::t_faf1e033d18b29 20,26,71,74
+src/bun/gmail.ts
+  s_5d321da60c463e::t_fc36851fe620a7 332,337
+  s_5d321da60c463e::t_b33ce3baec6d22 271,282
+src/components/cmd.tsx
+  s_5d321da60c463e::t_2d2b2c2729b2b0 18,20,30-31,44-45,68-72,215-218,224,235-238
+  s_5d321da60c463e::t_684e7cb7b2a632 160-164
+src/components/compose/ComposeRecipients.tsx
+  s_5d321da60c463e::t_1074a784a3b37f 5,23,33-58,62-64,66-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "8d0ac0d0680899aa2a1d5c881d44f47321f292cb",
+  "prompts": {},
+  "sessions": {
+    "s_5d321da60c463e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e0b10-8dc4-74b2-8793-02fb53eefa05",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
