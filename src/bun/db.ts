@@ -3,8 +3,8 @@ import { mkdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-const DB_DIR = join(homedir(), "Library", "Application Support", "Radius");
-const DEFAULT_DB_PATH = join(DB_DIR, "radius.db");
+export const APP_SUPPORT_DIR = join(homedir(), "Library", "Application Support", "Radius");
+const DEFAULT_DB_PATH = join(APP_SUPPORT_DIR, "radius.db");
 
 let db: Database | null = null;
 let currentAccountEmail: string | null = null;
@@ -12,7 +12,11 @@ let currentAccountEmail: string | null = null;
 function getDbPath(email: string | null): string {
   if (!email) return DEFAULT_DB_PATH;
   const safeEmail = email.replace(/[^a-zA-Z0-9.@]/g, "_");
-  return join(DB_DIR, `radius-${safeEmail}.db`);
+  return join(APP_SUPPORT_DIR, `radius-${safeEmail}.db`);
+}
+
+export function getDbPathForEmail(email: string | null): string {
+  return getDbPath(email);
 }
 
 export function getCurrentAccountEmail(): string | null {
@@ -37,7 +41,7 @@ export async function switchAccount(email: string | null): Promise<void> {
 
 export async function deleteAccountDb(email: string): Promise<void> {
   const safeEmail = email.replace(/[^a-zA-Z0-9.@]/g, "_");
-  const dbPath = join(DB_DIR, `radius-${safeEmail}.db`);
+  const dbPath = join(APP_SUPPORT_DIR, `radius-${safeEmail}.db`);
 
   if (currentAccountEmail === email && db) {
     try {
@@ -63,7 +67,7 @@ export async function deleteAccountDb(email: string): Promise<void> {
 export async function getDb(): Promise<Database> {
   if (db) return db;
 
-  await mkdir(DB_DIR, { recursive: true });
+  await mkdir(APP_SUPPORT_DIR, { recursive: true });
 
   const dbPath = getDbPath(currentAccountEmail);
   db = new Database(dbPath);
@@ -91,6 +95,10 @@ export async function createSchema(): Promise<void> {
       attachments TEXT,
       category TEXT DEFAULT 'regular',
       is_read INTEGER NOT NULL DEFAULT 1,
+      is_inbox INTEGER NOT NULL DEFAULT 0,
+      is_sent INTEGER NOT NULL DEFAULT 0,
+      is_draft INTEGER NOT NULL DEFAULT 0,
+      is_trash INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
@@ -127,6 +135,72 @@ export async function createSchema(): Promise<void> {
     );
 
     INSERT OR IGNORE INTO sync_state (id) VALUES (1);
+
+    CREATE TABLE IF NOT EXISTS compose_sessions (
+      id TEXT PRIMARY KEY,
+      account_email TEXT NOT NULL,
+      from_addr TEXT NOT NULL,
+      to_recipients TEXT NOT NULL DEFAULT '[]',
+      cc_recipients TEXT NOT NULL DEFAULT '[]',
+      bcc_recipients TEXT NOT NULL DEFAULT '[]',
+      subject TEXT NOT NULL DEFAULT '',
+      body_text TEXT NOT NULL DEFAULT '',
+      gmail_draft_id TEXT,
+      gmail_message_id TEXT,
+      status TEXT NOT NULL DEFAULT 'editing',
+      dirty INTEGER NOT NULL DEFAULT 1,
+      last_saved_at INTEGER,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_compose_sessions_account_updated
+      ON compose_sessions(account_email, updated_at DESC);
+
+    CREATE TABLE IF NOT EXISTS compose_attachments (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES compose_sessions(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      name TEXT NOT NULL,
+      mime_type TEXT,
+      size INTEGER,
+      local_path TEXT,
+      content_hash TEXT,
+      url TEXT,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_compose_attachments_session
+      ON compose_attachments(session_id);
+
+    CREATE TABLE IF NOT EXISTS pending_sends (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES compose_sessions(id) ON DELETE CASCADE,
+      account_email TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'queued',
+      undo_deadline_at INTEGER NOT NULL,
+      error TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      sent_at INTEGER,
+      cancelled_at INTEGER
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_pending_sends_status_deadline
+      ON pending_sends(status, undo_deadline_at);
+
+    CREATE TABLE IF NOT EXISTS compose_contacts (
+      account_email TEXT NOT NULL,
+      email TEXT NOT NULL,
+      name TEXT NOT NULL DEFAULT '',
+      frequency INTEGER NOT NULL DEFAULT 1,
+      last_used_at INTEGER NOT NULL,
+      PRIMARY KEY (account_email, email)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_compose_contacts_rank
+      ON compose_contacts(account_email, frequency DESC, last_used_at DESC);
   `);
 
   const syncStateColumns = db.query(
@@ -148,6 +222,18 @@ export async function createSchema(): Promise<void> {
   }
   if (!existingMessageColumns.has("attachments")) {
     db.exec("ALTER TABLE messages ADD COLUMN attachments TEXT");
+  }
+  if (!existingMessageColumns.has("is_inbox")) {
+    db.exec("ALTER TABLE messages ADD COLUMN is_inbox INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!existingMessageColumns.has("is_sent")) {
+    db.exec("ALTER TABLE messages ADD COLUMN is_sent INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!existingMessageColumns.has("is_draft")) {
+    db.exec("ALTER TABLE messages ADD COLUMN is_draft INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!existingMessageColumns.has("is_trash")) {
+    db.exec("ALTER TABLE messages ADD COLUMN is_trash INTEGER NOT NULL DEFAULT 0");
   }
 
   const existingColumns = new Set(syncStateColumns.map((column) => column.name));
@@ -255,12 +341,16 @@ export async function insertMessage(message: {
   attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>;
   category: string;
   isRead: boolean;
+  isInbox: boolean;
+  isSent: boolean;
+  isDraft: boolean;
+  isTrash: boolean;
 }): Promise<void> {
   const db = await getDb();
   db.run(
     `INSERT OR REPLACE INTO messages
-     (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read, is_inbox, is_sent, is_draft, is_trash)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       message.id,
       message.threadId,
@@ -275,6 +365,10 @@ export async function insertMessage(message: {
       message.attachments.length > 0 ? JSON.stringify(message.attachments) : null,
       message.category,
       message.isRead ? 1 : 0,
+      message.isInbox ? 1 : 0,
+      message.isSent ? 1 : 0,
+      message.isDraft ? 1 : 0,
+      message.isTrash ? 1 : 0,
     ]
   );
   upsertMessageSearchIndex(db, message.id);
@@ -292,9 +386,13 @@ export async function insertMessages(
     snippet: string;
     bodyText: string | null;
     bodyHtml: string | null;
-    attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>;
-    category: string;
-    isRead: boolean;
+  attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>;
+  category: string;
+  isRead: boolean;
+  isInbox: boolean;
+  isSent: boolean;
+  isDraft: boolean;
+  isTrash: boolean;
   }>
 ): Promise<void> {
   const db = await getDb();
@@ -303,8 +401,8 @@ export async function insertMessages(
     for (const message of messages) {
       db.run(
         `INSERT OR REPLACE INTO messages
-         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read, is_inbox, is_sent, is_draft, is_trash)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           message.id,
           message.threadId,
@@ -319,6 +417,10 @@ export async function insertMessages(
           message.attachments.length > 0 ? JSON.stringify(message.attachments) : null,
           message.category,
           message.isRead ? 1 : 0,
+          message.isInbox ? 1 : 0,
+          message.isSent ? 1 : 0,
+          message.isDraft ? 1 : 0,
+          message.isTrash ? 1 : 0,
         ]
       );
       upsertMessageSearchIndex(db, message.id);
@@ -336,7 +438,7 @@ export async function getInboxMessages(
 ): Promise<{ messages: Array<Record<string, unknown>>; total: number }> {
   const db = await getDb();
 
-  const totalRow = db.query("SELECT COUNT(*) as count FROM messages").get() as {
+  const totalRow = db.query("SELECT COUNT(*) as count FROM messages WHERE is_inbox = 1").get() as {
     count: number;
   };
 
@@ -346,6 +448,7 @@ export async function getInboxMessages(
               internal_date as internalDate, from_addr as \`from\`, to_addr as \`to\`,
               subject, snippet, category, CAST(COALESCE(is_read, 1) AS INTEGER) as isRead
        FROM messages
+       WHERE is_inbox = 1
        ORDER BY internal_date DESC
        LIMIT ? OFFSET ?`
     )
@@ -388,8 +491,10 @@ export async function searchInboxMessages(
   const totalRow = db
     .query(
       `SELECT COUNT(*) as count
-       FROM messages_fts
-       WHERE messages_fts MATCH ?`
+       FROM messages_fts f
+       JOIN messages m ON m.id = f.id
+       WHERE messages_fts MATCH ?
+         AND m.is_inbox = 1`
     )
     .get(ftsQuery) as { count: number };
 
@@ -408,6 +513,7 @@ export async function searchInboxMessages(
        FROM messages_fts f
        JOIN messages m ON m.id = f.id
        WHERE messages_fts MATCH ?
+         AND m.is_inbox = 1
        ORDER BY bm25(messages_fts), m.internal_date DESC
        LIMIT ? OFFSET ?`
     )
@@ -588,6 +694,10 @@ export async function upsertMessageMetadata(
     snippet: string;
     category: string;
     isRead: boolean;
+    isInbox: boolean;
+    isSent: boolean;
+    isDraft: boolean;
+    isTrash: boolean;
   }>
 ): Promise<void> {
   if (messages.length === 0) return;
@@ -598,8 +708,8 @@ export async function upsertMessageMetadata(
     for (const message of messages) {
       db.run(
         `INSERT INTO messages
-         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, category, is_read)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, category, is_read, is_inbox, is_sent, is_draft, is_trash)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            thread_id = excluded.thread_id,
            history_id = excluded.history_id,
@@ -609,7 +719,11 @@ export async function upsertMessageMetadata(
            subject = excluded.subject,
            snippet = excluded.snippet,
            category = excluded.category,
-           is_read = excluded.is_read`,
+           is_read = excluded.is_read,
+           is_inbox = excluded.is_inbox,
+           is_sent = excluded.is_sent,
+           is_draft = excluded.is_draft,
+           is_trash = excluded.is_trash`,
         [
           message.id,
           message.threadId,
@@ -621,6 +735,10 @@ export async function upsertMessageMetadata(
           message.snippet,
           message.category,
           message.isRead ? 1 : 0,
+          message.isInbox ? 1 : 0,
+          message.isSent ? 1 : 0,
+          message.isDraft ? 1 : 0,
+          message.isTrash ? 1 : 0,
         ]
       );
       upsertMessageSearchIndex(db, message.id);
@@ -663,6 +781,38 @@ export async function getMessageCount(): Promise<number> {
   return row.count;
 }
 
+export async function getMailboxMessages(
+  mailbox: "sent" | "drafts" | "trash",
+  limit: number,
+  offset: number = 0,
+): Promise<{ messages: Array<Record<string, unknown>>; total: number }> {
+  const db = await getDb();
+  const column =
+    mailbox === "sent"
+      ? "is_sent"
+      : mailbox === "drafts"
+        ? "is_draft"
+        : "is_trash";
+
+  const totalRow = db.query(`SELECT COUNT(*) as count FROM messages WHERE ${column} = 1`).get() as {
+    count: number;
+  };
+
+  const rows = db
+    .query(
+      `SELECT id, thread_id as threadId, history_id as historyId,
+              internal_date as internalDate, from_addr as \`from\`, to_addr as \`to\`,
+              subject, snippet, category, CAST(COALESCE(is_read, 1) AS INTEGER) as isRead
+       FROM messages
+       WHERE ${column} = 1
+       ORDER BY internal_date DESC
+       LIMIT ? OFFSET ?`,
+    )
+    .all(limit, offset) as Array<Record<string, unknown>>;
+
+  return { messages: rows, total: totalRow.count };
+}
+
 export async function updateMessageBodies(
   id: string,
   bodyText: string | null,
@@ -680,4 +830,112 @@ export async function clearMessages(): Promise<void> {
   const db = await getDb();
   db.run("DELETE FROM messages");
   db.run("DELETE FROM messages_fts");
+}
+
+export async function getComposeContactRows(): Promise<
+  Array<{ fromAddr: string | null; toAddr: string | null }>
+> {
+  const db = await getDb();
+  return db
+    .query(
+      `SELECT from_addr as fromAddr, to_addr as toAddr
+       FROM messages
+       ORDER BY internal_date DESC
+       LIMIT 500`,
+    )
+    .all() as Array<{ fromAddr: string | null; toAddr: string | null }>;
+}
+
+export async function getComposeSessionRecipientRows(): Promise<
+  Array<{ toRecipients: string; ccRecipients: string; bccRecipients: string }>
+> {
+  const db = await getDb();
+  return db
+    .query(
+      `SELECT to_recipients as toRecipients,
+              cc_recipients as ccRecipients,
+              bcc_recipients as bccRecipients
+       FROM compose_sessions
+       ORDER BY updated_at DESC
+       LIMIT 200`,
+    )
+    .all() as Array<{ toRecipients: string; ccRecipients: string; bccRecipients: string }>;
+}
+
+export async function upsertComposeContacts(
+  accountEmail: string,
+  contacts: Array<{ email: string; name?: string }>,
+): Promise<void> {
+  if (contacts.length === 0) return;
+  const db = await getDb();
+  const now = Date.now();
+  db.exec("BEGIN TRANSACTION");
+  try {
+    for (const contact of contacts) {
+      const email = contact.email.trim().toLowerCase();
+      if (!email) continue;
+      const name = (contact.name?.trim() || email).slice(0, 255);
+      db.run(
+        `INSERT INTO compose_contacts (account_email, email, name, frequency, last_used_at)
+         VALUES (?, ?, ?, 1, ?)
+         ON CONFLICT(account_email, email) DO UPDATE SET
+           name = CASE
+             WHEN excluded.name != excluded.email THEN excluded.name
+             ELSE compose_contacts.name
+           END,
+           frequency = compose_contacts.frequency + 1,
+           last_used_at = excluded.last_used_at`,
+        [accountEmail, email, name, now],
+      );
+    }
+    db.exec("COMMIT");
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
+  }
+}
+
+export async function searchComposeContacts(
+  accountEmail: string,
+  query: string,
+  limit: number,
+): Promise<Array<{ email: string; name: string; frequency: number }>> {
+  const db = await getDb();
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) {
+    return db
+      .query(
+        `SELECT email, name, frequency
+         FROM compose_contacts
+         WHERE account_email = ?
+         ORDER BY frequency DESC, last_used_at DESC
+         LIMIT ?`,
+      )
+      .all(accountEmail, limit) as Array<{ email: string; name: string; frequency: number }>;
+  }
+
+  const like = `%${trimmed}%`;
+  return db
+    .query(
+      `SELECT email, name, frequency
+       FROM compose_contacts
+       WHERE account_email = ?
+         AND (lower(email) LIKE ? OR lower(name) LIKE ?)
+       ORDER BY
+         CASE
+           WHEN lower(email) = ? THEN 0
+           WHEN lower(name) = ? THEN 1
+           WHEN lower(email) LIKE ? THEN 2
+           WHEN lower(name) LIKE ? THEN 3
+           ELSE 4
+         END,
+         frequency DESC,
+         last_used_at DESC
+       LIMIT ?`,
+    )
+    .all(accountEmail, like, like, trimmed, trimmed, `${trimmed}%`, `${trimmed}%`, limit) as Array<{
+      email: string;
+      name: string;
+      frequency: number;
+    }>;
 }

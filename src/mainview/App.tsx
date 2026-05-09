@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useMemo, useRef, useDeferredValue } from "react";
-import type { CSSProperties } from "react";
 import { Onboarding } from "./components/Onboarding";
 import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
@@ -8,18 +7,32 @@ import type { Message } from "./hooks/useInbox";
 import { CommandK } from "@/components/cmd";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ThemeProvider } from "@/components/theme-provider";
+import { EmailSearchSpotlight } from "@/components/search-spotlight";
+import { DragRegion } from "@/components/drag-region";
+import { ComposeEmailDialog, type ContactOption } from "@/components/compose";
+import { NotificationPermissionPrompt } from "@/components/notification-prompt";
+import { UpdateNotification } from "@/components/update-notification";
+import { SyncPill } from "@/components/sync-pill";
+import { AboutDialog } from "@/components/about";
+import { AddAccountDialog } from "@/components/add-account";
 import {
   X,
-  Bell,
   EnvelopeSimple,
-  ArrowCircleUp,
 } from "@phosphor-icons/react";
 import { Toaster, toast } from "sonner";
+import { useHotkey } from "@tanstack/react-hotkeys";
 import { radiusRpc } from "./lib/rpc";
-import type { SyncMode, UpdateInfo, LocalReleaseInfo } from "../shared/types";
+import type {
+  ComposeContactSuggestion,
+  ComposeStatusMessage,
+  LocalReleaseInfo,
+  SyncMode,
+  UpdateInfo,
+} from "../shared/types";
 
 const INBOX_PAGE_STEP = 500;
 const INITIAL_INBOX_LIMIT = 3000;
+type MailboxKind = "inbox" | "sent" | "drafts" | "trash";
 
 function parseAddressLabel(address: string | null | undefined) {
   if (!address) return { name: "Radius", email: "" };
@@ -31,6 +44,26 @@ function parseAddressLabel(address: string | null | undefined) {
     };
   }
   return { name: address, email: "" };
+}
+
+function parseContactOption(
+  address: string | null | undefined,
+  source: ContactOption["source"]
+): ContactOption | null {
+  const parsed = parseAddressLabel(address);
+  const fallbackEmail =
+    typeof address === "string" && address.includes("@") && !parsed.email
+      ? address.trim()
+      : "";
+  const email = (parsed.email || fallbackEmail).trim();
+  if (!email) return null;
+  const name = parsed.name?.trim() || email;
+  return {
+    name,
+    email,
+    label: name === email ? email : `${name} <${email}>`,
+    source,
+  };
 }
 
 function useDebouncedValue<T>(value: T, delayMs: number) {
@@ -66,7 +99,7 @@ function App() {
   const [selectedSyncMode, setSelectedSyncMode] = useState<SyncMode | null>(null);
   const [inboxLimit, setInboxLimit] = useState(INITIAL_INBOX_LIMIT);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
-  const [updateDownloaded, setUpdateDownloaded] = useState(false);
+
   const [isDownloading, setIsDownloading] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [accountSwitching, setAccountSwitching] = useState(false);
@@ -75,6 +108,16 @@ function App() {
   const [addAccountMode, setAddAccountMode] = useState<SyncMode | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [aboutInfo, setAboutInfo] = useState<LocalReleaseInfo | null>(null);
+  const [composeOpen, setComposeOpen] = useState(false);
+  const composeToastTimersRef = useRef<number[]>([]);
+  const activeMailboxRef = useRef<Exclude<MailboxKind, "inbox"> | null>(null);
+  const [mailboxView, setMailboxView] = useState<MailboxKind>("inbox");
+  const [mailboxMessages, setMailboxMessages] = useState<Record<Exclude<MailboxKind, "inbox">, Message[]>>({
+    sent: [],
+    drafts: [],
+    trash: [],
+  });
+  const [composeSuggestions, setComposeSuggestions] = useState<ComposeContactSuggestion[]>([]);
 
   const { isAuthenticated, startOAuth } = useAuth();
   const { accounts, activeAccount, refresh: refreshAccounts, removeAccount } = useAccounts();
@@ -85,6 +128,16 @@ function App() {
       void refreshAccounts();
     }
   }, [cmdOpen, refreshAccounts]);
+
+  useHotkey(
+    "Mod+B",
+    (e) => {
+      e.preventDefault();
+      setSidebarOpen((prev) => !prev);
+    },
+    { ignoreInputs: true }
+  );
+
   const { messages, total } = useInbox(
     inboxLimit,
     0,
@@ -116,9 +169,21 @@ function App() {
     [applyMessageOverrides, searchedMessages]
   );
   const { message: fullMessage } = useMessage(selectedMessageId);
+  const activeAccountRecord = useMemo(
+    () => accounts.find((account) => account.email === activeAccount) ?? null,
+    [accounts, activeAccount]
+  );
   const hasAuthSignal = isAuthenticated === true || Boolean(syncStatus.lastSyncAt);
-  const visibleMessages = searchActive ? mergedSearchMessages : mergedInboxMessages;
-  const visibleTotal = searchActive ? searchedTotal : total;
+  const visibleMessages = searchActive
+    ? mergedSearchMessages
+    : mailboxView === "inbox"
+      ? mergedInboxMessages
+      : mailboxMessages[mailboxView];
+  const visibleTotal = searchActive
+    ? searchedTotal
+    : mailboxView === "inbox"
+      ? total
+      : mailboxMessages[mailboxView].length;
   const messagesById = useMemo(() => {
     return new Map(visibleMessages.map((message) => [message.id, message]));
   }, [visibleMessages]);
@@ -135,6 +200,52 @@ function App() {
     const override = messageOverrides[baseMessage.id];
     return override ? { ...baseMessage, ...override } : baseMessage;
   }, [fullMessage, messageOverrides, selectedMessageId, selectedMessagePreview]);
+  const composeContacts = useMemo(() => {
+    const seen = new Set<string>();
+    const items: ContactOption[] = [];
+
+    const pushContact = (raw: string | null | undefined, source: ContactOption["source"]) => {
+      const contact = parseContactOption(raw, source);
+      if (!contact) return;
+      const normalizedEmail = contact.email.toLowerCase();
+      if (activeAccount && normalizedEmail === activeAccount.toLowerCase()) return;
+      if (seen.has(normalizedEmail)) return;
+      seen.add(normalizedEmail);
+      items.push(contact);
+    };
+
+    if (selectedMessage?.from) {
+      pushContact(selectedMessage.from, "recent");
+    }
+
+    for (const message of mergedInboxMessages) {
+      pushContact(message.from, "recent");
+      if (items.length >= 16) break;
+    }
+
+    for (const account of accounts) {
+      if (items.length >= 16) break;
+      pushContact(`${account.name} <${account.email}>`, "account");
+    }
+
+    for (const suggestion of composeSuggestions) {
+      if (items.length >= 24) break;
+      pushContact(suggestion.label, suggestion.source === "history" ? "recent" : suggestion.source);
+    }
+
+    return items;
+  }, [accounts, activeAccount, composeSuggestions, mergedInboxMessages, selectedMessage]);
+
+  useEffect(() => {
+    void radiusRpc.request
+      .getComposeSuggestions({})
+      .then((result) => {
+        setComposeSuggestions(result.contacts);
+      })
+      .catch((error) => {
+        console.error("Failed to load compose suggestions:", error);
+      });
+  }, [activeAccount]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -151,9 +262,6 @@ function App() {
   useEffect(() => {
     const handleUpdateStatus = (info: UpdateInfo) => {
       setUpdateInfo(info);
-      if (info.updateReady) {
-        setUpdateDownloaded(true);
-      }
     };
 
     radiusRpc.addMessageListener("updateStatus", handleUpdateStatus);
@@ -211,6 +319,33 @@ function App() {
     radiusRpc.addMessageListener("newMail", handleNewMail);
     return () => {
       radiusRpc.removeMessageListener("newMail", handleNewMail);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleComposeStatus = (message: ComposeStatusMessage) => {
+      if (message.status === "send_sent") {
+        const timer = window.setTimeout(() => {
+          toast.success("Message sent", {
+            description: "Your email has been successfully sent.",
+          });
+          composeToastTimersRef.current = composeToastTimersRef.current.filter(
+            (id) => id !== timer,
+          );
+        }, 250);
+        composeToastTimersRef.current.push(timer);
+      } else if (message.status === "send_failed") {
+        toast.error(message.error ?? "Send failed");
+      }
+    };
+
+    radiusRpc.addMessageListener("composeStatusChanged", handleComposeStatus);
+    return () => {
+      for (const timer of composeToastTimersRef.current) {
+        window.clearTimeout(timer);
+      }
+      composeToastTimersRef.current = [];
+      radiusRpc.removeMessageListener("composeStatusChanged", handleComposeStatus);
     };
   }, []);
 
@@ -343,6 +478,41 @@ function App() {
   const handleOpenSearch = useCallback(() => {
     setCmdOpen(false);
     setSearchOpen(true);
+    setSidebarOpen(true);
+  }, []);
+
+  const handleOpenCompose = useCallback(() => {
+    setCmdOpen(false);
+    setComposeOpen(true);
+  }, []);
+
+  const handleOpenMailbox = useCallback(async (mailbox: Exclude<MailboxKind, "inbox">) => {
+    activeMailboxRef.current = mailbox;
+    setCmdOpen(false);
+    setSearchOpen(false);
+    setSidebarOpen(true);
+    setMailboxView(mailbox);
+    try {
+      const result = await radiusRpc.request.getMailboxMessages({ mailbox, limit: 100 });
+      if (activeMailboxRef.current !== mailbox) return;
+      setMailboxMessages((current) => ({
+        ...current,
+        [mailbox]: result.messages,
+      }));
+      if (result.messages[0]) {
+        setSelectedMessageId(result.messages[0].id);
+        setSidebarOpen(false);
+      }
+    } catch (error) {
+      console.error(`Failed to load ${mailbox}:`, error);
+      toast.error(`Failed to load ${mailbox}`);
+    }
+  }, []);
+
+  const handleShowInbox = useCallback(() => {
+    setCmdOpen(false);
+    setSearchOpen(false);
+    setMailboxView("inbox");
     setSidebarOpen(true);
   }, []);
 
@@ -549,14 +719,26 @@ function App() {
           selectedId={selectedMessageId}
           onSelect={handleSelectMessage}
           syncStatus={syncStatus}
-          heading={searchActive ? "Search Results" : "Inbox"}
+          heading={
+            searchActive
+              ? "Search Results"
+              : mailboxView === "inbox"
+                ? "Inbox"
+                : mailboxView === "sent"
+                  ? "Sent"
+                  : mailboxView === "drafts"
+                    ? "Drafts"
+                    : "Trash"
+          }
           detail={searchMeta ?? undefined}
           loading={searchLoading}
-          onReachEnd={searchActive ? undefined : handleLoadMoreInbox}
+          onReachEnd={searchActive || mailboxView !== "inbox" ? undefined : handleLoadMoreInbox}
           emptyMessage={
             searchActive
               ? `No emails match “${deferredSearchQuery.trim()}”`
-              : undefined
+              : mailboxView === "inbox"
+                ? undefined
+                : `No ${mailboxView} emails`
           }
         />
       </aside>
@@ -568,18 +750,21 @@ function App() {
         />
       </main>
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen} modal={false}>
-        <DialogContent className="w-full max-w-xl p-0 overflow-hidden border-0 bg-transparent shadow-none">
+        <DialogContent showCloseButton={false} className="w-full max-w-[720px] sm:max-w-[720px] p-0 overflow-hidden border-0 ring-0 bg-transparent shadow-none pt-[10vh]">
           <DialogTitle className="sr-only">Command palette</DialogTitle>
           <DialogDescription className="sr-only">
             Search for commands and actions in Radius.
           </DialogDescription>
           <CommandK
             onSearchEmails={handleOpenSearch}
+            onComposeEmail={handleOpenCompose}
             onCheckForUpdates={handleCheckForUpdates}
             onSwitchAccount={handleSwitchAccount}
             onAddAccount={handleAddAccount}
             onRemoveAccount={handleRemoveAccount}
             onAbout={handleOpenAbout}
+            onShowMailbox={handleOpenMailbox}
+            onShowInbox={handleShowInbox}
             accounts={accounts}
             activeAccount={activeAccount}
           />
@@ -594,12 +779,17 @@ function App() {
         onClose={handleCloseSearch}
         onSubmit={handleSubmitSearch}
       />
+      <ComposeEmailDialog
+        open={composeOpen}
+        onClose={() => setComposeOpen(false)}
+        fromAccount={activeAccountRecord}
+        contacts={composeContacts}
+      />
 
       {/* Minimal sync indicator — bottom left, never blocks */}
       <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
         <UpdateNotification
           updateInfo={updateInfo}
-          updateDownloaded={updateDownloaded}
           isDownloading={isDownloading}
           isApplying={isApplying}
           onDownload={handleDownloadUpdate}
@@ -619,11 +809,11 @@ function App() {
         position="bottom-right"
         toastOptions={{
           style: {
-            background: "transparent",
-            border: "none",
-            boxShadow: "none",
-            padding: 0,
+            background: "var(--radius-bg-primary)",
+            color: "var(--radius-text-primary)",
+            borderColor: "var(--radius-border-subtle)",
           },
+          className: "font-[family-name:var(--font-family-sans)] antialiased shadow-lg",
         }}
       />
       {accountSwitching && (
@@ -650,482 +840,6 @@ function App() {
       />
       </div>
     </ThemeProvider>
-  );
-}
-
-function EmailSearchSpotlight({
-  open,
-  query,
-  resultCount,
-  loading,
-  onChangeQuery,
-  onClose,
-  onSubmit,
-}: {
-  open: boolean;
-  query: string;
-  resultCount: number;
-  loading: boolean;
-  onChangeQuery: (value: string) => void;
-  onClose: () => void;
-  onSubmit: () => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const timer = window.setTimeout(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }, 20);
-
-    return () => window.clearTimeout(timer);
-  }, [open]);
-
-  if (!open) return null;
-
-  return (
-    <div className="pointer-events-none fixed inset-x-0 top-11 z-50 flex justify-center px-4">
-      <div className="pointer-events-auto w-full max-w-[420px] border border-radius-border-subtle bg-radius-bg-primary">
-        <div className="flex items-center gap-2 px-3 py-2">
-          <span className="shrink-0 select-none text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-            /
-          </span>
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(event) => onChangeQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
-                event.preventDefault();
-                inputRef.current?.select();
-              }
-              if (event.key === "Escape") {
-                event.preventDefault();
-                onClose();
-              }
-              if (event.key === "Enter") {
-                event.preventDefault();
-                onSubmit();
-              }
-            }}
-            placeholder="Search email"
-            className="min-w-0 flex-1 bg-transparent text-[13px] text-radius-text-primary outline-none placeholder:text-radius-text-muted font-[family-name:var(--font-family-sans)]"
-          />
-          {query.trim() ? (
-            <span className="shrink-0 text-[10px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-              {loading ? "..." : `${resultCount.toLocaleString()}`}
-            </span>
-          ) : null}
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-5 w-5 shrink-0 items-center justify-center text-radius-text-muted transition-colors hover:text-radius-text-primary"
-            aria-label="Close email search"
-          >
-            <span className="text-[15px] leading-none">×</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DragRegion() {
-  return (
-    <div
-      className="electrobun-webkit-app-region-drag fixed top-0 left-0 right-0 h-11 z-50"
-      style={
-        {
-          appRegion: "drag",
-          WebkitAppRegion: "drag",
-        } as CSSProperties
-      }
-    />
-  );
-}
-
-function NotificationPermissionPrompt({
-  visible,
-  mode,
-  onRequestPermission,
-  onOpenSettings,
-  onDismiss,
-}: {
-  visible: boolean;
-  mode: "default" | "followup";
-  onRequestPermission: () => void | Promise<void>;
-  onOpenSettings: () => void | Promise<void>;
-  onDismiss: () => void;
-}) {
-  if (!visible) return null;
-
-  return (
-    <div className="toast pointer-events-auto w-[300px] rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl overflow-hidden">
-      <div className="flex items-start gap-3 p-3.5">
-        <Bell
-          weight="fill"
-          size={18}
-          className="mt-0.5 shrink-0 text-radius-accent"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="text-[12px] font-medium text-radius-text-primary leading-snug font-[family-name:var(--font-family-sans)]">
-            {mode === "followup"
-              ? "Set Radius to Banners"
-              : "Turn on new mail alerts"}
-          </p>
-          <p className="mt-1 text-[11px] leading-[1.5] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-            {mode === "followup"
-              ? "Open Notifications settings and set Radius to Banners so new mail pops up."
-              : "Enable native alerts so Radius can notify you when new email arrives."}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="mt-[-2px] inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
-          aria-label="Dismiss"
-        >
-          <X size={12} weight="bold" />
-        </button>
-      </div>
-      <div className="flex items-center gap-2 border-t border-radius-border-subtle px-3.5 py-2.5">
-        <button
-          type="button"
-          onClick={() => void onRequestPermission()}
-          className="inline-flex items-center rounded-lg bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover"
-        >
-          {mode === "followup" ? "Try again" : "Enable alerts"}
-        </button>
-        {mode === "followup" && (
-          <button
-            type="button"
-            onClick={() => void onOpenSettings()}
-            className="inline-flex items-center rounded-lg border border-radius-border-subtle bg-transparent px-3 py-1.5 text-[11px] font-medium text-radius-text-secondary transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
-          >
-            Open settings
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function UpdateNotification({
-  updateInfo,
-  updateDownloaded,
-  isDownloading,
-  isApplying,
-  onDownload,
-  onApply,
-  onDismiss,
-}: {
-  updateInfo: UpdateInfo | null;
-  updateDownloaded: boolean;
-  isDownloading: boolean;
-  isApplying: boolean;
-  onDownload: () => void | Promise<void>;
-  onApply: () => void | Promise<void>;
-  onDismiss: () => void;
-}) {
-  if (!updateInfo || (!updateInfo.updateAvailable && !updateInfo.updateReady)) {
-    return null;
-  }
-
-  return (
-    <div className="toast pointer-events-auto w-[300px] rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl overflow-hidden">
-      <div className="flex items-start gap-3 p-3.5">
-        <ArrowCircleUp
-          weight="fill"
-          size={18}
-          className="mt-0.5 shrink-0 text-radius-accent"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-[12px] font-medium text-radius-text-primary leading-snug font-[family-name:var(--font-family-sans)]">
-              {updateDownloaded
-                ? `Radius ${updateInfo.version} ready`
-                : `Radius ${updateInfo.version} available`}
-            </p>
-            <button
-              type="button"
-              onClick={onDismiss}
-              className="mt-[-2px] inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
-              aria-label="Dismiss"
-            >
-              <X size={12} weight="bold" />
-            </button>
-          </div>
-          <p className="mt-1 text-[11px] leading-[1.5] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-            {isDownloading
-              ? "Downloading update…"
-              : isApplying
-                ? "Restarting to install update…"
-                : updateDownloaded
-                  ? "Downloaded and ready to install. The app will restart automatically."
-                  : "Download now to get the latest improvements and fixes."}
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 border-t border-radius-border-subtle px-3.5 py-2.5">
-        {updateDownloaded ? (
-          <button
-            type="button"
-            disabled={isApplying}
-            onClick={() => void onApply()}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isApplying && (
-              <svg className="animate-spin text-current" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-              </svg>
-            )}
-            <span>Install & Restart</span>
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={isDownloading}
-            onClick={() => void onDownload()}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isDownloading && (
-              <svg className="animate-spin text-current" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-              </svg>
-            )}
-            <span>Download</span>
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SyncPill({
-  syncStatus,
-  notice,
-}: {
-  syncStatus: ReturnType<typeof useSyncStatus>;
-  notice: string | null;
-}) {
-  const isInitialSync =
-    syncStatus.status === "syncing" &&
-    (syncStatus.phase === "initial" || !syncStatus.initialSyncCompletedAt);
-  const shouldShow =
-    Boolean(notice) || syncStatus.status === "error" || isInitialSync;
-
-  if (!shouldShow) return null;
-
-  const current = syncStatus.progress?.current ?? 0;
-  const total = syncStatus.progress?.total ?? 0;
-  const pct = total > 0 ? Math.min(Math.round((current / total) * 100), 100) : 0;
-
-  return (
-    <div className="fixed bottom-4 left-4 z-40 w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-[18px] border border-radius-border-subtle bg-radius-bg-primary/92 shadow-[0_12px_36px_rgba(0,0,0,0.14)] backdrop-blur-xl">
-      <div className="flex items-start gap-3 px-3.5 py-3">
-        {syncStatus.status === "error" ? (
-          <span className="mt-0.5 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-radius-error" />
-        ) : notice ? (
-          <span className="mt-0.5 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-radius-accent" />
-        ) : (
-          <svg
-            className="mt-0.5 shrink-0 animate-spin text-radius-accent"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-          </svg>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-            {syncStatus.status === "error"
-              ? "Sync needs attention"
-              : notice
-                ? "Gmail sync notice"
-                : "Bringing your inbox in"}
-          </p>
-          <p className="mt-1 text-[11px] leading-[1.55] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
-            {notice ??
-              (syncStatus.status === "error"
-                ? syncStatus.error ?? "Radius could not finish syncing."
-                : total > 0
-                  ? `${pct}% synced • ${current.toLocaleString()} of ${total.toLocaleString()} messages`
-                  : "Your first sync is running in the background. You can start reading while the rest lands.")}
-          </p>
-          {isInitialSync && total > 0 ? (
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-radius-bg-tertiary">
-              <div
-                className="h-full rounded-full bg-radius-accent transition-[width] duration-300 ease-out"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AboutDialog({
-  open,
-  onClose,
-  info,
-}: {
-  open: boolean;
-  onClose: () => void;
-  info: LocalReleaseInfo | null;
-}) {
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-radius-bg-primary/80 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="relative w-full max-w-[360px] rounded-2xl border border-radius-border-subtle bg-radius-bg-primary p-8 shadow-[0_16px_48px_rgba(0,0,0,0.16)] animate-in zoom-in-95 duration-200 text-center">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-4 right-4 inline-flex h-6 w-6 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
-          aria-label="Close"
-        >
-          <X size={14} weight="bold" />
-        </button>
-
-        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-radius-accent-subtle">
-          <EnvelopeSimple weight="fill" size={28} className="text-radius-accent" />
-        </div>
-
-        <h2 className="text-[18px] font-semibold text-radius-text-primary font-[family-name:var(--font-family-sans)] tracking-tight">
-          Radius
-        </h2>
-        <p className="mt-1 text-[13px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-          A Minimal and Clean Distraction Free Client
-        </p>
-
-        <div className="mt-5 inline-flex items-center rounded-full border border-radius-border-subtle bg-radius-bg-secondary px-3 py-1">
-          <span className="text-[11px] font-medium text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
-            Version {info?.version ?? "…"}
-          </span>
-        </div>
-
-        <div className="mt-6 flex items-center justify-center gap-4 text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-          <span className="inline-flex h-2 w-2 rounded-full bg-radius-accent" />
-          <span>Built with care</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AddAccountDialog({
-  open,
-  onClose,
-  onConnect,
-  selectedMode,
-  onSelectMode,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onConnect: (mode: SyncMode) => void;
-  selectedMode: SyncMode | null;
-  onSelectMode: (mode: SyncMode) => void;
-}) {
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-radius-bg-primary/80 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="w-full max-w-[400px] rounded-2xl border border-radius-border-subtle bg-radius-bg-primary p-6 shadow-[0_16px_48px_rgba(0,0,0,0.16)] animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-[15px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-            Add Account
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
-            aria-label="Close"
-          >
-            <X size={14} weight="bold" />
-          </button>
-        </div>
-
-        <p className="mb-5 text-[13px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-          Connect another Gmail account to Radius.
-        </p>
-
-        <div className="mb-6 grid gap-2">
-          <button
-            type="button"
-            onClick={() => onSelectMode("recent")}
-            className={`flex items-center justify-between rounded-xl border px-4 py-3 transition-colors duration-200 ${
-              selectedMode === "recent"
-                ? "border-radius-accent bg-radius-bg-secondary"
-                : "border-radius-border-subtle hover:bg-radius-bg-secondary/60"
-            }`}
-          >
-            <div className="text-left">
-              <p className="text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-                Recent emails
-              </p>
-              <p className="text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-                Fetch latest 3,000 emails
-              </p>
-            </div>
-            <span
-              className={`inline-flex h-4 w-4 shrink-0 rounded-full border ${
-                selectedMode === "recent"
-                  ? "border-radius-accent bg-radius-accent"
-                  : "border-radius-border-subtle"
-              }`}
-            />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectMode("all")}
-            className={`flex items-center justify-between rounded-xl border px-4 py-3 transition-colors duration-200 ${
-              selectedMode === "all"
-                ? "border-radius-accent bg-radius-bg-secondary"
-                : "border-radius-border-subtle hover:bg-radius-bg-secondary/60"
-            }`}
-          >
-            <div className="text-left">
-              <p className="text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-                All emails
-              </p>
-              <p className="text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-                Full migration in background
-              </p>
-            </div>
-            <span
-              className={`inline-flex h-4 w-4 shrink-0 rounded-full border ${
-                selectedMode === "all"
-                  ? "border-radius-accent bg-radius-accent"
-                  : "border-radius-border-subtle"
-              }`}
-            />
-          </button>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            if (selectedMode) {
-              onConnect(selectedMode);
-            }
-          }}
-          disabled={!selectedMode}
-          className="w-full rounded-xl bg-radius-accent px-4 py-2.5 text-[13px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover disabled:bg-radius-bg-secondary disabled:text-radius-text-muted disabled:cursor-not-allowed font-[family-name:var(--font-family-sans)]"
-        >
-          Connect Gmail
-        </button>
-      </div>
-    </div>
   );
 }
 

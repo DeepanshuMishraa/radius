@@ -1,7 +1,15 @@
 import type { RadiusRPC } from "../shared/types";
-import { getInboxMessages, searchInboxMessages, getMessageById, updateMessageBodies, getSyncState, setMessageReadState } from "./db";
-import { getValidAccessToken } from "./auth";
+import { getInboxMessages, searchInboxMessages, getMessageById, updateMessageBodies, getSyncState, setMessageReadState, getComposeContactRows, getComposeSessionRecipientRows, searchComposeContacts, upsertComposeContacts, getMailboxMessages as getStoredMailboxMessages } from "./db";
+import { getAccountEmail, getValidAccessToken } from "./auth";
 import { getMessage as getGmailMessage, extractBodies, getAttachment, modifyMessageLabels, GmailAPIError, parseHeaders, classifyMessageNature, isReadFromLabels } from "./gmail";
+import {
+  createComposeSession,
+  discardComposeSession,
+  queueSendForSession,
+  saveDraftForSession,
+  undoPendingSend,
+  updateComposeSession,
+} from "./compose";
 
 function toRpcMessage(
   gmailMessage: Awaited<ReturnType<typeof getGmailMessage>>,
@@ -107,9 +115,116 @@ export async function handleGetMessage(params: { id: string }) {
     }
   }
 
-  return normalizeMessageRecord(
-    msg,
-  ) as RadiusRPC["bun"]["requests"]["getMessage"]["response"];
+  if (!msg) {
+    try {
+      const accessToken = await getValidAccessToken();
+      const gmailMsg = await getGmailMessage(accessToken, id);
+      const bodies = await extractBodies(gmailMsg.payload, accessToken, id);
+      const rpcMessage = toRpcMessage(gmailMsg);
+      return {
+        ...rpcMessage,
+        bodyText: bodies.text,
+        bodyHtml: bodies.html,
+      };
+    } catch (err) {
+      console.error(`Failed to fetch remote message ${id}:`, err);
+    }
+  }
+
+  return normalizeMessageRecord(msg) as RadiusRPC["bun"]["requests"]["getMessage"]["response"];
+}
+
+export async function handleGetMailboxMessages(params: {
+  mailbox: "sent" | "drafts" | "trash";
+  limit?: number;
+}): Promise<RadiusRPC["bun"]["requests"]["getMailboxMessages"]["response"]> {
+  const result = await getStoredMailboxMessages(params.mailbox, Math.min(params.limit ?? 100, 100), 0);
+  return {
+    messages: result.messages.map((message) =>
+      normalizeMessageListRecord(message),
+    ) as unknown as RadiusRPC["bun"]["requests"]["getMailboxMessages"]["response"]["messages"],
+    total: result.total,
+  };
+}
+
+function parseAddressCandidates(value: string | null | undefined): Array<{ name: string; email: string }> {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .flatMap((chunk) => {
+      const match = chunk.match(/^"?([^"<]+)"?\s*(?:<([^>]+)>)?$/);
+      const email = (match?.[2] ?? (chunk.includes("@") ? chunk : "")).trim().toLowerCase();
+      if (!email) return [];
+      const name = (match?.[1]?.trim() || email).replace(/^"|"$/g, "");
+      return [{ name, email }];
+    });
+}
+
+export async function handleGetComposeSuggestions(params: {
+  query?: string;
+  limit?: number;
+}): Promise<
+  RadiusRPC["bun"]["requests"]["getComposeSuggestions"]["response"]
+> {
+  const accountEmail = getAccountEmail();
+  if (!accountEmail) {
+    return { contacts: [] };
+  }
+
+  const [messageRows, composeRows] = await Promise.all([
+    getComposeContactRows(),
+    getComposeSessionRecipientRows(),
+  ]);
+
+  const candidates = new Map<string, { email: string; name: string }>();
+
+  const pushCandidate = (name: string, email: string) => {
+    if (candidates.has(email)) return;
+    candidates.set(email, { name, email });
+  };
+
+  for (const row of messageRows) {
+    for (const candidate of [
+      ...parseAddressCandidates(row.fromAddr),
+      ...parseAddressCandidates(row.toAddr),
+    ]) {
+      pushCandidate(candidate.name, candidate.email);
+    }
+  }
+
+  for (const row of composeRows) {
+    for (const value of [row.toRecipients, row.ccRecipients, row.bccRecipients]) {
+      try {
+        const parsed = JSON.parse(value) as unknown;
+        if (!Array.isArray(parsed)) continue;
+        for (const item of parsed) {
+          if (typeof item !== "string") continue;
+          const email = item.trim().toLowerCase();
+          if (!email) continue;
+          pushCandidate(email, email);
+        }
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  await upsertComposeContacts(accountEmail, Array.from(candidates.values()));
+  const rows = await searchComposeContacts(
+    accountEmail,
+    params.query ?? "",
+    Math.min(params.limit ?? 8, 20),
+  );
+  return {
+    contacts: rows.map((row) => ({
+      name: row.name || row.email,
+      email: row.email,
+      label: row.name && row.name !== row.email ? `${row.name} <${row.email}>` : row.email,
+      source: "history" as const,
+    })),
+  };
 }
 
 export async function handleGetSyncStatus() {
@@ -197,3 +312,10 @@ export async function handleDownloadAttachment(params: { messageId: string; atta
     };
   }
 }
+
+export const handleCreateComposeSession = createComposeSession;
+export const handleUpdateComposeSession = updateComposeSession;
+export const handleSaveDraft = saveDraftForSession;
+export const handleQueueSend = queueSendForSession;
+export const handleUndoSend = undoPendingSend;
+export const handleDiscardComposeSession = discardComposeSession;

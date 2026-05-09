@@ -2,47 +2,48 @@ import * as React from "react";
 import {
   Command,
   CommandEmpty,
-  CommandGroup,
   CommandInput,
-  CommandItem,
   CommandList,
-  CommandShortcut,
 } from "@/components/ui/command";
 import { useTheme } from "./theme-provider";
 import {
-  SunDimIcon,
-  MagnifyingGlassIcon,
-  ArrowsClockwiseIcon,
-  UserCircleIcon,
   ArrowLeftIcon,
-  PlusIcon,
-  CheckIcon,
   TrashIcon,
-  InfoIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import type { Account } from "@/mainview/hooks/useInbox";
+import { Home } from "./home";
+import { Accounts } from "./accounts";
+import { Themes } from "./themes";
+import { Mailboxes } from "./mailboxes";
+import { cn } from "@/lib/utils";
+
+type Page = "home" | "accounts" | "themes" | "mailboxes";
 
 interface CommandKProps {
   onSearchEmails: () => void;
+  onComposeEmail: () => void;
   onCheckForUpdates: () => void;
   onSwitchAccount: (email: string) => void;
   onAddAccount: () => void;
   onRemoveAccount: (email: string) => void;
   onAbout: () => void;
+  onShowMailbox: (mailbox: "sent" | "drafts" | "trash") => void;
+  onShowInbox: () => void;
   accounts: Account[];
   activeAccount: string | null;
 }
 
-type Page = "home" | "accounts" | "themes";
-
 export function CommandK({
   onSearchEmails,
+  onComposeEmail,
   onCheckForUpdates,
   onSwitchAccount,
   onAddAccount,
   onRemoveAccount,
   onAbout,
+  onShowMailbox,
+  onShowInbox,
   accounts,
   activeAccount,
 }: CommandKProps) {
@@ -52,26 +53,9 @@ export function CommandK({
   const [search, setSearch] = React.useState("");
   const [selectedValue, setSelectedValue] = React.useState("");
   const [deleteTarget, setDeleteTarget] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (page === "home") {
-      setSelectedValue((current) => current || "toggle-theme");
-      return;
-    }
-
-    if (page === "accounts") {
-      const nextValue = accounts[0]?.email ?? "add-account";
-      setSelectedValue((current) => current || nextValue);
-      return;
-    }
-
-    const nextThemeValue = themes[0]?.name ?? "";
-    setSelectedValue((current) => current || nextThemeValue);
-  }, [accounts, page, themes]);
-
-  React.useEffect(() => {
-    setSelectedValue("");
-  }, [page]);
+  
+  // Tasteful micro-interaction state
+  const [isExpanded, setIsExpanded] = React.useState(false);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -79,6 +63,42 @@ export function CommandK({
     }, 0);
     return () => clearTimeout(timer);
   }, [page]);
+
+  // Fix Escape key natively to prevent Radix from closing the modal
+  React.useEffect(() => {
+    const handleNativeEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (deleteTarget) {
+          e.preventDefault();
+          e.stopPropagation();
+          setDeleteTarget(null);
+          return;
+        }
+        if (page !== "home") {
+          e.preventDefault();
+          e.stopPropagation();
+          setPage("home");
+          setSearch("");
+          return;
+        }
+        if (isExpanded && search.length === 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsExpanded(false);
+          return;
+        }
+      }
+    };
+    document.addEventListener("keydown", handleNativeEscape, { capture: true });
+    return () => document.removeEventListener("keydown", handleNativeEscape, { capture: true });
+  }, [page, deleteTarget, isExpanded, search]);
+
+  // Expand when typing
+  React.useEffect(() => {
+    if (search.length > 0 && !isExpanded) {
+      setIsExpanded(true);
+    }
+  }, [search, isExpanded]);
 
   const selectedAccount = React.useMemo(
     () => accounts.find((a) => a.email === selectedValue) ?? null,
@@ -100,22 +120,16 @@ export function CommandK({
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
+      // Expand on arrow keys
+      if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !isExpanded) {
+        setIsExpanded(true);
+      }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
         e.preventDefault();
         inputRef.current?.select();
       }
-      if (e.key === "Escape" && page !== "home") {
-        if (deleteTarget) {
-          e.preventDefault();
-          setDeleteTarget(null);
-          return;
-        }
-        e.preventDefault();
-        setPage("home");
-        setSearch("");
-      }
     },
-    [page, deleteTarget]
+    [isExpanded]
   );
 
   const handleBack = React.useCallback(() => {
@@ -134,58 +148,74 @@ export function CommandK({
     setSearch("");
   }, [deleteTarget, onRemoveAccount]);
 
+  const showList = isExpanded || page !== "home" || deleteTarget;
+
   return (
-    <Command
-      value={selectedValue}
-      onValueChange={setSelectedValue}
-      className="w-full max-w-xl border border-radius-border-subtle overflow-hidden"
-      onKeyDown={handleKeyDown}
+    <div 
+      className={cn(
+        "mx-auto flex flex-col rounded-[1.25rem] border border-radius-border-subtle bg-radius-bg-primary/40 p-2 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] backdrop-blur-2xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+        showList ? "w-full max-w-[720px]" : "w-full max-w-[480px]"
+      )}
     >
+      <Command
+        onValueChange={setSelectedValue}
+        className="w-full rounded-xl border border-radius-border-subtle overflow-hidden bg-radius-bg-primary font-[family-name:var(--font-family-sans)] antialiased shadow-sm"
+        onKeyDownCapture={handleKeyDown}
+      >
       {page !== "home" && (
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-radius-border-subtle">
+        <div className="flex items-center gap-2 px-4 py-3 bg-transparent">
           <button
             type="button"
             onClick={handleBack}
-            className="inline-flex h-6 w-6 items-center justify-center rounded-md text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
+            className="inline-flex h-6 w-6 items-center justify-center rounded-md text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary hover:shadow-sm"
             aria-label="Back"
           >
             <ArrowLeftIcon size={14} />
           </button>
-          <span className="text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-            {page === "accounts" ? "Accounts" : "Themes"}
+          <span className="text-[13px] font-medium text-radius-text-primary">
+            {page === "accounts"
+              ? "Accounts"
+              : page === "mailboxes"
+                ? "Mailroom"
+                : "Themes"}
           </span>
         </div>
       )}
+      
       {deleteTarget && (
-        <div className="mx-3 mt-2 mb-1 rounded-lg border border-radius-error/30 bg-radius-error/5 p-3">
+        <div className="mx-4 mt-4 mb-2 rounded-lg border border-radius-error/30 bg-radius-error/5 p-4 shadow-sm">
           <div className="flex items-center gap-2">
-            <TrashIcon size={14} className="text-radius-error shrink-0" />
-            <p className="text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+            <TrashIcon size={16} className="text-radius-error shrink-0" />
+            <p className="text-[13px] font-semibold text-radius-text-primary">
               Delete account?
             </p>
           </div>
-          <p className="mt-0.5 truncate text-[11px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
+          <p className="mt-1 truncate text-[12px] text-radius-text-secondary">
             {deleteTarget}
           </p>
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-4 flex items-center gap-2">
             <button
               type="button"
               onClick={() => setDeleteTarget(null)}
-              className="inline-flex items-center rounded-md border border-radius-border-subtle bg-transparent px-2.5 py-1 text-[11px] font-medium text-radius-text-secondary transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary font-[family-name:var(--font-family-sans)]"
+              className="inline-flex items-center rounded-md border border-radius-border-subtle bg-radius-bg-primary px-3 py-1.5 text-[12px] font-medium text-radius-text-secondary transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary shadow-sm"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleConfirmDelete}
-              className="inline-flex items-center rounded-md bg-radius-error px-2.5 py-1 text-[11px] font-medium text-white transition-colors hover:opacity-90 font-[family-name:var(--font-family-sans)]"
+              className="inline-flex items-center rounded-md bg-radius-error px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:opacity-90 shadow-sm"
             >
               Delete
             </button>
           </div>
         </div>
       )}
-      <div className={page !== "home" ? "sr-only" : undefined}>
+
+      <div className={cn(
+        page !== "home" ? "sr-only" : "bg-transparent",
+        showList ? "border-b border-radius-border-subtle" : ""
+      )}>
         <CommandInput
           ref={inputRef}
           placeholder={page === "home" ? "Type a command or search..." : ""}
@@ -194,117 +224,61 @@ export function CommandK({
           onValueChange={setSearch}
         />
       </div>
-      <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
-        {page === "home" ? (
-          <CommandGroup heading="Suggestions">
-            <CommandItem
-              active={selectedValue === "toggle-theme"}
-              value="toggle-theme"
-              onSelect={() => {
-                setPage("themes");
-                setSearch("");
-              }}
-            >
-              <SunDimIcon />
-              <span>Toggle Theme</span>
-            </CommandItem>
-            <CommandItem
-              active={selectedValue === "search-emails"}
-              value="search-emails"
-              onSelect={onSearchEmails}
-            >
-              <MagnifyingGlassIcon />
-              <span>Search Emails</span>
-            </CommandItem>
-            <CommandItem
-              active={selectedValue === "check-updates"}
-              value="check-updates"
-              onSelect={onCheckForUpdates}
-            >
-              <ArrowsClockwiseIcon />
-              <span>Check for Updates</span>
-            </CommandItem>
-            <CommandItem
-              active={selectedValue === "accounts"}
-              value="accounts"
-              onSelect={() => setPage("accounts")}
-            >
-              <UserCircleIcon />
-              <span>Accounts</span>
-            </CommandItem>
-            <CommandItem active={selectedValue === "about"} value="about" onSelect={onAbout}>
-              <InfoIcon />
-              <span>About</span>
-            </CommandItem>
-          </CommandGroup>
-        ) : page === "accounts" ? (
-          <>
-            <CommandGroup heading="Your accounts">
-              {accounts.map((account) => (
-                <CommandItem
-                  active={selectedValue === account.email}
-                  key={account.email}
-                  value={account.email}
-                  onSelect={() => {
-                    if (account.email !== activeAccount) {
-                      onSwitchAccount(account.email);
-                    }
-                  }}
-                  className="justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <UserCircleIcon />
-                    <span className="text-sm">{account.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {account.email === activeAccount && (
-                      <CheckIcon size={14} className="text-radius-accent" />
-                    )}
-                    <CommandShortcut className="inline-flex h-5 items-center rounded border border-radius-border-subtle bg-radius-bg-secondary px-1.5 text-[10px] font-medium text-radius-text-muted duration-150 font-[family-name:var(--font-family-sans)]">
-                      D
-                    </CommandShortcut>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-            <CommandGroup heading="Actions">
-              <CommandItem
-                active={selectedValue === "add-account"}
-                value="add-account"
-                onSelect={onAddAccount}
-              >
-                <PlusIcon />
-                <span>Add Account</span>
-              </CommandItem>
-            </CommandGroup>
-          </>
-        ) : (
-          <CommandGroup heading="Available themes">
-            {themes.map((item) => (
-              <CommandItem
-                active={selectedValue === item.name}
-                key={item.id}
-                value={item.name}
-                onSelect={() => {
-                  if (item.id !== theme) {
-                    setTheme(item.id);
-                  }
-                }}
-                className="justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  <SunDimIcon />
-                  <span className="text-sm">{item.name}</span>
-                </div>
-                {item.id === theme && (
-                  <CheckIcon size={14} className="text-radius-accent" />
-                )}
-              </CommandItem>
-            ))}
-          </CommandGroup>
+
+      <div 
+        className={cn(
+          "grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+          showList ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
         )}
-      </CommandList>
+      >
+        <div className="overflow-hidden">
+          <CommandList className="max-h-[60vh]">
+            <CommandEmpty className="py-12 text-center text-[13px] text-radius-text-muted">
+              No results found.
+            </CommandEmpty>
+            
+            <div className="p-1.5">
+              {page === "home" ? (
+                <Home
+                  onSelectTheme={() => {
+                    setPage("themes");
+                    setSearch("");
+                  }}
+                  onOpenMailroom={() => {
+                    setPage("mailboxes");
+                    setSearch("");
+                  }}
+                  onSearchEmails={onSearchEmails}
+                  onComposeEmail={onComposeEmail}
+                  onCheckForUpdates={onCheckForUpdates}
+                  onSelectAccounts={() => setPage("accounts")}
+                  onAbout={onAbout}
+                  onShowInbox={onShowInbox}
+                />
+              ) : page === "accounts" ? (
+                <Accounts
+                  accounts={accounts}
+                  activeAccount={activeAccount}
+                  deleteTarget={deleteTarget}
+                  onSwitchAccount={onSwitchAccount}
+                  onAddAccount={onAddAccount}
+                />
+              ) : page === "mailboxes" ? (
+                <Mailboxes
+                  onSelectMailbox={onShowMailbox}
+                />
+              ) : (
+                <Themes
+                  themes={themes}
+                  currentTheme={theme}
+                  onSetTheme={setTheme}
+                />
+              )}
+            </div>
+          </CommandList>
+        </div>
+      </div>
     </Command>
+    </div>
   );
 }

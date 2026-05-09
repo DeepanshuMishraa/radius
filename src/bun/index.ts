@@ -1,3 +1,5 @@
+import os from "os";
+import { execSync } from "child_process";
 import Electrobun, {
   BrowserView,
   BrowserWindow,
@@ -12,12 +14,24 @@ import { setAccountEmail } from "./auth";
 import { getMainViewUrl } from "./url";
 import { toRpcMessage } from "./rpc-handlers";
 import {
+  setEmitComposeStatus,
+  resumePendingSends,
+} from "./compose";
+import {
   handleGetInbox,
+  handleGetMailboxMessages,
   handleSearchInbox,
   handleGetMessage,
   handleGetSyncStatus,
   handleMarkMessageRead,
   handleDownloadAttachment,
+  handleGetComposeSuggestions,
+  handleCreateComposeSession,
+  handleUpdateComposeSession,
+  handleSaveDraft,
+  handleQueueSend,
+  handleUndoSend,
+  handleDiscardComposeSession,
 } from "./rpc-handlers";
 import {
   handleOpenExternalUrl,
@@ -56,17 +70,32 @@ async function createMainWindow() {
     handlers: {
       requests: {
         getInbox: handleGetInbox,
+        getMailboxMessages: handleGetMailboxMessages,
         searchInbox: handleSearchInbox,
         getMessage: handleGetMessage,
+        getComposeSuggestions: handleGetComposeSuggestions,
         getSyncStatus: handleGetSyncStatus,
         openExternalUrl: handleOpenExternalUrl,
         startOAuth: handleStartOAuth,
         startSync: handleStartSync,
         markMessageRead: handleMarkMessageRead,
+        createComposeSession: handleCreateComposeSession,
+        updateComposeSession: handleUpdateComposeSession,
+        saveDraft: handleSaveDraft,
+        queueSend: handleQueueSend,
+        undoSend: handleUndoSend,
+        discardComposeSession: handleDiscardComposeSession,
         requestNotificationPermission: handleRequestNotificationPermission,
         openNotificationSettings: handleOpenNotificationSettings,
         applyUpdate: handleApplyUpdate,
         getLocalReleaseInfo: handleGetLocalReleaseInfo,
+        getSystemFullName: () => {
+          try {
+            return { name: execSync("id -F", { encoding: "utf-8" }).trim() };
+          } catch {
+            return { name: os.userInfo().username };
+          }
+        },
         getAccounts: handleGetAccounts,
         switchAccount: handleSwitchAccount,
         removeAccount: handleRemoveAccount,
@@ -91,6 +120,9 @@ async function createMainWindow() {
     const rpcMessage = toRpcMessage(message);
     showNewMailNotification(rpcMessage);
     rpc.send.newMail(rpcMessage);
+  });
+  setEmitComposeStatus((message) => {
+    rpc.send.composeStatusChanged(message);
   });
 
   const { x, y, width, height } = Screen.getPrimaryDisplay().workArea;
@@ -189,6 +221,7 @@ async function init() {
   });
 
   await createMainWindow();
+  await resumePendingSends();
 
   const state = await getSyncState();
 

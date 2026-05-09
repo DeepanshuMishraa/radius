@@ -67,13 +67,14 @@ const PAGE_SIZE = 500;
 const FETCH_CONCURRENCY = 15;
 const INSERT_BATCH_SIZE = 50;
 const MESSAGE_METADATA_BATCH_SIZE = 250;
-const CURRENT_METADATA_SCHEMA_VERSION = 2;
+const CURRENT_METADATA_SCHEMA_VERSION = 3;
 const DEFERRED_FULL_SYNC_BATCH_TARGET = 500;
 const DEFERRED_FULL_SYNC_INTERVAL_MS = 60 * 60 * 1000;
 const FAST_POLL_INTERVAL_MS = 4000;
 const IDLE_POLL_INTERVAL_MS = 10000;
 const ERROR_POLL_INTERVAL_MS = 15000;
 const EMPTY_POLLS_BEFORE_IDLE = 12;
+const ALL_MAIL_QUERY = "-in:spam -in:chats";
 
 let syncLock = false;
 let syncGeneration = 0;
@@ -146,6 +147,16 @@ async function fetchMessagesPool(
   return results;
 }
 
+function getMailboxFlags(labelIds: string[] | undefined) {
+  const labels = new Set((labelIds ?? []).map((label) => label.toUpperCase()));
+  return {
+    isInbox: labels.has("INBOX"),
+    isSent: labels.has("SENT"),
+    isDraft: labels.has("DRAFT"),
+    isTrash: labels.has("TRASH"),
+  };
+}
+
 function toStoredMessageMetadata(msg: GmailMessage) {
   const headers = parseHeaders(msg.payload.headers ?? []);
 
@@ -165,6 +176,7 @@ function toStoredMessageMetadata(msg: GmailMessage) {
       snippet: msg.snippet,
     }),
     isRead: isReadFromLabels(msg.labelIds),
+    ...getMailboxFlags(msg.labelIds),
   };
 }
 
@@ -220,7 +232,7 @@ async function runSyncPass({
   const firstPage =
     totalEstimate === undefined
       ? await withRetry(() =>
-          listMessages(accessToken, { maxResults: 1, q: "in:inbox" })
+          listMessages(accessToken, { maxResults: 1, q: ALL_MAIL_QUERY })
         )
       : null;
   const resolvedTotalEstimate =
@@ -250,7 +262,7 @@ async function runSyncPass({
       listMessages(accessToken, {
         maxResults: PAGE_SIZE,
         pageToken,
-        q: "in:inbox",
+        q: ALL_MAIL_QUERY,
       })
     );
 
@@ -767,6 +779,7 @@ async function flushInsertBuffer(
           bodyText: bodies.text,
         }),
         isRead: isReadFromLabels(msg.labelIds),
+        ...getMailboxFlags(msg.labelIds),
       };
     })
   );
@@ -788,7 +801,9 @@ export async function startIncrementalSyncPolling(
         if (result.newMessages > 0) {
           console.log(`Incremental sync: ${result.newMessages} new messages`);
           for (const message of result.messages) {
-            _onNewMail?.(message);
+            if (getMailboxFlags(message.labelIds).isInbox) {
+              _onNewMail?.(message);
+            }
           }
           emptyPolls = 0;
           nextDelayMs = FAST_POLL_INTERVAL_MS;
