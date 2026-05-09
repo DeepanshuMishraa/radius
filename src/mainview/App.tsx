@@ -6,7 +6,7 @@ import { useAuth, useSyncStatus, useInbox, useInboxSearch, useMessage, useAccoun
 import type { Message } from "./hooks/useInbox";
 import { CommandK } from "@/components/cmd";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider, useTheme } from "@/components/theme-provider";
 import { EmailSearchSpotlight } from "@/components/search-spotlight";
 import { DragRegion } from "@/components/drag-region";
 import { ComposeEmailDialog, type ContactOption } from "@/components/compose";
@@ -78,6 +78,24 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
   }, [delayMs, value]);
 
   return debouncedValue;
+}
+
+function ThemedToaster() {
+  const { appearance } = useTheme();
+  return (
+    <Toaster
+      position="bottom-right"
+      theme={appearance}
+      toastOptions={{
+        style: {
+          background: "var(--radius-bg-primary)",
+          color: "var(--radius-text-primary)",
+          borderColor: "var(--radius-border-subtle)",
+        },
+        className: "font-[family-name:var(--font-family-sans)] antialiased shadow-lg",
+      }}
+    />
+  );
 }
 
 function App() {
@@ -835,17 +853,7 @@ function App() {
         />
       </div>
       <SyncPill syncStatus={syncStatus} notice={gmailSyncNotice} />
-      <Toaster
-        position="bottom-right"
-        toastOptions={{
-          style: {
-            background: "var(--radius-bg-primary)",
-            color: "var(--radius-text-primary)",
-            borderColor: "var(--radius-border-subtle)",
-          },
-          className: "font-[family-name:var(--font-family-sans)] antialiased shadow-lg",
-        }}
-      />
+      <ThemedToaster />
       {accountSwitching && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-radius-bg-primary animate-in fade-in duration-200">
           <div className="text-center">
