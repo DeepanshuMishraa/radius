@@ -17,6 +17,8 @@ export interface Attachment {
   name: string; // File name or Link URL
   url?: string; // Object URL for images or actual link
   size?: number; // File size in bytes
+  mimeType?: string;
+  dataBase64?: string;
   file?: File; // The actual file object
 }
 

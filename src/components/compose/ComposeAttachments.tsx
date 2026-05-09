@@ -8,6 +8,17 @@ interface ComposeAttachmentsProps {
   onAddAttachment: (attachment: Attachment) => void;
 }
 
+async function fileToBase64(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
 export function ComposeAttachments({ onAddAttachment }: ComposeAttachmentsProps) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"menu" | "link">("menu");
@@ -38,21 +49,31 @@ export function ComposeAttachments({ onAddAttachment }: ComposeAttachmentsProps)
     }
   }, [mode]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach((file) => {
-      const isImage = file.type.startsWith("image/");
-      onAddAttachment({
-        id: crypto.randomUUID(),
-        type: isImage ? "image" : "file",
-        name: file.name,
-        size: file.size,
-        file: file,
-        url: isImage ? URL.createObjectURL(file) : undefined,
-      });
-    });
+    try {
+      const nextAttachments = await Promise.all(
+        Array.from(files).map(async (file) => {
+          const isImage = file.type.startsWith("image/");
+          return {
+            id: crypto.randomUUID(),
+            type: isImage ? "image" : "file",
+            name: file.name,
+            size: file.size,
+            mimeType: file.type || (isImage ? "image/png" : "application/octet-stream"),
+            dataBase64: await fileToBase64(file),
+            file,
+            url: isImage ? URL.createObjectURL(file) : undefined,
+          } satisfies Attachment;
+        }),
+      );
+      nextAttachments.forEach((attachment) => onAddAttachment(attachment));
+    } catch (error) {
+      console.error("Failed to stage attachment:", error);
+      toast.error("Attachment upload failed");
+    }
 
     setOpen(false);
     // Reset input so the same file can be selected again if needed

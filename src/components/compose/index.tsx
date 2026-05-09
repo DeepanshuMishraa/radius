@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, EnvelopeSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
@@ -16,28 +16,203 @@ interface ComposeEmailDialogProps {
   contacts: ContactOption[];
 }
 
+function emptyState() {
+  return {
+    selectedRecipients: [] as ContactOption[],
+    subject: "",
+    body: "",
+    attachments: [] as Attachment[],
+  };
+}
+
 export function ComposeEmailDialog({
   open,
   onClose,
   fromAccount,
   contacts,
 }: ComposeEmailDialogProps) {
-  const [selectedRecipients, setSelectedRecipients] = useState<ContactOption[]>([]);
-  const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [{ selectedRecipients, subject, body, attachments }, setComposeState] = useState(emptyState);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<SendActionType | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
+  const [hydrating, setHydrating] = useState(false);
+  const draftSaveTimerRef = useRef<number | null>(null);
+
+  const setSelectedRecipients = useCallback(
+    (value: React.SetStateAction<ContactOption[]>) => {
+      setComposeState((current) => ({
+        ...current,
+        selectedRecipients:
+          typeof value === "function" ? value(current.selectedRecipients) : value,
+      }));
+    },
+    [],
+  );
+
+  const serializeAttachments = useCallback(
+    () =>
+      attachments.map((attachment) => ({
+        id: attachment.id,
+        type: attachment.type,
+        name: attachment.name,
+        mimeType: attachment.mimeType,
+        size: attachment.size,
+        dataBase64: attachment.dataBase64,
+        url: attachment.type === "link" ? attachment.url : undefined,
+      })),
+    [attachments],
+  );
+
+  const persistComposer = useCallback(async () => {
+    if (!sessionId || !fromAccount?.email) return;
+
+    await radiusRpc.request.updateComposeSession({
+      sessionId,
+      from: fromAccount.email,
+      to: selectedRecipients.map((item) => item.email),
+      subject: subject.trim(),
+      bodyText: body,
+      attachments: serializeAttachments(),
+    });
+  }, [body, fromAccount?.email, selectedRecipients, serializeAttachments, sessionId, subject]);
 
   useEffect(() => {
-    if (!open) return;
-    setSelectedRecipients([]);
-    setSubject("");
-    setBody("");
-    setAttachments([]);
-    setPendingAction(null);
-    setDraftSavedAt(null);
-  }, [open]);
+    if (!open) {
+      setSessionId(null);
+      setPendingAction(null);
+      setDraftSavedAt(null);
+      setHydrating(false);
+      setComposeState(emptyState());
+      return;
+    }
+    if (!fromAccount?.email) return;
+
+    setHydrating(true);
+    void radiusRpc.request
+      .createComposeSession({ from: fromAccount.email })
+      .then((result) => {
+        if (!result.success || !result.session) {
+          toast.error(result.error ?? "Failed to load composer");
+          return;
+        }
+
+        setSessionId(result.session.id);
+        setDraftSavedAt(result.session.lastSavedAt ?? null);
+        setComposeState({
+          selectedRecipients: result.session.to.map((email) => ({
+            email,
+            name: email,
+            label: email,
+            source: "manual",
+          })),
+          subject: result.session.subject,
+          body: result.session.bodyText,
+          attachments: result.session.attachments.map((attachment) => ({
+            id: attachment.id,
+            type: attachment.type,
+            name: attachment.name,
+            mimeType: attachment.mimeType,
+            size: attachment.size,
+            dataBase64: attachment.dataBase64,
+            url: attachment.url,
+          })),
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to create compose session:", error);
+        toast.error("Failed to load composer");
+      })
+      .finally(() => {
+        setHydrating(false);
+      });
+  }, [fromAccount?.email, open]);
+
+  useEffect(() => {
+    if (!open || hydrating || !sessionId || !fromAccount?.email) return;
+    if (draftSaveTimerRef.current) {
+      window.clearTimeout(draftSaveTimerRef.current);
+    }
+    draftSaveTimerRef.current = window.setTimeout(() => {
+      void persistComposer();
+    }, 350);
+
+    return () => {
+      if (draftSaveTimerRef.current) {
+        window.clearTimeout(draftSaveTimerRef.current);
+        draftSaveTimerRef.current = null;
+      }
+    };
+  }, [
+    attachments,
+    body,
+    fromAccount?.email,
+    hydrating,
+    open,
+    persistComposer,
+    selectedRecipients,
+    sessionId,
+    subject,
+  ]);
+
+  const handleClose = useCallback(() => {
+    if (!sessionId) {
+      onClose();
+      return;
+    }
+
+    const hasContent =
+      selectedRecipients.length > 0 ||
+      subject.trim().length > 0 ||
+      body.trim().length > 0 ||
+      attachments.length > 0;
+
+    if (hasContent) {
+      void persistComposer();
+    } else {
+      void radiusRpc.request.discardComposeSession({ sessionId });
+    }
+    onClose();
+  }, [attachments.length, body, onClose, persistComposer, selectedRecipients.length, sessionId, subject]);
+
+  const showUndoToast = useCallback((sendId: string, undoDeadlineAt: number) => {
+    const duration = Math.max(0, undoDeadlineAt - Date.now());
+    toast.custom(
+      (t) => (
+        <div className="toast pointer-events-auto w-[320px] rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl overflow-hidden">
+          <div className="flex items-center justify-between gap-3 px-4 py-3">
+            <div>
+              <div className="text-[12px] font-semibold text-radius-text-primary">
+                Sending in 10 seconds
+              </div>
+              <div className="text-[11px] text-radius-text-muted">
+                Undo if you want to keep editing.
+              </div>
+            </div>
+            <button
+              type="button"
+              className="rounded-md bg-radius-text-primary px-2.5 py-1 text-[11px] font-medium text-radius-bg-primary"
+              onClick={async () => {
+                const result = await radiusRpc.request.undoSend({ sendId });
+                if (!result.success) {
+                  toast.error(result.error ?? "Undo failed");
+                  return;
+                }
+                toast.dismiss(t);
+                toast.success("Send undone");
+              }}
+            >
+              Undo
+            </button>
+          </div>
+          <div
+            className="toast-progress h-[2px] bg-radius-accent"
+            style={{ animationDuration: `${duration}ms` }}
+          />
+        </div>
+      ),
+      { duration: Math.max(duration, 1000) },
+    );
+  }, []);
 
   const handleAction = useCallback(
     async (action: SendActionType) => {
@@ -45,34 +220,32 @@ export function ComposeEmailDialog({
         toast.error("Connect a Gmail account before composing");
         return;
       }
-
-      // In a real app, attachments would be processed/uploaded here
-      const payload = {
-        from: fromAccount.email,
-        to: selectedRecipients.map((item) => item.email),
-        subject: subject.trim(),
-        bodyText: body.trim(),
-        // attachments: attachments 
-      };
+      if (!sessionId) {
+        toast.error("Composer is still loading");
+        return;
+      }
 
       setPendingAction(action);
       try {
-        const result =
-          action === "draft"
-            ? await radiusRpc.request.saveDraft(payload)
-            : await radiusRpc.request.sendEmail(payload);
-
-        if (!result.success) {
-          toast.error(result.error ?? "Something went wrong");
+        await persistComposer();
+        if (action === "draft") {
+          const result = await radiusRpc.request.saveDraft({ sessionId });
+          if (!result.success) {
+            toast.error(result.error ?? "Something went wrong");
+            return;
+          }
+          setDraftSavedAt(result.lastSavedAt ?? Date.now());
+          toast.success("Draft saved to Gmail");
+          onClose();
           return;
         }
 
-        if (action === "draft") {
-          setDraftSavedAt(Date.now());
-          toast.success("Draft saved to Gmail");
-        } else {
-          toast.success("Email sent");
+        const result = await radiusRpc.request.queueSend({ sessionId });
+        if (!result.success || !result.sendId || !result.undoDeadlineAt) {
+          toast.error(result.error ?? "Send failed");
+          return;
         }
+        showUndoToast(result.sendId, result.undoDeadlineAt);
         onClose();
       } catch (error) {
         console.error(`Compose ${action} failed:`, error);
@@ -81,15 +254,21 @@ export function ComposeEmailDialog({
         setPendingAction(null);
       }
     },
-    [body, fromAccount, onClose, selectedRecipients, subject] // Omitted attachments from deps to match original pattern
+    [fromAccount?.email, onClose, persistComposer, sessionId, showUndoToast],
   );
 
   const handleAddAttachment = useCallback((attachment: Attachment) => {
-    setAttachments((prev) => [...prev, attachment]);
+    setComposeState((current) => ({
+      ...current,
+      attachments: [...current.attachments, attachment],
+    }));
   }, []);
 
   const handleRemoveAttachment = useCallback((id: string) => {
-    setAttachments((prev) => prev.filter((a) => a.id !== id));
+    setComposeState((current) => ({
+      ...current,
+      attachments: current.attachments.filter((attachment) => attachment.id !== id),
+    }));
   }, []);
 
   const draftLabel =
@@ -97,7 +276,9 @@ export function ComposeEmailDialog({
       ? "SAVING"
       : draftSavedAt
         ? "SAVED"
-        : "DRAFT";
+        : sessionId
+          ? "LOCAL"
+          : "DRAFT";
   const canSubmit =
     Boolean(fromAccount?.email) &&
     selectedRecipients.length > 0 &&
@@ -121,7 +302,6 @@ export function ComposeEmailDialog({
             transition={{ type: "spring", stiffness: 450, damping: 35 }}
             className="w-full max-w-[720px] rounded-xl border border-radius-border-subtle bg-radius-bg-primary shadow-2xl flex flex-col font-[family-name:var(--font-family-sans)] antialiased pointer-events-auto overflow-hidden max-h-[90vh]"
           >
-            {/* Header */}
             <motion.div layout className="flex items-center justify-between px-5 pt-4 pb-2 shrink-0">
               <div className="flex items-center gap-2">
                 <EnvelopeSimple size={16} weight="regular" className="text-radius-text-primary" />
@@ -131,7 +311,7 @@ export function ComposeEmailDialog({
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="inline-flex h-6 w-6 items-center justify-center rounded-md text-radius-text-muted transition-colors hover:text-radius-text-primary hover:bg-radius-bg-secondary"
                 aria-label="Close compose"
               >
@@ -150,21 +330,23 @@ export function ComposeEmailDialog({
               <motion.div layout className="px-5">
                 <div className="my-2.5 h-[1px] w-full bg-radius-border-subtle" />
 
-                {/* Subject */}
                 <motion.div layout className="pb-1">
                   <input
                     value={subject}
-                    onChange={(event) => setSubject(event.target.value)}
+                    onChange={(event) =>
+                      setComposeState((current) => ({ ...current, subject: event.target.value }))
+                    }
                     placeholder="Subject"
                     className="h-10 w-full bg-transparent text-[16px] font-semibold text-radius-text-primary outline-none placeholder:text-radius-text-muted"
                   />
                 </motion.div>
 
-                {/* Body */}
                 <motion.div layout className="pt-1 pb-2">
                   <textarea
                     value={body}
-                    onChange={(event) => setBody(event.target.value)}
+                    onChange={(event) =>
+                      setComposeState((current) => ({ ...current, body: event.target.value }))
+                    }
                     placeholder="Write your message..."
                     className="min-h-[140px] w-full resize-none border-0 bg-transparent px-0 py-1 text-[13px] leading-relaxed text-radius-text-secondary outline-none placeholder:text-radius-text-muted focus:ring-0 focus-visible:ring-0"
                   />
@@ -172,10 +354,8 @@ export function ComposeEmailDialog({
               </motion.div>
             </div>
 
-            {/* Footer / Attachments */}
             <ComposeAttachmentList attachments={attachments} onRemove={handleRemoveAttachment} />
 
-            {/* Bottom bar */}
             <motion.div layout className="flex items-center justify-between gap-3 px-5 py-3 border-t border-radius-border-subtle shrink-0">
               <div className="flex items-center gap-2">
                 <ComposeAttachments onAddAttachment={handleAddAttachment} />
@@ -189,10 +369,10 @@ export function ComposeEmailDialog({
                   </span>
                 </div>
 
-                <ComposeSend 
-                  canSubmit={canSubmit} 
-                  pendingAction={pendingAction} 
-                  onAction={handleAction} 
+                <ComposeSend
+                  canSubmit={canSubmit && !hydrating}
+                  pendingAction={pendingAction}
+                  onAction={handleAction}
                 />
               </div>
             </motion.div>

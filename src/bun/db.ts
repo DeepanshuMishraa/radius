@@ -3,8 +3,8 @@ import { mkdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-const DB_DIR = join(homedir(), "Library", "Application Support", "Radius");
-const DEFAULT_DB_PATH = join(DB_DIR, "radius.db");
+export const APP_SUPPORT_DIR = join(homedir(), "Library", "Application Support", "Radius");
+const DEFAULT_DB_PATH = join(APP_SUPPORT_DIR, "radius.db");
 
 let db: Database | null = null;
 let currentAccountEmail: string | null = null;
@@ -12,7 +12,11 @@ let currentAccountEmail: string | null = null;
 function getDbPath(email: string | null): string {
   if (!email) return DEFAULT_DB_PATH;
   const safeEmail = email.replace(/[^a-zA-Z0-9.@]/g, "_");
-  return join(DB_DIR, `radius-${safeEmail}.db`);
+  return join(APP_SUPPORT_DIR, `radius-${safeEmail}.db`);
+}
+
+export function getDbPathForEmail(email: string | null): string {
+  return getDbPath(email);
 }
 
 export function getCurrentAccountEmail(): string | null {
@@ -37,7 +41,7 @@ export async function switchAccount(email: string | null): Promise<void> {
 
 export async function deleteAccountDb(email: string): Promise<void> {
   const safeEmail = email.replace(/[^a-zA-Z0-9.@]/g, "_");
-  const dbPath = join(DB_DIR, `radius-${safeEmail}.db`);
+  const dbPath = join(APP_SUPPORT_DIR, `radius-${safeEmail}.db`);
 
   if (currentAccountEmail === email && db) {
     try {
@@ -63,7 +67,7 @@ export async function deleteAccountDb(email: string): Promise<void> {
 export async function getDb(): Promise<Database> {
   if (db) return db;
 
-  await mkdir(DB_DIR, { recursive: true });
+  await mkdir(APP_SUPPORT_DIR, { recursive: true });
 
   const dbPath = getDbPath(currentAccountEmail);
   db = new Database(dbPath);
@@ -127,6 +131,60 @@ export async function createSchema(): Promise<void> {
     );
 
     INSERT OR IGNORE INTO sync_state (id) VALUES (1);
+
+    CREATE TABLE IF NOT EXISTS compose_sessions (
+      id TEXT PRIMARY KEY,
+      account_email TEXT NOT NULL,
+      from_addr TEXT NOT NULL,
+      to_recipients TEXT NOT NULL DEFAULT '[]',
+      cc_recipients TEXT NOT NULL DEFAULT '[]',
+      bcc_recipients TEXT NOT NULL DEFAULT '[]',
+      subject TEXT NOT NULL DEFAULT '',
+      body_text TEXT NOT NULL DEFAULT '',
+      gmail_draft_id TEXT,
+      gmail_message_id TEXT,
+      status TEXT NOT NULL DEFAULT 'editing',
+      dirty INTEGER NOT NULL DEFAULT 1,
+      last_saved_at INTEGER,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_compose_sessions_account_updated
+      ON compose_sessions(account_email, updated_at DESC);
+
+    CREATE TABLE IF NOT EXISTS compose_attachments (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES compose_sessions(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      name TEXT NOT NULL,
+      mime_type TEXT,
+      size INTEGER,
+      local_path TEXT,
+      content_hash TEXT,
+      url TEXT,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_compose_attachments_session
+      ON compose_attachments(session_id);
+
+    CREATE TABLE IF NOT EXISTS pending_sends (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES compose_sessions(id) ON DELETE CASCADE,
+      account_email TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'queued',
+      undo_deadline_at INTEGER NOT NULL,
+      error TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      sent_at INTEGER,
+      cancelled_at INTEGER
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_pending_sends_status_deadline
+      ON pending_sends(status, undo_deadline_at);
   `);
 
   const syncStateColumns = db.query(

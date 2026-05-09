@@ -21,7 +21,12 @@ import {
 } from "@phosphor-icons/react";
 import { Toaster, toast } from "sonner";
 import { radiusRpc } from "./lib/rpc";
-import type { SyncMode, UpdateInfo, LocalReleaseInfo } from "../shared/types";
+import type {
+  ComposeStatusMessage,
+  LocalReleaseInfo,
+  SyncMode,
+  UpdateInfo,
+} from "../shared/types";
 
 const INBOX_PAGE_STEP = 500;
 const INITIAL_INBOX_LIMIT = 3000;
@@ -101,6 +106,7 @@ function App() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [aboutInfo, setAboutInfo] = useState<LocalReleaseInfo | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
+  const composeToastTimersRef = useRef<number[]>([]);
 
   const { isAuthenticated, startOAuth } = useAuth();
   const { accounts, activeAccount, refresh: refreshAccounts, removeAccount } = useAccounts();
@@ -271,6 +277,31 @@ function App() {
     radiusRpc.addMessageListener("newMail", handleNewMail);
     return () => {
       radiusRpc.removeMessageListener("newMail", handleNewMail);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleComposeStatus = (message: ComposeStatusMessage) => {
+      if (message.status === "send_sent") {
+        const timer = window.setTimeout(() => {
+          toast.success("Email sent");
+          composeToastTimersRef.current = composeToastTimersRef.current.filter(
+            (id) => id !== timer,
+          );
+        }, 250);
+        composeToastTimersRef.current.push(timer);
+      } else if (message.status === "send_failed") {
+        toast.error(message.error ?? "Send failed");
+      }
+    };
+
+    radiusRpc.addMessageListener("composeStatusChanged", handleComposeStatus);
+    return () => {
+      for (const timer of composeToastTimersRef.current) {
+        window.clearTimeout(timer);
+      }
+      composeToastTimersRef.current = [];
+      radiusRpc.removeMessageListener("composeStatusChanged", handleComposeStatus);
     };
   }, []);
 

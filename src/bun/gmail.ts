@@ -403,26 +403,91 @@ function encodeBase64Url(value: string): string {
     .replace(/=+$/, "");
 }
 
-function buildRawEmail(payload: {
+function encodeHeaderFilename(filename: string): string {
+  const escaped = escapeHeaderValue(filename).replace(/"/g, '\\"');
+  return `filename="${escaped}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
+}
+
+function buildTextPart(bodyText: string): string {
+  const normalized = bodyText.replace(/\r?\n/g, "\r\n");
+  return [
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    normalized,
+  ].join("\r\n");
+}
+
+export interface GmailOutgoingAttachment {
+  filename: string;
+  mimeType: string;
+  dataBase64: string;
+}
+
+export function buildRawEmail(payload: {
   from: string;
   to: string[];
+  cc?: string[];
+  bcc?: string[];
   subject: string;
   bodyText: string;
+  attachments?: GmailOutgoingAttachment[];
 }): string {
   const from = escapeHeaderValue(payload.from);
   const to = payload.to.map((item) => escapeHeaderValue(item)).join(", ");
+  const cc = (payload.cc ?? []).map((item) => escapeHeaderValue(item)).join(", ");
+  const bcc = (payload.bcc ?? []).map((item) => escapeHeaderValue(item)).join(", ");
   const subject = escapeHeaderValue(payload.subject);
-  const bodyText = payload.bodyText.replace(/\r?\n/g, "\r\n");
-  const mime = [
+  const attachments = payload.attachments ?? [];
+  const headers = [
     `From: ${from}`,
     `To: ${to}`,
     `Subject: ${subject}`,
     "MIME-Version: 1.0",
-    'Content-Type: text/plain; charset="UTF-8"',
-    "Content-Transfer-Encoding: 8bit",
-    "",
-    bodyText,
+  ];
+  if (cc) headers.push(`Cc: ${cc}`);
+  if (bcc) headers.push(`Bcc: ${bcc}`);
+
+  const alternativeBoundary = `radius-alt-${crypto.randomUUID()}`;
+  const textPart = [
+    `--${alternativeBoundary}`,
+    buildTextPart(payload.bodyText),
+    `--${alternativeBoundary}--`,
   ].join("\r\n");
+
+  let mime: string;
+  if (attachments.length === 0) {
+    mime = [
+      ...headers,
+      `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
+      "",
+      textPart,
+    ].join("\r\n");
+  } else {
+    const mixedBoundary = `radius-mixed-${crypto.randomUUID()}`;
+    const attachmentParts = attachments.map((attachment) =>
+      [
+        `--${mixedBoundary}`,
+        `Content-Type: ${escapeHeaderValue(attachment.mimeType)}; name="${escapeHeaderValue(attachment.filename)}"`,
+        "Content-Transfer-Encoding: base64",
+        `Content-Disposition: attachment; ${encodeHeaderFilename(attachment.filename)}`,
+        "",
+        attachment.dataBase64.replace(/(.{76})/g, "$1\r\n"),
+      ].join("\r\n"),
+    );
+
+    mime = [
+      ...headers,
+      `Content-Type: multipart/mixed; boundary="${mixedBoundary}"`,
+      "",
+      `--${mixedBoundary}`,
+      `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
+      "",
+      textPart,
+      ...attachmentParts,
+      `--${mixedBoundary}--`,
+    ].join("\r\n");
+  }
 
   return encodeBase64Url(mime);
 }
@@ -432,8 +497,11 @@ export async function createDraft(
   payload: {
     from: string;
     to: string[];
+    cc?: string[];
+    bcc?: string[];
     subject: string;
     bodyText: string;
+    attachments?: GmailOutgoingAttachment[];
   }
 ): Promise<{ id: string; message: { id: string } }> {
   const res = await fetchWithRetry(`${GMAIL_API_BASE}/drafts`, {
@@ -449,13 +517,43 @@ export async function createDraft(
   return (await res.json()) as { id: string; message: { id: string } };
 }
 
+export async function updateDraft(
+  accessToken: string,
+  draftId: string,
+  payload: {
+    from: string;
+    to: string[];
+    cc?: string[];
+    bcc?: string[];
+    subject: string;
+    bodyText: string;
+    attachments?: GmailOutgoingAttachment[];
+  }
+): Promise<{ id: string; message: { id: string } }> {
+  const res = await fetchWithRetry(`${GMAIL_API_BASE}/drafts/${draftId}`, {
+    method: "PUT",
+    headers: getAuthHeaders(accessToken),
+    body: JSON.stringify({
+      id: draftId,
+      message: {
+        raw: buildRawEmail(payload),
+      },
+    }),
+  });
+
+  return (await res.json()) as { id: string; message: { id: string } };
+}
+
 export async function sendMessage(
   accessToken: string,
   payload: {
     from: string;
     to: string[];
+    cc?: string[];
+    bcc?: string[];
     subject: string;
     bodyText: string;
+    attachments?: GmailOutgoingAttachment[];
   }
 ): Promise<{ id: string }> {
   const res = await fetchWithRetry(`${GMAIL_API_BASE}/messages/send`, {
@@ -467,6 +565,13 @@ export async function sendMessage(
   });
 
   return (await res.json()) as { id: string };
+}
+
+export async function deleteDraft(accessToken: string, draftId: string): Promise<void> {
+  await fetchWithRetry(`${GMAIL_API_BASE}/drafts/${draftId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(accessToken),
+  });
 }
 
 export class GmailAPIError extends Error {

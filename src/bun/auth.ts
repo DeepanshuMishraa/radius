@@ -26,6 +26,7 @@ export interface GmailProfile {
 let currentAccessToken: string | null = null;
 let tokenExpiresAt = 0;
 let currentAccountEmail: string | null = null;
+const tokenCache = new Map<string, { accessToken: string; expiresAt: number }>();
 
 export function setAccountEmail(email: string | null): void {
   currentAccountEmail = email;
@@ -40,22 +41,49 @@ export function getAccountEmail(): string | null {
 export function setTokens(tokens: TokenData): void {
   currentAccessToken = tokens.access_token;
   tokenExpiresAt = Date.now() + tokens.expires_in * 1000;
+  if (currentAccountEmail) {
+    tokenCache.set(currentAccountEmail, {
+      accessToken: tokens.access_token,
+      expiresAt: tokenExpiresAt,
+    });
+  }
 }
 
 export async function getValidAccessToken(): Promise<string> {
-  if (currentAccessToken && Date.now() < tokenExpiresAt - 60000) {
+  return getValidAccessTokenForEmail(currentAccountEmail ?? undefined);
+}
+
+export async function getValidAccessTokenForEmail(email?: string): Promise<string> {
+  const cacheKey = email ?? "__default__";
+  const cached = tokenCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt - 60000) {
+    if (email === currentAccountEmail) {
+      currentAccessToken = cached.accessToken;
+      tokenExpiresAt = cached.expiresAt;
+    }
+    return cached.accessToken;
+  }
+
+  if (email === currentAccountEmail && currentAccessToken && Date.now() < tokenExpiresAt - 60000) {
     return currentAccessToken;
   }
 
-  const refreshToken = await getRefreshToken(currentAccountEmail ?? undefined);
+  const refreshToken = await getRefreshToken(email);
   if (!refreshToken) {
     throw new Error("No refresh token found — please authenticate first");
   }
 
   const refreshed = await refreshAccessToken(refreshToken);
-  currentAccessToken = refreshed.access_token;
-  tokenExpiresAt = Date.now() + refreshed.expires_in * 1000;
-  return currentAccessToken;
+  const expiresAt = Date.now() + refreshed.expires_in * 1000;
+  tokenCache.set(cacheKey, {
+    accessToken: refreshed.access_token,
+    expiresAt,
+  });
+  if (email === currentAccountEmail) {
+    currentAccessToken = refreshed.access_token;
+    tokenExpiresAt = expiresAt;
+  }
+  return refreshed.access_token;
 }
 
 export async function getProfile(accessToken: string): Promise<GmailProfile> {
@@ -229,6 +257,9 @@ export async function getRefreshTokenForActiveAccount(): Promise<string | null> 
 
 export function deleteRefreshToken(email?: string): Promise<void> {
   const service = email ? `gmail-refresh-token-${email}` : "gmail-refresh-token";
+  if (email) {
+    tokenCache.delete(email);
+  }
   return new Promise((resolve) => {
     const child = spawn("security", [
       "delete-generic-password",

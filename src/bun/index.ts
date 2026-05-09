@@ -12,14 +12,22 @@ import { setAccountEmail } from "./auth";
 import { getMainViewUrl } from "./url";
 import { toRpcMessage } from "./rpc-handlers";
 import {
+  setEmitComposeStatus,
+  resumePendingSends,
+} from "./compose";
+import {
   handleGetInbox,
   handleSearchInbox,
   handleGetMessage,
   handleGetSyncStatus,
   handleMarkMessageRead,
   handleDownloadAttachment,
+  handleCreateComposeSession,
+  handleUpdateComposeSession,
   handleSaveDraft,
-  handleSendEmail,
+  handleQueueSend,
+  handleUndoSend,
+  handleDiscardComposeSession,
 } from "./rpc-handlers";
 import {
   handleOpenExternalUrl,
@@ -65,8 +73,12 @@ async function createMainWindow() {
         startOAuth: handleStartOAuth,
         startSync: handleStartSync,
         markMessageRead: handleMarkMessageRead,
+        createComposeSession: handleCreateComposeSession,
+        updateComposeSession: handleUpdateComposeSession,
         saveDraft: handleSaveDraft,
-        sendEmail: handleSendEmail,
+        queueSend: handleQueueSend,
+        undoSend: handleUndoSend,
+        discardComposeSession: handleDiscardComposeSession,
         requestNotificationPermission: handleRequestNotificationPermission,
         openNotificationSettings: handleOpenNotificationSettings,
         applyUpdate: handleApplyUpdate,
@@ -95,6 +107,9 @@ async function createMainWindow() {
     const rpcMessage = toRpcMessage(message);
     showNewMailNotification(rpcMessage);
     rpc.send.newMail(rpcMessage);
+  });
+  setEmitComposeStatus((message) => {
+    rpc.send.composeStatusChanged(message);
   });
 
   const { x, y, width, height } = Screen.getPrimaryDisplay().workArea;
@@ -193,6 +208,7 @@ async function init() {
   });
 
   await createMainWindow();
+  await resumePendingSends();
 
   const state = await getSyncState();
 

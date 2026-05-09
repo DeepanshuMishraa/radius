@@ -1,7 +1,15 @@
 import type { RadiusRPC } from "../shared/types";
 import { getInboxMessages, searchInboxMessages, getMessageById, updateMessageBodies, getSyncState, setMessageReadState } from "./db";
 import { getValidAccessToken } from "./auth";
-import { getMessage as getGmailMessage, extractBodies, getAttachment, modifyMessageLabels, GmailAPIError, parseHeaders, classifyMessageNature, isReadFromLabels, createDraft, sendMessage } from "./gmail";
+import { getMessage as getGmailMessage, extractBodies, getAttachment, modifyMessageLabels, GmailAPIError, parseHeaders, classifyMessageNature, isReadFromLabels } from "./gmail";
+import {
+  createComposeSession,
+  discardComposeSession,
+  queueSendForSession,
+  saveDraftForSession,
+  undoPendingSend,
+  updateComposeSession,
+} from "./compose";
 
 function toRpcMessage(
   gmailMessage: Awaited<ReturnType<typeof getGmailMessage>>,
@@ -198,109 +206,9 @@ export async function handleDownloadAttachment(params: { messageId: string; atta
   }
 }
 
-function normalizeRecipients(to: string[]) {
-  return to.map((value) => value.trim()).filter(Boolean);
-}
-
-function mapComposeError(err: unknown): {
-  success: false;
-  error: string;
-  code?: "reauth_required" | "scope_insufficient";
-} {
-  if (
-    err instanceof GmailAPIError &&
-    err.status === 403 &&
-    err.body.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")
-  ) {
-    return {
-      success: false,
-      error:
-        "Compose needs fresh Gmail compose permission. Reconnect Gmail once to enable sending.",
-      code: "scope_insufficient",
-    };
-  }
-
-  if (err instanceof GmailAPIError && err.isAuthError()) {
-    return {
-      success: false,
-      error: "Gmail authentication expired. Reconnect Gmail and try again.",
-      code: "reauth_required",
-    };
-  }
-
-  return {
-    success: false,
-    error: String(err),
-  };
-}
-
-export async function handleSaveDraft(params: {
-  from: string;
-  to: string[];
-  subject: string;
-  bodyText: string;
-}): Promise<RadiusRPC["bun"]["requests"]["saveDraft"]["response"]> {
-  const recipients = normalizeRecipients(params.to);
-  if (!params.from.trim()) {
-    return { success: false, error: "Select a sender account first." };
-  }
-  if (recipients.length === 0) {
-    return { success: false, error: "Add at least one recipient." };
-  }
-  if (!params.subject.trim() && !params.bodyText.trim()) {
-    return { success: false, error: "Write a subject or message before saving." };
-  }
-
-  try {
-    const accessToken = await getValidAccessToken();
-    const draft = await createDraft(accessToken, {
-      from: params.from,
-      to: recipients,
-      subject: params.subject,
-      bodyText: params.bodyText,
-    });
-    return {
-      success: true,
-      draftId: draft.id,
-      messageId: draft.message.id,
-    };
-  } catch (err) {
-    console.error("saveDraft error:", err);
-    return mapComposeError(err);
-  }
-}
-
-export async function handleSendEmail(params: {
-  from: string;
-  to: string[];
-  subject: string;
-  bodyText: string;
-}): Promise<RadiusRPC["bun"]["requests"]["sendEmail"]["response"]> {
-  const recipients = normalizeRecipients(params.to);
-  if (!params.from.trim()) {
-    return { success: false, error: "Select a sender account first." };
-  }
-  if (recipients.length === 0) {
-    return { success: false, error: "Add at least one recipient." };
-  }
-  if (!params.subject.trim() && !params.bodyText.trim()) {
-    return { success: false, error: "Write a subject or message before sending." };
-  }
-
-  try {
-    const accessToken = await getValidAccessToken();
-    const sent = await sendMessage(accessToken, {
-      from: params.from,
-      to: recipients,
-      subject: params.subject,
-      bodyText: params.bodyText,
-    });
-    return {
-      success: true,
-      messageId: sent.id,
-    };
-  } catch (err) {
-    console.error("sendEmail error:", err);
-    return mapComposeError(err);
-  }
-}
+export const handleCreateComposeSession = createComposeSession;
+export const handleUpdateComposeSession = updateComposeSession;
+export const handleSaveDraft = saveDraftForSession;
+export const handleQueueSend = queueSendForSession;
+export const handleUndoSend = undoPendingSend;
+export const handleDiscardComposeSession = discardComposeSession;

@@ -35,6 +35,47 @@ export interface Attachment {
   attachmentId: string;
 }
 
+export interface ComposeAttachmentInput {
+  id: string;
+  type: "file" | "image" | "link";
+  name: string;
+  mimeType?: string;
+  size?: number;
+  dataBase64?: string;
+  url?: string;
+}
+
+export interface ComposeSession {
+  id: string;
+  from: string;
+  to: string[];
+  cc: string[];
+  bcc: string[];
+  subject: string;
+  bodyText: string;
+  attachments: ComposeAttachmentInput[];
+  gmailDraftId: string | null;
+  gmailMessageId: string | null;
+  status: "editing" | "queued" | "sent" | "failed" | "discarded";
+  dirty: boolean;
+  createdAt: number;
+  updatedAt: number;
+  lastSavedAt: number | null;
+}
+
+export interface ComposeStatusMessage {
+  sessionId: string;
+  sendId?: string;
+  status:
+    | "draft_saved"
+    | "send_queued"
+    | "send_sent"
+    | "send_failed"
+    | "send_undone";
+  undoDeadlineAt?: number;
+  error?: string;
+}
+
 export interface Message {
   id: string;
   threadId: string;
@@ -107,33 +148,76 @@ export type RadiusRPC = {
           localStateApplied?: boolean;
         };
       };
-      saveDraft: {
+      createComposeSession: {
+        params: { from: string };
+        response: {
+          success: boolean;
+          session?: ComposeSession;
+          error?: string;
+        };
+      };
+      updateComposeSession: {
         params: {
+          sessionId: string;
           from: string;
           to: string[];
+          cc?: string[];
+          bcc?: string[];
           subject: string;
           bodyText: string;
+          attachments?: ComposeAttachmentInput[];
         };
         response: {
           success: boolean;
+          session?: ComposeSession;
+          error?: string;
+        };
+      };
+      saveDraft: {
+        params: {
+          sessionId: string;
+        };
+        response: {
+          success: boolean;
+          sessionId?: string;
           draftId?: string;
           messageId?: string;
+          lastSavedAt?: number;
           error?: string;
           code?: "reauth_required" | "scope_insufficient";
         };
       };
-      sendEmail: {
+      queueSend: {
         params: {
-          from: string;
-          to: string[];
-          subject: string;
-          bodyText: string;
+          sessionId: string;
         };
         response: {
           success: boolean;
-          messageId?: string;
+          sessionId?: string;
+          sendId?: string;
+          undoDeadlineAt?: number;
           error?: string;
           code?: "reauth_required" | "scope_insufficient";
+        };
+      };
+      undoSend: {
+        params: {
+          sendId: string;
+        };
+        response: {
+          success: boolean;
+          sessionId?: string;
+          error?: string;
+        };
+      };
+      discardComposeSession: {
+        params: {
+          sessionId: string;
+          deleteRemoteDraft?: boolean;
+        };
+        response: {
+          success: boolean;
+          error?: string;
         };
       };
       requestNotificationPermission: {
@@ -200,6 +284,7 @@ export type RadiusRPC = {
       syncProgress: SyncStatus;
       newMail: Message;
       updateStatus: UpdateInfo;
+      composeStatusChanged: ComposeStatusMessage;
     };
   };
 };
