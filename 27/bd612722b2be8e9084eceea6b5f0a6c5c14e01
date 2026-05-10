@@ -1,0 +1,19 @@
+src/bun/sync-lifecycle.ts
+  s_eefe1f72c64026::t_3a524ad8f1eb45 488
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "27bd612722b2be8e9084eceea6b5f0a6c5c14e01",
+  "prompts": {},
+  "sessions": {
+    "s_eefe1f72c64026": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e0cba-292d-708b-ba06-3d21aa9689c7",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
