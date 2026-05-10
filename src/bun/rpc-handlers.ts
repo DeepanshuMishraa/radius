@@ -319,3 +319,4 @@ export const handleSaveDraft = saveDraftForSession;
 export const handleQueueSend = queueSendForSession;
 export const handleUndoSend = undoPendingSend;
 export const handleDiscardComposeSession = discardComposeSession;
+export { handleResyncAccount } from "./sync-lifecycle";

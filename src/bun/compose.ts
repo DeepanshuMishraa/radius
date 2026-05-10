@@ -947,14 +947,25 @@ export async function resumePendingSends() {
   const db = await getDb();
   const pendingRows = db
     .query(
-      `SELECT id, undo_deadline_at
+      `SELECT id, status, undo_deadline_at
        FROM pending_sends
-       WHERE status = 'queued'`,
+       WHERE status IN ('queued', 'sending')`,
     )
-    .all() as Array<{ id: string; undo_deadline_at: number }>;
+    .all() as Array<{ id: string; status: string; undo_deadline_at: number }>;
 
   for (const pending of pendingRows) {
-    schedulePendingSend(pending.id, pending.undo_deadline_at);
+    const deadlinePassed = pending.undo_deadline_at <= Date.now();
+    if (pending.status === "sending") {
+      // Previous attempt may have completed before crash; avoid duplicate sends.
+      await markPendingSendStatus(db, pending.id, "failed", {
+        error: "Send interrupted before confirmation. Please retry.",
+      });
+    } else if (deadlinePassed) {
+      void sendPendingSnapshot(pending.id);
+    } else {
+      // Still within undo window — schedule the timer
+      schedulePendingSend(pending.id, pending.undo_deadline_at);
+    }
   }
 }
 

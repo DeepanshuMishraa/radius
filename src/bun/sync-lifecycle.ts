@@ -5,6 +5,8 @@ import {
   getSyncState,
   switchAccount as switchDbAccount,
   deleteAccountDb,
+  clearMessages,
+  resetSyncState,
 } from "./db";
 import {
   buildAuthURL,
@@ -466,6 +468,50 @@ export async function startExistingUserSync() {
         emitNewMailToRenderer(message);
       });
     }
+  }
+}
+
+export async function handleResyncAccount() {
+  try {
+    stopAllSync();
+    await waitForSyncLockRelease();
+
+    const refreshToken = await getRefreshTokenForActiveAccount();
+    if (!refreshToken) {
+      return { success: false, error: "No refresh token found — please authenticate first" };
+    }
+
+    await clearMessages();
+    await resetSyncState();
+
+    await updateSyncState({
+      syncMode: "recent",
+      status: "syncing",
+      phase: "initial",
+      lastSyncAt: Date.now(),
+      error: null,
+    });
+
+    const resumedSyncMode = "recent";
+    runInitialAndBackgroundSync(resumedSyncMode)
+      .then(() => {
+        stopDeferredFullSyncScheduler();
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("❌ Resync failed:", msg);
+        updateSyncState({ status: "error", phase: null, error: msg });
+      });
+
+    stopPolling = await startIncrementalSyncPolling((message) => {
+      emitNewMailToRenderer(message);
+    });
+
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("❌ Resync account failed:", message);
+    return { success: false, error: message };
   }
 }
 

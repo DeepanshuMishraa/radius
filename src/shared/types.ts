@@ -301,6 +301,10 @@ export type RadiusRPC = {
         params: { email: string };
         response: { success: boolean; error?: string };
       };
+      resyncAccount: {
+        params: {};
+        response: { success: boolean; error?: string };
+      };
       downloadAttachment: {
         params: { messageId: string; attachmentId: string };
         response: { success: boolean; data?: string; mimeType?: string; filename?: string; error?: string };

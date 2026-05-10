@@ -17,6 +17,7 @@ export function SyncPill({ syncStatus, notice }: SyncPillProps) {
   const current = syncStatus.progress?.current ?? 0;
   const total = syncStatus.progress?.total ?? 0;
   const pct = total > 0 ? Math.min(Math.round((current / total) * 100), 100) : 0;
+  const isStillFetching = current >= total && syncStatus.status === "syncing";
 
   return (
     <div className="fixed bottom-4 left-4 z-40 w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-[18px] border border-radius-border-subtle bg-radius-bg-primary/92 shadow-[0_12px_36px_rgba(0,0,0,0.14)] backdrop-blur-xl">
@@ -53,7 +54,9 @@ export function SyncPill({ syncStatus, notice }: SyncPillProps) {
               (syncStatus.status === "error"
                 ? syncStatus.error ?? "Radius could not finish syncing."
                 : total > 0
-                  ? `${pct}% synced • ${current.toLocaleString()} of ${total.toLocaleString()} messages`
+                  ? isStillFetching
+                    ? `${current.toLocaleString()} messages fetched • discovering more...`
+                    : `${pct}% synced • ${current.toLocaleString()} of ${total.toLocaleString()} messages`
                   : "Your first sync is running in the background. You can start reading while the rest lands.")}
           </p>
           {isInitialSync && total > 0 ? (

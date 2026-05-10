@@ -235,9 +235,9 @@ async function runSyncPass({
           listMessages(accessToken, { maxResults: 1, q: ALL_MAIL_QUERY })
         )
       : null;
-  const resolvedTotalEstimate =
+  let resolvedTotalEstimate =
     totalEstimate ?? firstPage?.resultSizeEstimate ?? INITIAL_SYNC_TARGET;
-  const progressTotal =
+  let progressTotal =
     phase === "initial"
       ? Math.min(limit ?? INITIAL_SYNC_TARGET, resolvedTotalEstimate)
       : resolvedTotalEstimate;
@@ -250,8 +250,8 @@ async function runSyncPass({
   await pushSyncProgress(
     phase,
     {
-      current: Math.min(processed, progressTotal),
-      total: progressTotal,
+      current: processed,
+      total: Math.max(progressTotal, processed + (startPageToken ? 1 : 0)),
     },
     latestHistoryId
   );
@@ -265,6 +265,15 @@ async function runSyncPass({
         q: ALL_MAIL_QUERY,
       })
     );
+
+    // Gmail's resultSizeEstimate is often wrong (low). Update if a later page reveals more.
+    if (page.resultSizeEstimate && page.resultSizeEstimate > resolvedTotalEstimate) {
+      resolvedTotalEstimate = page.resultSizeEstimate;
+      progressTotal =
+        phase === "initial"
+          ? Math.min(limit ?? INITIAL_SYNC_TARGET, resolvedTotalEstimate)
+          : resolvedTotalEstimate;
+    }
 
     const pageMessages = page.messages ?? [];
     if (pageMessages.length === 0) {
@@ -294,9 +303,11 @@ async function runSyncPass({
       await flushInsertBuffer(chunk, accessToken);
       processed += chunk.length;
 
+      const hasMore = page.nextPageToken !== undefined ||
+        (targetProcessed !== undefined && processed < targetProcessed);
       const progress = {
-        current: Math.min(processed, progressTotal),
-        total: progressTotal,
+        current: processed,
+        total: Math.max(progressTotal, processed + (hasMore ? 1 : 0)),
       };
       await pushSyncProgress(phase, progress, latestHistoryId);
       onProgress?.(progress);
