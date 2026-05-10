@@ -8,6 +8,7 @@ import {
   EnvelopeSimpleIcon,
   TrayIcon,
   HouseIcon,
+  CloudArrowDownIcon,
 } from "@phosphor-icons/react/dist/ssr";
 
 interface HomeProps {
@@ -19,6 +20,7 @@ interface HomeProps {
   onAbout: () => void;
   onOpenMailroom: () => void;
   onShowInbox: () => void;
+  onResync: () => void;
 }
 
 export function Home({
@@ -30,6 +32,7 @@ export function Home({
   onAbout,
   onOpenMailroom,
   onShowInbox,
+  onResync,
 }: HomeProps) {
   return (
     <>
@@ -80,6 +83,13 @@ export function Home({
         </CommandItem>
       </CommandGroup>
       <CommandGroup heading="System">
+        <CommandItem
+          value="resync-account"
+          onSelect={onResync}
+        >
+          <CloudArrowDownIcon />
+          <span>Resync Account</span>
+        </CommandItem>
         <CommandItem
           value="check-updates"
           onSelect={onCheckForUpdates}

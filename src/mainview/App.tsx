@@ -675,6 +675,23 @@ function App() {
     [removeAccount, accounts.length, activeAccount]
   );
 
+  const handleResync = useCallback(async () => {
+    setCmdOpen(false);
+    try {
+      const result = await radiusRpc.request.resyncAccount({});
+      if (result.success) {
+        toast.success("Resync started", {
+          description: "Your emails are being re-downloaded in the background.",
+        });
+      } else {
+        toast.error(result.error ?? "Resync failed");
+      }
+    } catch (err) {
+      console.error("Resync error:", err);
+      toast.error("Resync failed");
+    }
+  }, []);
+
   const handleConnectNewAccount = useCallback(
     async (syncMode: SyncMode) => {
       setAddAccountMode(syncMode);
@@ -813,6 +830,7 @@ function App() {
             onShowMailbox={handleOpenMailbox}
             onShowInbox={handleShowInbox}
             onClose={() => setCmdOpen(false)}
+            onResync={handleResync}
             accounts={accounts}
             activeAccount={activeAccount}
           />

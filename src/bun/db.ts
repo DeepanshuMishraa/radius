@@ -832,6 +832,26 @@ export async function clearMessages(): Promise<void> {
   db.run("DELETE FROM messages_fts");
 }
 
+export async function resetSyncState(): Promise<void> {
+  const db = await getDb();
+  db.run(`UPDATE sync_state SET
+    history_id = NULL,
+    last_sync_at = NULL,
+    initial_sync_completed_at = NULL,
+    full_sync_completed_at = NULL,
+    background_sync_cursor = NULL,
+    background_sync_total = NULL,
+    background_sync_processed = 0,
+    background_sync_pending = 0,
+    background_sync_last_batch_at = NULL,
+    status = 'idle',
+    phase = NULL,
+    progress_current = NULL,
+    progress_total = NULL,
+    error = NULL
+  WHERE id = 1`);
+}
+
 export async function getComposeContactRows(): Promise<
   Array<{ fromAddr: string | null; toAddr: string | null }>
 > {

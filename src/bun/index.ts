@@ -32,6 +32,7 @@ import {
   handleQueueSend,
   handleUndoSend,
   handleDiscardComposeSession,
+  handleResyncAccount,
 } from "./rpc-handlers";
 import {
   handleOpenExternalUrl,
@@ -99,6 +100,7 @@ async function createMainWindow() {
         getAccounts: handleGetAccounts,
         switchAccount: handleSwitchAccount,
         removeAccount: handleRemoveAccount,
+        resyncAccount: handleResyncAccount,
         downloadAttachment: handleDownloadAttachment,
         previewAttachment: handlePreviewAttachment,
 

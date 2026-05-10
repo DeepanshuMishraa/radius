@@ -31,6 +31,7 @@ interface CommandKProps {
   onShowMailbox: (mailbox: "sent" | "drafts" | "trash") => void;
   onShowInbox: () => void;
   onClose: () => void;
+  onResync: () => void;
   accounts: Account[];
   activeAccount: string | null;
 }
@@ -46,6 +47,7 @@ export function CommandK({
   onShowMailbox,
   onShowInbox,
   onClose,
+  onResync,
   accounts,
   activeAccount,
 }: CommandKProps) {
@@ -137,7 +139,7 @@ export function CommandK({
   return (
     <div 
       className={cn(
-        "mx-auto flex flex-col rounded-[1.25rem] border border-radius-border-subtle bg-radius-bg-primary/40 p-2 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] backdrop-blur-2xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] w-full max-w-[720px]"
+        "mx-auto flex flex-col rounded-[1.25rem] border border-radius-border-subtle bg-radius-bg-primary/40 p-1 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] backdrop-blur-2xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] w-full max-w-[720px]"
       )}
     >
       <Command
@@ -232,6 +234,7 @@ export function CommandK({
                   onSelectAccounts={() => setPage("accounts")}
                   onAbout={onAbout}
                   onShowInbox={onShowInbox}
+                  onResync={onResync}
                 />
               ) : page === "accounts" ? (
                 <Accounts
