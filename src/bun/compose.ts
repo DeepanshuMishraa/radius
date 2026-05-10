@@ -955,8 +955,12 @@ export async function resumePendingSends() {
 
   for (const pending of pendingRows) {
     const deadlinePassed = pending.undo_deadline_at <= Date.now();
-    if (deadlinePassed || pending.status === "sending") {
-      // Deadline expired or previous send crashed mid-flight — send immediately
+    if (pending.status === "sending") {
+      // Previous attempt may have completed before crash; avoid duplicate sends.
+      await markPendingSendStatus(db, pending.id, "failed", {
+        error: "Send interrupted before confirmation. Please retry.",
+      });
+    } else if (deadlinePassed) {
       void sendPendingSnapshot(pending.id);
     } else {
       // Still within undo window — schedule the timer
