@@ -1,0 +1,41 @@
+src/mainview/App.tsx
+  s_eefe1f72c64026::t_8a969628bda0b3 678-694
+  s_eefe1f72c64026::t_d94f599936b0e9 833
+src/bun/rpc-handlers.ts
+  s_eefe1f72c64026::t_c9e5171969882f 322
+src/components/cmd.tsx
+  s_eefe1f72c64026::t_649e8ac47239b7 34,50,142,237
+src/bun/sync.ts
+  s_eefe1f72c64026::t_4627f458eeb02a 238,240
+  s_eefe1f72c64026::t_2e59d7405119f6 269-277,306-307,309-310
+src/components/home.tsx
+  s_eefe1f72c64026::t_36e161e5294003 11,23,35,86-92
+src/bun/index.ts
+  s_eefe1f72c64026::t_06d3f2dfa8bf88 35,103
+src/bun/db.ts
+  ai_agent 835-854
+src/bun/compose.ts
+  s_eefe1f72c64026::t_fa7f459aeed7bb 950,952,954,957-964
+src/components/sync-pill.tsx
+  s_eefe1f72c64026::t_8539a5612b4b36 20,57-59
+src/shared/types.ts
+  s_eefe1f72c64026::t_44065610ba497c 304-307
+src/bun/sync-lifecycle.ts
+  s_eefe1f72c64026::t_52094c1566a22e 8-9,474-513
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "48f252388bd0e3ffb09436952071583ca2c99b70",
+  "prompts": {},
+  "sessions": {
+    "s_eefe1f72c64026": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e0cba-292d-708b-ba06-3d21aa9689c7",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
