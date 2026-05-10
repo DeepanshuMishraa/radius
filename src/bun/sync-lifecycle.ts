@@ -476,15 +476,16 @@ export async function handleResyncAccount() {
     stopAllSync();
     await waitForSyncLockRelease();
 
-    await clearMessages();
-    await resetSyncState();
-
     const refreshToken = await getRefreshTokenForActiveAccount();
     if (!refreshToken) {
       return { success: false, error: "No refresh token found — please authenticate first" };
     }
 
+    await clearMessages();
+    await resetSyncState();
+
     await updateSyncState({
+      syncMode: "recent",
       status: "syncing",
       phase: "initial",
       lastSyncAt: Date.now(),
