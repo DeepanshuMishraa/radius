@@ -22,11 +22,11 @@ export default {
       bundleCEF: false,
     },
     linux: {
-      bundleCEF: false,
+      bundleCEF: true,
       icon: "icon.iconset/icon_256x256.png",
     },
     win: {
-      bundleCEF: false,
+      bundleCEF: true,
       icon: "icon.iconset/icon_256x256.png",
     },
   },
