@@ -3,7 +3,18 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import { useTheme } from "@/components/theme-provider";
 import type { Message, EmailCategory } from "../hooks/useInbox";
-import { ListIcon, FileIcon, ArrowSquareOut, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { 
+  ListIcon, 
+  FileIcon, 
+  ArrowSquareOut, 
+  CaretLeft, 
+  CaretRight,
+  Archive,
+  Trash,
+  ArrowBendUpLeft,
+  SealCheck,
+  ShieldCheck
+} from "@phosphor-icons/react";
 import { radiusRpc } from "../lib/rpc";
 
 interface ReaderViewProps {
@@ -145,6 +156,35 @@ function MessageStatusWidget({ message }: { message: Message }) {
   );
 }
 
+const FREE_EMAIL_DOMAINS = new Set([
+  "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com", "icloud.com", "me.com", "mac.com", "live.com", "msn.com"
+]);
+
+function Avatar({ name, email }: { name: string; email: string }) {
+  const [logoFailed, setLogoFailed] = useState(false);
+  const initial = (name || email || "?").charAt(0).toUpperCase();
+  const domain = email?.split('@')[1]?.toLowerCase();
+  
+  const isFreeEmail = domain ? FREE_EMAIL_DOMAINS.has(domain) : true;
+  
+  if (domain && !isFreeEmail && !logoFailed) {
+    return (
+      <img 
+        src={`https://logo.clearbit.com/${domain}`} 
+        alt={name}
+        onError={() => setLogoFailed(true)}
+        className="w-10 h-10 rounded-full shrink-0 object-cover bg-white border border-radius-border-subtle"
+      />
+    );
+  }
+
+  return (
+    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[18px] font-medium shrink-0 bg-[#4A90E2]">
+      {initial}
+    </div>
+  );
+}
+
 function AttachmentList({ attachments, messageId }: { attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>; messageId: string }) {
   if (attachments.length === 0) return null;
 
@@ -169,31 +209,52 @@ function AttachmentList({ attachments, messageId }: { attachments: Array<{ filen
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const getFileStyle = (filename: string) => {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    if (ext === 'pptx' || ext === 'ppt') return { color: '#db4437', bg: '#fce8e6', label: 'P' };
+    if (ext === 'docx' || ext === 'doc') return { color: '#4285f4', bg: '#e8f0fe', label: 'W' };
+    if (ext === 'xlsx' || ext === 'xls') return { color: '#0f9d58', bg: '#e6f4ea', label: 'X' };
+    if (ext === 'pdf') return { color: '#db4437', bg: '#fce8e6', label: 'PDF' };
+    return { color: '#5f6368', bg: '#f1f3f4', label: 'FILE' };
+  };
+
   return (
-    <div className="mt-6 space-y-2">
-      <div className="text-[11px] font-medium text-radius-text-muted uppercase tracking-wide font-[family-name:var(--font-family-sans)]">
-        {attachments.length} attachment{attachments.length > 1 ? "s" : ""}
+    <div className="mt-8 border-t border-radius-border-subtle pt-6">
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-[14px] font-semibold text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+          Attachment
+        </span>
+        <span className="flex items-center gap-1 text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+          Secure by data.ai <ShieldCheck size={14} className="text-[#0f9d58]" weight="bold" />
+        </span>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {attachments.map((att) => (
-          <button
-            key={att.attachmentId}
-            onClick={() => void handlePreview(att)}
-            className="inline-flex items-center gap-2 rounded-lg border border-radius-border-subtle bg-radius-bg-secondary px-3 py-2 text-left transition-colors hover:bg-radius-bg-tertiary"
-            title={`Open ${att.filename}`}
-          >
-            <FileIcon size={16} className="shrink-0 text-radius-text-muted" />
-            <div className="min-w-0">
-              <div className="truncate text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)] max-w-[200px]">
-                {att.filename}
+      <div className="flex flex-wrap gap-3">
+        {attachments.map((att) => {
+          const style = getFileStyle(att.filename);
+          return (
+            <button
+              key={att.attachmentId}
+              onClick={() => void handlePreview(att)}
+              className="group relative flex items-center gap-3 rounded-xl border border-radius-border-subtle bg-radius-bg-primary px-4 py-3 text-left transition-all hover:shadow-md hover:border-[rgba(0,0,0,0.1)] w-[240px]"
+              title={`Open ${att.filename}`}
+            >
+              <div 
+                className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 font-bold text-[12px]"
+                style={{ backgroundColor: style.bg, color: style.color }}
+              >
+                {style.label}
               </div>
-              <div className="text-[10px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-                {formatSize(att.size)}
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+                  {att.filename}
+                </div>
+                <div className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                  {formatSize(att.size)}
+                </div>
               </div>
-            </div>
-            <ArrowSquareOut size={14} className="shrink-0 text-radius-text-muted ml-1" />
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -661,14 +722,14 @@ const EMAIL_BODY_STYLES = `
     font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
     background: transparent;
-    font-size: 1.08rem;
-    line-height: 1.85;
+    font-size: 15px;
+    line-height: 1.6;
   }
   .email-section--simple {
     font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
-    font-size: 1.08rem;
-    line-height: 1.85;
+    font-size: 15px;
+    line-height: 1.6;
   }
   /* ── Newsletter / rich-email card ─────────────────────────── */
   .email-section--rich {
@@ -977,32 +1038,43 @@ export const ReaderView = memo(function ReaderView({
   const recipient = parseAddress(message.to);
 
   return (
-    <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-11">
+    <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative">
       <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
 
       <div className="flex-1 email-enter relative" key={message.id}>
         {isPureNewsletter ? (
           /* ═════ DOCUMENT MODE — Newsletters ═════ */
-          <article className="w-full px-6 pt-6 pb-24">
-            <div className="mx-auto max-w-[920px]">
-              <header className="mb-6 flex flex-col gap-4">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="inline-flex items-center gap-[6px] rounded-full border border-[rgba(163,90,196,0.22)] bg-[rgba(163,90,196,0.10)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a35ac4] font-[family-name:var(--font-family-sans)]">
-                    <span className="inline-block rounded-full bg-[#a35ac4]" style={{ width: 5, height: 5 }} />
-                    Newsletter
-                  </span>
-                  <span className="truncate text-[12px] uppercase tracking-[0.16em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-                    {sender.name || sender.email}
-                  </span>
+          <article className="w-full px-8 pt-8 pb-24">
+            <div className="mx-auto max-w-[800px]">
+              <header className="mb-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-4">
+                    <Avatar name={sender.name} email={sender.email} />
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1">
+                        <span className="font-semibold text-radius-text-primary text-[15px] font-[family-name:var(--font-family-sans)]">{sender.name || sender.email}</span>
+                        <SealCheck weight="fill" className="text-[#3b82f6]" size={16} />
+                      </div>
+                      <div className="text-[13px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
+                        From: {sender.email}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
+                      <Archive size={18} />
+                    </button>
+                    <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
+                      <Trash size={18} />
+                    </button>
+                    <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
+                      <ArrowBendUpLeft size={18} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <h1 className="min-w-0 max-w-[42rem] text-[28px] leading-[1.08] tracking-[-0.02em] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
-                    {message.subject || "Newsletter"}
-                  </h1>
-                  <time className="shrink-0 text-[12px] uppercase tracking-[0.16em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-                    {formatFullDate(message.internalDate)}
-                  </time>
-                </div>
+                <h1 className="mt-8 mb-4 font-[family-name:var(--font-family-sans)] text-[24px] font-semibold text-radius-text-primary leading-[1.2]">
+                  {message.subject || "Newsletter"}
+                </h1>
               </header>
 
               <div className="newsletter-stage">
@@ -1017,42 +1089,42 @@ export const ReaderView = memo(function ReaderView({
           </article>
         ) : (
           /* ═════ READING MODE — Text emails ═════ */
-          <article className="w-full px-6 pt-8 pb-24">
-            <header className="max-w-[720px] mx-auto">
-              <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-wide mb-4">
+          <article className="w-full px-8 pt-8 pb-24">
+            <header className="max-w-[800px] mx-auto mb-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <Avatar name={sender.name} email={sender.email} />
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold text-radius-text-primary text-[15px] font-[family-name:var(--font-family-sans)]">{sender.name || sender.email}</span>
+                      <SealCheck weight="fill" className="text-[#3b82f6]" size={16} />
+                    </div>
+                    <div className="text-[13px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
+                      From: {sender.email}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
+                    <Archive size={18} />
+                  </button>
+                  <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
+                    <Trash size={18} />
+                  </button>
+                  <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
+                    <ArrowBendUpLeft size={18} />
+                  </button>
+                </div>
+              </div>
+              <h1 className="mt-8 mb-4 font-[family-name:var(--font-family-sans)] text-[24px] font-semibold text-radius-text-primary leading-[1.2]">
                 {message.subject}
               </h1>
-
-              <div className="mb-8">
-                <MessageStatusWidget message={message} />
-              </div>
-
-              <div className="mb-10 pb-8 border-b border-radius-border-subtle space-y-2">
-                <div className="flex items-start gap-6">
-                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
-                    From
-                  </span>
-                  <AddressReveal name={sender.name} email={sender.email} />
-                </div>
-                <div className="flex items-start gap-6">
-                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
-                    To
-                  </span>
-                  <AddressReveal name={recipient.name} email={recipient.email} />
-                </div>
-                <div className="flex items-baseline gap-6 pt-1">
-                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]"></span>
-                  <time className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-serif)]">
-                    {formatFullDate(message.internalDate)}
-                  </time>
-                </div>
-              </div>
             </header>
 
             {sanitizedHtml ? (
-              <div className="max-w-[720px] mx-auto">
+              <div className="max-w-[800px] mx-auto">
                 <div
-                  className={hasRichHtml ? "email-body min-w-0 text-[15px] leading-[1.6]" : "email-body email-body--simple min-w-0 text-[17px] leading-[1.85]"}
+                  className={hasRichHtml ? "email-body min-w-0 text-[15px] leading-[1.6]" : "email-body email-body--simple min-w-0 text-[15px] leading-[1.6]"}
                   onClick={handleBodyClick}
                   dangerouslySetInnerHTML={{
                     __html: hasRichHtml ? (htmlRender.html ?? sanitizedHtml) : sanitizedHtml,
@@ -1061,8 +1133,8 @@ export const ReaderView = memo(function ReaderView({
                 <AttachmentList attachments={message.attachments} messageId={message.id} />
               </div>
             ) : (
-              <div className="max-w-[720px] mx-auto">
-                <div className="font-[family-name:var(--font-family-sans)] text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
+              <div className="max-w-[800px] mx-auto">
+                <div className="font-[family-name:var(--font-family-sans)] text-[15px] leading-[1.6] text-radius-text-primary whitespace-pre-wrap">
                   {message.bodyText || message.snippet}
                 </div>
                 <AttachmentList attachments={message.attachments} messageId={message.id} />

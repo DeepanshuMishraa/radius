@@ -1,6 +1,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
 import type { Message, SyncStatus, EmailCategory } from "../hooks/useInbox";
+import { SealCheck, Funnel, CheckSquare } from "@phosphor-icons/react";
 
 interface InboxListProps {
   messages: Message[];
@@ -78,6 +79,35 @@ function ReadIndicator({ isRead }: { isRead: boolean }) {
   );
 }
 
+const FREE_EMAIL_DOMAINS = new Set([
+  "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com", "icloud.com", "me.com", "mac.com", "live.com", "msn.com"
+]);
+
+function Avatar({ name, email }: { name: string; email: string }) {
+  const [logoFailed, setLogoFailed] = useState(false);
+  const initial = (name || email || "?").charAt(0).toUpperCase();
+  const domain = email?.split('@')[1]?.toLowerCase();
+  
+  const isFreeEmail = domain ? FREE_EMAIL_DOMAINS.has(domain) : true;
+  
+  if (domain && !isFreeEmail && !logoFailed) {
+    return (
+      <img 
+        src={`https://logo.clearbit.com/${domain}`} 
+        alt={name}
+        onError={() => setLogoFailed(true)}
+        className="w-10 h-10 rounded-full shrink-0 object-cover bg-white border border-radius-border-subtle"
+      />
+    );
+  }
+
+  return (
+    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[16px] font-medium shrink-0 bg-[#4A90E2]">
+      {initial}
+    </div>
+  );
+}
+
 function EmailRow({
   message,
   isSelected,
@@ -88,55 +118,38 @@ function EmailRow({
   onClick: () => void;
 }) {
   const senderName = message.from?.split("<")[0].trim() || message.from || "";
+  const senderEmail = message.from?.match(/<([^>]+)>/)?.[1] || message.from || "";
 
   return (
     <div
       onClick={onClick}
       className={`
-        h-[104px] px-5 py-3.5 cursor-pointer select-none overflow-hidden transition-colors duration-80
-        ${isSelected ? "border-l-[2px] border-l-radius-accent bg-radius-bg-secondary" : "border-l-[2px] border-l-transparent hover:bg-radius-bg-secondary"}
-        ${!message.isRead ? "bg-radius-bg-secondary/40" : ""}
+        h-[110px] px-6 py-4 cursor-pointer select-none overflow-hidden transition-colors border-b border-radius-border-subtle
+        ${isSelected ? "bg-radius-bg-secondary" : "hover:bg-radius-bg-secondary/50 bg-radius-bg-primary"}
       `}
     >
-      {/* Top line: sender + date pill */}
-      <div className="flex items-center justify-between gap-3 mb-1">
-        <span
-          className={`min-w-0 flex flex-1 items-center text-[13px] truncate pr-3 font-[family-name:var(--font-family-sans)] ${
-            message.isRead
-              ? "font-medium text-radius-text-primary"
-              : "font-semibold text-radius-text-primary"
-          }`}
-        >
-          <CategoryDot category={message.category} />
-          <span className="truncate">{senderName}</span>
-          <ReadIndicator isRead={message.isRead} />
-        </span>
-        <span className="shrink-0 text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)] border border-radius-border-subtle rounded-full px-2 py-0.5">
-          {formatDateShort(message.internalDate)}
-        </span>
+      <div className="flex gap-4">
+        <Avatar name={senderName} email={senderEmail} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className={`truncate text-[15px] font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-primary font-medium" : "text-radius-text-primary font-bold"}`}>
+                {senderName}
+              </span>
+              <SealCheck weight="fill" className="text-[#3b82f6] shrink-0" size={15} />
+            </div>
+            <span className="shrink-0 text-[12px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
+              {formatDateShort(message.internalDate)}
+            </span>
+          </div>
+          <p className={`text-[13px] truncate mb-1 font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary font-normal" : "text-radius-text-primary font-medium"}`}>
+            {message.subject}
+          </p>
+          <p className="text-[13px] text-radius-text-muted truncate leading-[1.4] font-[family-name:var(--font-family-sans)]">
+            {message.snippet}
+          </p>
+        </div>
       </div>
-
-      {/* Subject */}
-      <p
-        className={`text-[13px] truncate mb-0.5 font-[family-name:var(--font-family-sans)] ${
-          message.isRead
-            ? "text-radius-text-primary/88 font-normal"
-            : "text-radius-text-primary font-semibold"
-        }`}
-      >
-        {message.subject}
-      </p>
-
-      {/* Snippet */}
-      <p
-        className={`text-[12px] truncate leading-[1.4] font-[family-name:var(--font-family-sans)] ${
-          message.isRead
-            ? "text-radius-text-muted"
-            : "text-radius-text-secondary"
-        }`}
-      >
-        {message.snippet}
-      </p>
     </div>
   );
 }
@@ -158,7 +171,7 @@ export function InboxList({
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 104,
+    estimateSize: () => 110,
     getItemKey: (index) => messages[index]?.id ?? index,
     overscan: 5,
   });
@@ -186,27 +199,18 @@ export function InboxList({
   }, [lastVirtualItem?.index, loading, messages.length, onReachEnd, total]);
 
   return (
-    <div className="flex flex-col h-full bg-radius-bg-primary pt-11">
+    <div className="flex flex-col h-full bg-radius-bg-primary relative">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-radius-border-subtle">
-        <div className="min-w-0">
-          <span className="block text-[11px] font-semibold text-radius-text-muted uppercase tracking-[1px] font-[family-name:var(--font-family-sans)]">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-radius-border-subtle bg-radius-bg-primary z-10">
+        <div className="flex items-center gap-3 text-radius-text-secondary">
+          <CheckSquare size={18} />
+          <span className="text-[14px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
             {heading}
           </span>
-          {detail ? (
-            <span className="block mt-1 text-[11px] text-radius-text-muted/90 truncate font-[family-name:var(--font-family-sans)]">
-              {detail}
-            </span>
-          ) : null}
         </div>
-        <div className="shrink-0 flex items-center gap-2">
-          {loading ? (
-            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-radius-accent animate-pulse" />
-          ) : null}
-          <span className="text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-            {total.toLocaleString()}
-          </span>
-        </div>
+        <button className="text-radius-text-secondary hover:text-radius-text-primary transition-colors">
+          <Funnel size={18} />
+        </button>
       </div>
 
       {messages.length === 0 ? (
@@ -230,7 +234,7 @@ export function InboxList({
           </p>
         </div>
       ) : (
-        <div ref={parentRef} className="flex-1 overflow-auto">
+        <div ref={parentRef} className="flex-1 overflow-auto bg-radius-bg-primary">
           <div
             style={{
               height: `${virtualizer.getTotalSize()}px`,

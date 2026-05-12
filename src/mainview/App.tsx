@@ -18,6 +18,17 @@ import { AddAccountDialog } from "@/components/add-account";
 import {
   X,
   EnvelopeSimple,
+  Asterisk,
+  Tray,
+  Folder,
+  Users,
+  FileText,
+  File,
+  Archive,
+  Star,
+  PaperPlaneTilt,
+  Prohibit,
+  Trash,
 } from "@phosphor-icons/react";
 import { Toaster, toast } from "sonner";
 import { useHotkey } from "@tanstack/react-hotkeys";
@@ -763,52 +774,126 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-    <div className="relative flex h-full bg-radius-bg-primary overflow-hidden">
+    <div className="relative flex h-full bg-radius-bg-tertiary overflow-hidden text-radius-text-primary">
       <DragRegion />
-      <aside
-        className="sidebar-panel h-full border-r border-radius-border-subtle bg-radius-bg-primary will-change-transform"
-        data-open={sidebarOpen}
-      >
-        <InboxList
-          messages={visibleMessages}
-          total={visibleTotal}
-          selectedId={selectedMessageId}
-          onSelect={handleSelectMessage}
-          syncStatus={syncStatus}
-          heading={
-            searchActive
-              ? "Search Results"
-              : mailboxView === "inbox"
-                ? "Inbox"
-                : mailboxView === "sent"
-                  ? "Sent"
-                  : mailboxView === "drafts"
-                    ? "Drafts"
-                    : "Trash"
-          }
-          detail={searchMeta ?? undefined}
-          loading={searchLoading}
-          onReachEnd={searchActive || mailboxView !== "inbox" ? undefined : handleLoadMoreInbox}
-          emptyMessage={
-            searchActive
-              ? `No emails match “${deferredSearchQuery.trim()}”`
-              : mailboxView === "inbox"
-                ? undefined
-                : `No ${mailboxView} emails`
-          }
-        />
-      </aside>
-      <main className="flex-1 min-w-0 h-full">
-        <ReaderView
-          message={selectedMessage}
-          sidebarOpen={sidebarOpen}
-          onOpenSidebar={handleOpenSidebar}
-          onPrev={handlePrevMessage}
-          onNext={handleNextMessage}
-          currentIndex={currentMessageIndex}
-          totalCount={visibleMessages.length}
-        />
-      </main>
+      
+      {/* Global Sidebar */}
+      <nav className="w-[60px] flex-shrink-0 flex flex-col items-center pt-10 pb-6 border-r border-radius-border-subtle bg-radius-bg-tertiary z-50 electrobun-webkit-app-region-drag">
+        <div className="mb-10 w-7 h-7 rounded-lg bg-radius-text-primary flex items-center justify-center text-radius-bg-primary electrobun-webkit-app-region-no-drag shadow-sm cursor-pointer hover:opacity-80 transition-opacity">
+          <Asterisk size={16} weight="bold" />
+        </div>
+        <div className="flex flex-col gap-6 electrobun-webkit-app-region-no-drag text-radius-text-muted">
+          <button className="hover:text-radius-text-primary transition-colors"><EnvelopeSimple size={20} weight="fill" /></button>
+          <button className="hover:text-radius-text-primary transition-colors"><Tray size={20} weight="fill" /></button>
+          <button className="hover:text-radius-text-primary transition-colors"><Folder size={20} weight="fill" /></button>
+          <button className="hover:text-radius-text-primary transition-colors"><Users size={20} weight="fill" /></button>
+          <button className="hover:text-radius-text-primary transition-colors"><FileText size={20} weight="fill" /></button>
+          <button className="hover:text-radius-text-primary transition-colors"><File size={20} weight="fill" /></button>
+        </div>
+      </nav>
+
+      {/* Main Content Card */}
+      <div className="flex-1 flex flex-col min-w-0 h-full bg-radius-bg-primary rounded-tl-[24px] shadow-sm border-t border-l border-radius-border-subtle mt-2 overflow-hidden z-10">
+        
+        {/* Top Header */}
+        <header className="h-[60px] flex-shrink-0 flex items-center px-6 border-b border-radius-border-subtle electrobun-webkit-app-region-drag">
+          <h1 className="text-[17px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)] flex items-center gap-2">
+            {searchActive ? "Search Results" : mailboxView === "inbox" ? "Inbox" : mailboxView === "sent" ? "Sent" : mailboxView === "drafts" ? "Drafts" : "Trash"} 
+            <span className="text-radius-border-subtle font-medium">•</span>
+            <span className="text-radius-text-muted font-normal">{visibleTotal.toLocaleString()} emails</span>
+          </h1>
+        </header>
+
+        {/* Tabs Row */}
+        <div className="flex-shrink-0 flex items-center px-6 py-2.5 border-b border-radius-border-subtle gap-2 overflow-x-auto select-none font-[family-name:var(--font-family-sans)]">
+          <button className="bg-radius-text-primary text-radius-bg-primary rounded-full px-4 py-1.5 text-[13px] font-medium flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer shadow-sm">
+            <EnvelopeSimple size={15} /> Continue
+          </button>
+          <div className="w-[1px] h-4 bg-radius-border-subtle mx-2" />
+          <button 
+            onClick={handleShowInbox}
+            className={`rounded-full px-4 py-1.5 text-[13px] font-medium flex items-center gap-2 transition-colors cursor-pointer border ${mailboxView === 'inbox' && !searchActive ? 'bg-radius-bg-secondary text-radius-text-primary border-radius-border-subtle shadow-sm' : 'text-radius-text-secondary hover:bg-radius-bg-secondary border-transparent'}`}
+          >
+            <Tray size={15} /> Inbox <span className="text-radius-text-muted ml-0.5 font-normal">{total.toLocaleString()}</span>
+          </button>
+          <button 
+            onClick={() => void handleOpenMailbox("sent")}
+            className={`rounded-full px-4 py-1.5 text-[13px] font-medium flex items-center gap-2 transition-colors cursor-pointer border ${mailboxView === 'sent' && !searchActive ? 'bg-radius-bg-secondary text-radius-text-primary border-radius-border-subtle shadow-sm' : 'text-radius-text-secondary hover:bg-radius-bg-secondary border-transparent'}`}
+          >
+            <PaperPlaneTilt size={15} /> Sent items
+          </button>
+          <button 
+            onClick={() => void handleOpenMailbox("drafts")}
+            className={`rounded-full px-4 py-1.5 text-[13px] font-medium flex items-center gap-2 transition-colors cursor-pointer border ${mailboxView === 'drafts' && !searchActive ? 'bg-radius-bg-secondary text-radius-text-primary border-radius-border-subtle shadow-sm' : 'text-radius-text-secondary hover:bg-radius-bg-secondary border-transparent'}`}
+          >
+            <FileText size={15} /> Drafts
+          </button>
+          <button className="rounded-full px-4 py-1.5 text-[13px] font-medium flex items-center gap-2 transition-colors cursor-pointer border border-transparent text-radius-text-secondary hover:bg-radius-bg-secondary">
+            <Star size={15} /> Favorites
+          </button>
+          <div className="w-[1px] h-4 bg-radius-border-subtle mx-2" />
+          <button className="rounded-full px-4 py-1.5 text-[13px] font-medium flex items-center gap-2 transition-colors cursor-pointer border border-transparent text-radius-text-secondary hover:bg-radius-bg-secondary">
+            <Archive size={15} /> Archive
+          </button>
+          <button 
+            onClick={() => void handleOpenMailbox("trash")}
+            className={`rounded-full px-4 py-1.5 text-[13px] font-medium flex items-center gap-2 transition-colors cursor-pointer border ${mailboxView === 'trash' && !searchActive ? 'bg-radius-bg-secondary text-radius-text-primary border-radius-border-subtle shadow-sm' : 'text-radius-text-secondary hover:bg-radius-bg-secondary border-transparent'}`}
+          >
+            <Trash size={15} /> Deleted
+          </button>
+          <button className="rounded-full px-4 py-1.5 text-[13px] font-medium flex items-center gap-2 transition-colors cursor-pointer border border-transparent text-radius-text-secondary hover:bg-radius-bg-secondary">
+            <Prohibit size={15} /> Spam
+          </button>
+        </div>
+
+        {/* Content Split */}
+        <div className="flex-1 flex min-h-0 relative">
+          <aside
+            className="w-[340px] lg:w-[380px] h-full border-r border-radius-border-subtle bg-radius-bg-primary flex flex-col will-change-transform"
+            data-open={sidebarOpen}
+          >
+            <InboxList
+              messages={visibleMessages}
+              total={visibleTotal}
+              selectedId={selectedMessageId}
+              onSelect={handleSelectMessage}
+              syncStatus={syncStatus}
+              heading={
+                searchActive
+                  ? "Search Results"
+                  : mailboxView === "inbox"
+                    ? "Inbox"
+                    : mailboxView === "sent"
+                      ? "Sent"
+                      : mailboxView === "drafts"
+                        ? "Drafts"
+                        : "Trash"
+              }
+              detail={searchMeta ?? undefined}
+              loading={searchLoading}
+              onReachEnd={searchActive || mailboxView !== "inbox" ? undefined : handleLoadMoreInbox}
+              emptyMessage={
+                searchActive
+                  ? `No emails match “${deferredSearchQuery.trim()}”`
+                  : mailboxView === "inbox"
+                    ? undefined
+                    : `No ${mailboxView} emails`
+              }
+            />
+          </aside>
+          <main className="flex-1 min-w-0 h-full bg-radius-bg-primary relative">
+            <ReaderView
+              message={selectedMessage}
+              sidebarOpen={sidebarOpen}
+              onOpenSidebar={handleOpenSidebar}
+              onPrev={handlePrevMessage}
+              onNext={handleNextMessage}
+              currentIndex={currentMessageIndex}
+              totalCount={visibleMessages.length}
+            />
+          </main>
+        </div>
+      </div>
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen} modal={false}>
         <DialogContent
           showCloseButton={false}
