@@ -30,6 +30,27 @@ const globalCache = new Map<string, string | null>();
 const pendingDomains = new Set<string>();
 let batchTimeout: ReturnType<typeof setTimeout> | null = null;
 let batchResolvers: Array<() => void> = [];
+let preloadPromise: Promise<void> | null = null;
+
+function preloadAllAvatars(): Promise<void> {
+  if (preloadPromise) return preloadPromise;
+  preloadPromise = radiusRpc.request
+    .getAllSenderAvatars({})
+    .then((result) => {
+      for (const [domain, url] of Object.entries(result.avatars)) {
+        if (!globalCache.has(domain)) {
+          globalCache.set(domain, url);
+        }
+      }
+    })
+    .catch((err: unknown) => {
+      console.error("Failed to preload sender avatars:", err);
+    });
+  return preloadPromise;
+}
+
+// Eagerly preload all stored avatars as soon as the module loads
+preloadAllAvatars();
 
 function flushBatch() {
   const domains = [...pendingDomains];
@@ -112,8 +133,10 @@ export function useAvatarCache(emails: string[]) {
     if (key === prevEmailsRef.current || domains.length === 0) return;
     prevEmailsRef.current = key;
 
-    requestDomains(domains).then(() => {
-      forceUpdate(c => c + 1);
+    preloadAllAvatars().then(() => {
+      requestDomains(domains).then(() => {
+        forceUpdate(c => c + 1);
+      });
     });
   }, [emails]);
 

@@ -317,6 +317,10 @@ export type RadiusRPC = {
         params: { domains: string[] };
         response: { avatars: Record<string, string | null> };
       };
+      getAllSenderAvatars: {
+        params: {};
+        response: { avatars: Record<string, string | null> };
+      };
     };
     messages: {
       ready: {};

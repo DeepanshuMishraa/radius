@@ -4,6 +4,7 @@ import type { CSSProperties, MouseEvent } from "react";
 import { useTheme } from "@/components/theme-provider";
 import type { Message, EmailCategory } from "../hooks/useInbox";
 import { useAvatarCache } from "../hooks/useAvatarCache";
+import { Avatar } from "./Avatar";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { 
   SidebarRight01Icon,
@@ -152,35 +153,6 @@ function MessageStatusWidget({ message }: { message: Message }) {
       <span style={{ color: meta.text }}>
         {meta.label}
       </span>
-    </div>
-  );
-}
-
-function Avatar({ name, email, cachedUrl }: { name: string; email: string; cachedUrl?: string | null }) {
-  const initial = (name || email || "?").charAt(0).toUpperCase();
-
-  if (cachedUrl) {
-    return (
-      <img 
-        src={cachedUrl} 
-        alt={name}
-        loading="lazy"
-        decoding="async"
-        className="w-10 h-10 rounded-full shrink-0 object-cover bg-white border border-radius-border-subtle"
-      />
-    );
-  }
-
-  const colors = ["#4A90E2", "#E26D5C", "#5AA8C4", "#C47D5A", "#5A8C6F", "#A35AC4", "#c4a35a", "#a35ac4"];
-  const colorIndex = email ? email.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length : 0;
-  const bgColor = colors[colorIndex];
-
-  return (
-    <div 
-      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[16px] font-medium shrink-0 shadow-sm"
-      style={{ backgroundColor: bgColor }}
-    >
-      {initial}
     </div>
   );
 }
@@ -1055,7 +1027,7 @@ export const ReaderView = memo(function ReaderView({
               <header className="mb-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
-                    <Avatar name={sender.name} email={sender.email} cachedUrl={getAvatarUrl(sender.email)} />
+                    <Avatar name={sender.name} email={sender.email} cachedUrl={getAvatarUrl(sender.email)} size={40} />
                     <div className="flex flex-col">
                       <div className="flex items-center gap-1">
                         <span className="font-semibold text-radius-text-primary text-[15px] font-[family-name:var(--font-family-sans)]">{sender.name || sender.email}</span>
@@ -1099,7 +1071,7 @@ export const ReaderView = memo(function ReaderView({
             <header className="max-w-[800px] mx-auto mb-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
-                  <Avatar name={sender.name} email={sender.email} cachedUrl={getAvatarUrl(sender.email)} />
+                  <Avatar name={sender.name} email={sender.email} cachedUrl={getAvatarUrl(sender.email)} size={40} />
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1">
                       <span className="font-semibold text-radius-text-primary text-[15px] font-[family-name:var(--font-family-sans)]">{sender.name || sender.email}</span>

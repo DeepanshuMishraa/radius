@@ -982,6 +982,18 @@ export async function getSenderAvatarsBatch(
   return result;
 }
 
+export async function getAllSenderAvatars(): Promise<Record<string, string | null>> {
+  const db = await getDb();
+  const rows = db
+    .query("SELECT domain, avatar_url FROM sender_avatars")
+    .all() as Array<{ domain: string; avatar_url: string | null }>;
+  const result: Record<string, string | null> = {};
+  for (const row of rows) {
+    result[row.domain] = row.avatar_url;
+  }
+  return result;
+}
+
 export async function upsertSenderAvatar(
   domain: string,
   avatarUrl: string | null

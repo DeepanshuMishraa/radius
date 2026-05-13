@@ -1,5 +1,5 @@
 import type { RadiusRPC } from "../shared/types";
-import { getInboxMessages, searchInboxMessages, getMessageById, updateMessageBodies, getSyncState, setMessageReadState, getComposeContactRows, getComposeSessionRecipientRows, searchComposeContacts, upsertComposeContacts, getMailboxMessages as getStoredMailboxMessages, getSenderAvatarsBatch, upsertSenderAvatar } from "./db";
+import { getInboxMessages, searchInboxMessages, getMessageById, updateMessageBodies, getSyncState, setMessageReadState, getComposeContactRows, getComposeSessionRecipientRows, searchComposeContacts, upsertComposeContacts, getMailboxMessages as getStoredMailboxMessages, getSenderAvatarsBatch, upsertSenderAvatar, getAllSenderAvatars } from "./db";
 import { getAccountEmail, getValidAccessToken } from "./auth";
 import { getMessage as getGmailMessage, extractBodies, getAttachment, modifyMessageLabels, GmailAPIError, parseHeaders, classifyMessageNature, isReadFromLabels } from "./gmail";
 import {
@@ -328,6 +328,11 @@ function getBaseDomain(domain: string): string {
     return parts.slice(-3).join('.');
   }
   return parts.slice(-2).join('.');
+}
+
+export async function handleGetAllSenderAvatars(): Promise<{ avatars: Record<string, string | null> }> {
+  const avatars = await getAllSenderAvatars();
+  return { avatars };
 }
 
 export async function handleGetSenderAvatars(params: { domains: string[] }): Promise<{ avatars: Record<string, string | null> }> {
