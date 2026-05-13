@@ -18,7 +18,6 @@ import { AddAccountDialog } from "@/components/add-account";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Cancel01Icon,
-  AsteriskIcon,
   InboxIcon,
   File02Icon,
   ArchiveIcon,
@@ -784,8 +783,11 @@ function App() {
       
       {/* Global Sidebar — mailbox navigation */}
       <nav className="global-sidebar flex flex-col items-center pt-10 pb-6 bg-radius-bg-primary z-50 electrobun-webkit-app-region-drag" data-open={sidebarOpen}>
-        <div className="mb-10 w-7 h-7 rounded-lg bg-radius-text-primary flex items-center justify-center text-radius-bg-primary electrobun-webkit-app-region-no-drag shadow-sm cursor-pointer hover:opacity-80 transition-opacity">
-          <HugeiconsIcon icon={AsteriskIcon} size={16} />
+        <div className="mb-10 w-8 h-8 rounded-[10px] flex items-center justify-center electrobun-webkit-app-region-no-drag cursor-pointer hover:opacity-90 transition-opacity overflow-hidden shadow-sm" style={{ backgroundColor: '#F5F0E8' }}>
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <circle cx="14" cy="14" r="9" stroke="#B07D5A" strokeWidth="1.2" fill="none" opacity="0.6" />
+            <circle cx="14" cy="14" r="3.5" fill="#B07D5A" />
+          </svg>
         </div>
         <div className="flex flex-col gap-5 electrobun-webkit-app-region-no-drag text-radius-text-muted">
           <button 
