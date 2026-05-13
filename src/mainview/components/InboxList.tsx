@@ -4,7 +4,7 @@ import type { Message, SyncStatus, EmailCategory } from "../hooks/useInbox";
 import { useAvatarCache } from "../hooks/useAvatarCache";
 import { Avatar } from "./Avatar";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { CheckmarkBadge01Icon, FilterIcon, CheckmarkSquare01Icon } from "@hugeicons/core-free-icons";
+import { CheckmarkBadge01Icon, CheckmarkSquare01Icon } from "@hugeicons/core-free-icons";
 
 interface InboxListProps {
   messages: Message[];
@@ -191,9 +191,9 @@ export function InboxList({
             {heading}
           </span>
         </div>
-        <button className="text-radius-text-secondary hover:text-radius-text-primary transition-colors">
-          <HugeiconsIcon icon={FilterIcon} size={18} />
-        </button>
+        <span className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)] tabular-nums">
+          {total.toLocaleString()}
+        </span>
       </div>
 
       {messages.length === 0 ? (

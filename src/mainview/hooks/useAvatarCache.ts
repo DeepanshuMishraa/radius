@@ -26,8 +26,10 @@ function extractDomain(email: string): string | null {
 }
 
 // Module-level cache — survives component re-mounts, shared across all instances
+// Keys can be either domain (company logos) or lowercase email (Gravatar)
 const globalCache = new Map<string, string | null>();
 const pendingDomains = new Set<string>();
+const pendingEmails = new Set<string>();
 let batchTimeout: ReturnType<typeof setTimeout> | null = null;
 let batchResolvers: Array<() => void> = [];
 let preloadPromise: Promise<void> | null = null;
@@ -37,9 +39,9 @@ function preloadAllAvatars(): Promise<void> {
   preloadPromise = radiusRpc.request
     .getAllSenderAvatars({})
     .then((result) => {
-      for (const [domain, url] of Object.entries(result.avatars)) {
-        if (!globalCache.has(domain)) {
-          globalCache.set(domain, url);
+      for (const [key, url] of Object.entries(result.avatars)) {
+        if (!globalCache.has(key)) {
+          globalCache.set(key, url);
         }
       }
     })
@@ -54,21 +56,23 @@ preloadAllAvatars();
 
 function flushBatch() {
   const domains = [...pendingDomains];
+  const emails = [...pendingEmails];
   pendingDomains.clear();
+  pendingEmails.clear();
   const resolvers = [...batchResolvers];
   batchResolvers = [];
   batchTimeout = null;
 
-  if (domains.length === 0) {
+  if (domains.length === 0 && emails.length === 0) {
     resolvers.forEach(r => r());
     return;
   }
 
   radiusRpc.request
-    .getSenderAvatars({ domains })
+    .getSenderAvatars({ domains, emails })
     .then((result) => {
-      for (const [domain, url] of Object.entries(result.avatars)) {
-        globalCache.set(domain, url);
+      for (const [key, url] of Object.entries(result.avatars)) {
+        globalCache.set(key, url);
       }
     })
     .catch((err: unknown) => {
@@ -79,17 +83,28 @@ function flushBatch() {
           globalCache.set(domain, null);
         }
       }
+      for (const email of emails) {
+        if (!globalCache.has(email)) {
+          globalCache.set(email, null);
+        }
+      }
     })
     .finally(() => {
       resolvers.forEach(r => r());
     });
 }
 
-function requestDomains(domains: string[]): Promise<void> {
+function requestBatch(domains: string[], emails: string[]): Promise<void> {
   let added = false;
   for (const domain of domains) {
     if (!globalCache.has(domain) && !pendingDomains.has(domain) && !PERSONAL_DOMAINS.has(domain)) {
       pendingDomains.add(domain);
+      added = true;
+    }
+  }
+  for (const email of emails) {
+    if (!globalCache.has(email) && !pendingEmails.has(email)) {
+      pendingEmails.add(email);
       added = true;
     }
   }
@@ -114,27 +129,42 @@ export function useAvatarCache(emails: string[]) {
   const prevEmailsRef = useRef<string>("");
 
   const getAvatarUrl = useCallback((email: string): string | null => {
+    const normalized = email.trim().toLowerCase();
+    // Check email-specific cache first (Gravatar for personal domains)
+    const emailCached = globalCache.get(normalized);
+    if (emailCached !== undefined) return emailCached;
+
     const domain = extractDomain(email);
-    if (!domain || PERSONAL_DOMAINS.has(domain)) return null;
+    if (!domain) return null;
     return globalCache.get(domain) ?? null;
   }, []);
 
   useEffect(() => {
     const domains: string[] = [];
+    const personalEmails: string[] = [];
+
     for (const email of emails) {
       const domain = extractDomain(email);
-      if (domain && !PERSONAL_DOMAINS.has(domain) && !globalCache.has(domain)) {
-        domains.push(domain);
+      if (!domain) continue;
+      const normalized = email.trim().toLowerCase();
+      if (PERSONAL_DOMAINS.has(domain)) {
+        if (!globalCache.has(normalized)) {
+          personalEmails.push(normalized);
+        }
+      } else {
+        if (!globalCache.has(domain)) {
+          domains.push(domain);
+        }
       }
     }
 
-    // Check if we actually have new domains to fetch
-    const key = domains.sort().join(",");
-    if (key === prevEmailsRef.current || domains.length === 0) return;
+    // Check if we actually have new items to fetch
+    const key = [...domains, ...personalEmails].sort().join(",");
+    if (key === prevEmailsRef.current || (domains.length === 0 && personalEmails.length === 0)) return;
     prevEmailsRef.current = key;
 
     preloadAllAvatars().then(() => {
-      requestDomains(domains).then(() => {
+      requestBatch(domains, personalEmails).then(() => {
         forceUpdate(c => c + 1);
       });
     });
