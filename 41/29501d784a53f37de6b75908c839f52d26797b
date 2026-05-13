@@ -1,0 +1,88 @@
+src/mainview/App.tsx
+  s_f9804856d1dbd4::t_08fd37f3ca75e3 786
+  s_f9804856d1dbd4::t_6c53d5be6447a6 29,318
+  s_f9804856d1dbd4::t_d961eec231fb70 687-693
+  s_f9804856d1dbd4::t_d71db7ce210bae 833
+  s_f9804856d1dbd4::t_a929ef81466eed 98
+  s_f9804856d1dbd4::t_806f9653d8f861 18,20-28,30
+src/components/themes.tsx
+  s_f9804856d1dbd4::t_180b9a43ac1078 35,39
+  s_f9804856d1dbd4::t_8c36ad22412338 2-3
+src/components/ui/dialog.tsx
+  s_f9804856d1dbd4::t_e741db2553f9ae 6-7
+  s_f9804856d1dbd4::t_ea610a0ac5343f 76
+src/components/cmd.tsx
+  s_f9804856d1dbd4::t_7e61ecae233571 159,174
+  s_f9804856d1dbd4::t_3383c11eccbd8c 9,11-13
+src/components/ui/command.tsx
+  s_f9804856d1dbd4::t_0f1105019cebeb 84,164
+  s_f9804856d1dbd4::t_70de8ca4b5a521 16-17
+src/mainview/index.css
+  s_f9804856d1dbd4::t_c9cd736519a8f2 67-84
+src/components/accounts.tsx
+  s_f9804856d1dbd4::t_759bcb35f0b08a 2-3
+  s_f9804856d1dbd4::t_800cba63d75955 37,42,56
+src/mainview/components/ReaderView.tsx
+  s_f9804856d1dbd4::t_3282c5d3e1d338 7,10-17
+  s_f9804856d1dbd4::t_8b469fc070476a 293
+  s_f9804856d1dbd4::t_bdab74ea29d782 228,1062,1071,1074,1077,1106,1115,1118,1121
+  s_f9804856d1dbd4::t_e4e5f9f442b157 9
+  s_f9804856d1dbd4::t_baac64258d7fca 277
+src/components/add-account.tsx
+  s_f9804856d1dbd4::t_c04f3bea91ec5e 1-2
+  s_f9804856d1dbd4::t_fa5339f2595062 35
+src/components/mailboxes.tsx
+  s_f9804856d1dbd4::t_a7d7d71438d6a4 22,29,36
+  s_f9804856d1dbd4::t_9983ca175ed6e7 2,4-7
+src/components/compose/ComposeAttachments.tsx
+  s_f9804856d1dbd4::t_d7885d3dd4c723 3-4
+  s_f9804856d1dbd4::t_f47065a4bf8465 129,170-172,183,204
+src/components/update-notification.tsx
+  s_f9804856d1dbd4::t_a8c377ec8df60d 1-2
+  s_f9804856d1dbd4::t_d61563a401265f 29-30,47
+package.json
+  s_f9804856d1dbd4::t_799c6f20052bbc 17
+  s_f9804856d1dbd4::t_b500facdd17ebd 18
+src/components/notification-prompt.tsx
+  s_f9804856d1dbd4::t_5fbbd131128e17 24-25,47
+  s_f9804856d1dbd4::t_8ababebaff94ab 1-2
+src/components/about.tsx
+  s_f9804856d1dbd4::t_739b111c6298f3 1-2
+  s_f9804856d1dbd4::t_9a8fa9bff178fa 23,27
+src/components/home.tsx
+  s_f9804856d1dbd4::t_a9e3d0ed629e42 45,52,59,66,75,82,91,98,105
+  s_f9804856d1dbd4::t_22578069c51230 2,4-6,8-13
+src/bun/rpc-handlers.ts
+  s_f9804856d1dbd4::t_063f174aeb72d0 337,339-342,344,349,353
+src/components/compose/ComposeAttachmentList.tsx
+  s_f9804856d1dbd4::t_394e364447032c 41,43,68
+  s_f9804856d1dbd4::t_eba8345b477aea 2-3
+src/mainview/components/InboxList.tsx
+  s_f9804856d1dbd4::t_d0f15320e6fe00 143,217,223
+  s_f9804856d1dbd4::t_a326a2c0717292 5-6
+src/components/compose/ComposeRecipients.tsx
+  s_f9804856d1dbd4::t_fa7383b1f2dbd1 3-4
+  s_f9804856d1dbd4::t_b0de65c08e2b98 133,162-163,170
+src/components/compose/index.tsx
+  s_f9804856d1dbd4::t_1971a230e4c4a9 3-4
+  s_f9804856d1dbd4::t_b37e63d4c338aa 324,335
+src/components/compose/ComposeSend.tsx
+  s_f9804856d1dbd4::t_23e5134d0c033d 81,97,103
+  s_f9804856d1dbd4::t_28a99fd848b192 3-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "4129501d784a53f37de6b75908c839f52d26797b",
+  "prompts": {},
+  "sessions": {
+    "s_f9804856d1dbd4": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e20f6-c792-7011-aff0-44accf8464b1",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
