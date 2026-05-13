@@ -20,10 +20,7 @@ import {
   Cancel01Icon,
   InboxIcon,
   File02Icon,
-  ArchiveIcon,
-  StarIcon,
   MailSend01Icon,
-  BlockedIcon,
   Delete02Icon,
   Mail01Icon,
 } from "@hugeicons/core-free-icons";
@@ -817,13 +814,6 @@ function App() {
           >
             <HugeiconsIcon icon={File02Icon} size={20} />
           </button>
-          <div title="Favorites" aria-disabled="true" tabIndex={-1} className="p-1.5 rounded-lg transition-all text-radius-text-muted">
-            <HugeiconsIcon icon={StarIcon} size={20} />
-          </div>
-          <div className="w-5 h-[1px] bg-radius-border-subtle mx-auto" />
-          <div title="Archive" aria-disabled="true" tabIndex={-1} className="p-1.5 rounded-lg transition-all text-radius-text-muted">
-            <HugeiconsIcon icon={ArchiveIcon} size={20} />
-          </div>
           <button 
             onClick={() => void handleOpenMailbox("trash")} 
             title="Deleted"
@@ -831,9 +821,6 @@ function App() {
           >
             <HugeiconsIcon icon={Delete02Icon} size={20} />
           </button>
-          <div title="Spam" aria-disabled="true" tabIndex={-1} className="p-1.5 rounded-lg transition-all text-radius-text-muted">
-            <HugeiconsIcon icon={BlockedIcon} size={20} />
-          </div>
         </div>
       </nav>
 
