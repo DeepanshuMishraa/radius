@@ -1,0 +1,23 @@
+src/bun/rpc-handlers.ts
+  s_600406c6b58a32::t_b867f2aa86fcfb 325-334,336-337
+src/mainview/hooks/useAvatarCache.ts
+  s_600406c6b58a32::t_804b73dbabf6a7 4-11,21-24,26-27
+src/mainview/App.tsx
+  s_600406c6b58a32::t_ce98546ac88331 786-789
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "312ed3785c7312521c8dd991af6f693a0e9a3e8d",
+  "prompts": {},
+  "sessions": {
+    "s_600406c6b58a32": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e21dc-2c53-727e-9ba1-6cdb1ce5669e",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
