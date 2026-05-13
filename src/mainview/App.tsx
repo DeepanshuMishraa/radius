@@ -15,17 +15,19 @@ import { UpdateNotification } from "@/components/update-notification";
 import { SyncPill } from "@/components/sync-pill";
 import { AboutDialog } from "@/components/about";
 import { AddAccountDialog } from "@/components/add-account";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  X,
-  Asterisk,
-  Tray,
-  FileText,
-  Archive,
-  Star,
-  PaperPlaneTilt,
-  Prohibit,
-  Trash,
-} from "@phosphor-icons/react";
+  Cancel01Icon,
+  AsteriskIcon,
+  InboxIcon,
+  File02Icon,
+  ArchiveIcon,
+  StarIcon,
+  MailSend01Icon,
+  BlockedIcon,
+  Delete02Icon,
+  Mail01Icon,
+} from "@hugeicons/core-free-icons";
 import { Toaster, toast } from "sonner";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { radiusRpc } from "./lib/rpc";
@@ -93,6 +95,7 @@ function ThemedToaster() {
     <Toaster
       position="bottom-right"
       theme={appearance}
+      className="z-[60]"
       toastOptions={{
         style: {
           background: "var(--radius-bg-primary)",
@@ -312,7 +315,7 @@ function App() {
             >
               <div className="flex items-start gap-2.5 p-3">
                 <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-radius-accent-subtle">
-                  <EnvelopeSimple weight="fill" size={12} className="text-radius-accent" />
+                  <HugeiconsIcon icon={Mail01Icon} size={12} className="text-radius-accent" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-radius-accent font-[family-name:var(--font-family-sans)]">
@@ -333,7 +336,7 @@ function App() {
               className="absolute top-2.5 right-2.5 inline-flex h-5 w-5 items-center justify-center rounded-md text-radius-text-muted opacity-0 transition-all duration-150 hover:bg-radius-bg-secondary hover:text-radius-text-primary group-hover:opacity-100"
               aria-label="Dismiss"
             >
-              <X size={11} weight="bold" />
+              <HugeiconsIcon icon={Cancel01Icon} size={11} />
             </button>
           </div>
         ),
@@ -547,7 +550,6 @@ function App() {
       }));
       if (result.messages[0]) {
         setSelectedMessageId(result.messages[0].id);
-        setSidebarOpen(false);
       }
     } catch (error) {
       console.error(`Failed to load ${mailbox}:`, error);
@@ -682,6 +684,13 @@ function App() {
     [removeAccount, accounts.length, activeAccount]
   );
 
+  // Clear selected message when the inbox empties (e.g. during resync)
+  useEffect(() => {
+    if (visibleMessages.length === 0 && selectedMessageId !== null && !searchActive) {
+      setSelectedMessageId(null);
+    }
+  }, [visibleMessages.length, selectedMessageId, searchActive]);
+
   const handleResync = useCallback(async () => {
     setCmdOpen(false);
     try {
@@ -774,9 +783,9 @@ function App() {
       <DragRegion />
       
       {/* Global Sidebar — mailbox navigation */}
-      <nav className="w-[60px] flex-shrink-0 flex flex-col items-center pt-10 pb-6 bg-radius-bg-tertiary z-50 electrobun-webkit-app-region-drag">
+      <nav className="global-sidebar flex flex-col items-center pt-10 pb-6 bg-radius-bg-primary z-50 electrobun-webkit-app-region-drag" data-open={sidebarOpen}>
         <div className="mb-10 w-7 h-7 rounded-lg bg-radius-text-primary flex items-center justify-center text-radius-bg-primary electrobun-webkit-app-region-no-drag shadow-sm cursor-pointer hover:opacity-80 transition-opacity">
-          <Asterisk size={16} weight="bold" />
+          <HugeiconsIcon icon={AsteriskIcon} size={16} />
         </div>
         <div className="flex flex-col gap-5 electrobun-webkit-app-region-no-drag text-radius-text-muted">
           <button 
@@ -784,44 +793,44 @@ function App() {
             title="Inbox"
             className={`p-1.5 rounded-lg transition-all ${mailboxView === 'inbox' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'hover:text-radius-text-primary'}`}
           >
-            <Tray size={20} weight={mailboxView === 'inbox' && !searchActive ? 'fill' : 'regular'} />
+            <HugeiconsIcon icon={InboxIcon} size={20} />
           </button>
           <button 
             onClick={() => void handleOpenMailbox("sent")} 
             title="Sent"
             className={`p-1.5 rounded-lg transition-all ${mailboxView === 'sent' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'hover:text-radius-text-primary'}`}
           >
-            <PaperPlaneTilt size={20} weight={mailboxView === 'sent' && !searchActive ? 'fill' : 'regular'} />
+            <HugeiconsIcon icon={MailSend01Icon} size={20} />
           </button>
           <button 
             onClick={() => void handleOpenMailbox("drafts")} 
             title="Drafts"
             className={`p-1.5 rounded-lg transition-all ${mailboxView === 'drafts' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'hover:text-radius-text-primary'}`}
           >
-            <FileText size={20} weight={mailboxView === 'drafts' && !searchActive ? 'fill' : 'regular'} />
+            <HugeiconsIcon icon={File02Icon} size={20} />
           </button>
           <button title="Favorites" className="p-1.5 rounded-lg transition-all hover:text-radius-text-primary">
-            <Star size={20} />
+            <HugeiconsIcon icon={StarIcon} size={20} />
           </button>
           <div className="w-5 h-[1px] bg-radius-border-subtle mx-auto" />
           <button title="Archive" className="p-1.5 rounded-lg transition-all hover:text-radius-text-primary">
-            <Archive size={20} />
+            <HugeiconsIcon icon={ArchiveIcon} size={20} />
           </button>
           <button 
             onClick={() => void handleOpenMailbox("trash")} 
             title="Deleted"
             className={`p-1.5 rounded-lg transition-all ${mailboxView === 'trash' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'hover:text-radius-text-primary'}`}
           >
-            <Trash size={20} weight={mailboxView === 'trash' && !searchActive ? 'fill' : 'regular'} />
+            <HugeiconsIcon icon={Delete02Icon} size={20} />
           </button>
           <button title="Spam" className="p-1.5 rounded-lg transition-all hover:text-radius-text-primary">
-            <Prohibit size={20} />
+            <HugeiconsIcon icon={BlockedIcon} size={20} />
           </button>
         </div>
       </nav>
 
       {/* Main Content Card */}
-      <div className="flex-1 flex min-w-0 h-full bg-radius-bg-primary rounded-tl-[24px] shadow-sm border-t border-l border-radius-border-subtle mt-2 overflow-hidden z-10">
+      <div className="flex-1 flex min-w-0 h-full bg-radius-bg-primary overflow-hidden z-10">
 
         {/* Inbox List — smooth CSS transition panel */}
         <aside

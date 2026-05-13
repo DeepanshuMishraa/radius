@@ -2,7 +2,8 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useCallback, useEffect, useMemo } from "react";
 import type { Message, SyncStatus, EmailCategory } from "../hooks/useInbox";
 import { useAvatarCache } from "../hooks/useAvatarCache";
-import { SealCheck, Funnel, CheckSquare } from "@phosphor-icons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { CheckmarkBadge01Icon, FilterIcon, CheckmarkSquare01Icon } from "@hugeicons/core-free-icons";
 
 interface InboxListProps {
   messages: Message[];
@@ -139,7 +140,7 @@ function EmailRow({
               <span className={`truncate text-[15px] font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-primary font-medium" : "text-radius-text-primary font-bold"}`}>
                 {senderName}
               </span>
-              <SealCheck weight="fill" className="text-[#3b82f6] shrink-0" size={15} />
+              <HugeiconsIcon icon={CheckmarkBadge01Icon} className="text-[#3b82f6] shrink-0" size={15} />
             </div>
             <span className="shrink-0 text-[12px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
               {formatDateShort(message.internalDate)}
@@ -213,13 +214,13 @@ export function InboxList({
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-radius-border-subtle bg-radius-bg-primary z-10">
         <div className="flex items-center gap-3 text-radius-text-secondary">
-          <CheckSquare size={18} />
+          <HugeiconsIcon icon={CheckmarkSquare01Icon} size={18} />
           <span className="text-[14px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
             {heading}
           </span>
         </div>
         <button className="text-radius-text-secondary hover:text-radius-text-primary transition-colors">
-          <Funnel size={18} />
+          <HugeiconsIcon icon={FilterIcon} size={18} />
         </button>
       </div>
 

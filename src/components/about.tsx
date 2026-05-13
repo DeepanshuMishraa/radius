@@ -1,4 +1,5 @@
-import { X, EnvelopeSimple } from "@phosphor-icons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Cancel01Icon, Mail01Icon } from "@hugeicons/core-free-icons";
 import type { LocalReleaseInfo } from "@/shared/types";
 
 interface AboutDialogProps {
@@ -19,11 +20,11 @@ export function AboutDialog({ open, onClose, info }: AboutDialogProps) {
           className="absolute top-4 right-4 inline-flex h-6 w-6 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
           aria-label="Close"
         >
-          <X size={14} weight="bold" />
+          <HugeiconsIcon icon={Cancel01Icon} size={14} />
         </button>
 
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-radius-accent-subtle">
-          <EnvelopeSimple weight="fill" size={28} className="text-radius-accent" />
+          <HugeiconsIcon icon={Mail01Icon} size={28} className="text-radius-accent" />
         </div>
 
         <h2 className="text-[18px] font-semibold text-radius-text-primary font-[family-name:var(--font-family-sans)] tracking-tight">

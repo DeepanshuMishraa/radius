@@ -4,18 +4,17 @@ import type { CSSProperties, MouseEvent } from "react";
 import { useTheme } from "@/components/theme-provider";
 import type { Message, EmailCategory } from "../hooks/useInbox";
 import { useAvatarCache } from "../hooks/useAvatarCache";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { 
-  ListIcon, 
-  FileIcon, 
-  ArrowSquareOut, 
-  CaretLeft, 
-  CaretRight,
-  Archive,
-  Trash,
-  ArrowBendUpLeft,
-  SealCheck,
-  ShieldCheck
-} from "@phosphor-icons/react";
+  SidebarRight01Icon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  ArchiveIcon,
+  Delete02Icon,
+  MailReply01Icon,
+  CheckmarkBadge01Icon,
+  SecurityCheckIcon,
+} from "@hugeicons/core-free-icons";
 import { radiusRpc } from "../lib/rpc";
 
 interface ReaderViewProps {
@@ -226,7 +225,7 @@ function AttachmentList({ attachments, messageId }: { attachments: Array<{ filen
           Attachment
         </span>
         <span className="flex items-center gap-1 text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-          Secure by data.ai <ShieldCheck size={14} className="text-[#0f9d58]" weight="bold" />
+          Secure by data.ai <HugeiconsIcon icon={SecurityCheckIcon} size={14} className="text-[#0f9d58]" />
         </span>
       </div>
       <div className="flex flex-wrap gap-3">
@@ -275,7 +274,7 @@ function InboxWidget({
       onClick={onClick}
       className="
         electrobun-webkit-app-region-no-drag
-        fixed top-[50px] left-4 z-30
+        fixed top-[50px] left-[76px] z-30
         p-2
         rounded-lg
         text-radius-text-muted
@@ -291,7 +290,7 @@ function InboxWidget({
       }
       title="Open inbox"
     >
-      <ListIcon size={16} />
+      <HugeiconsIcon icon={SidebarRight01Icon} size={18} />
     </button>
   );
 }
@@ -1060,7 +1059,7 @@ export const ReaderView = memo(function ReaderView({
                     <div className="flex flex-col">
                       <div className="flex items-center gap-1">
                         <span className="font-semibold text-radius-text-primary text-[15px] font-[family-name:var(--font-family-sans)]">{sender.name || sender.email}</span>
-                        <SealCheck weight="fill" className="text-[#3b82f6]" size={16} />
+                        <HugeiconsIcon icon={CheckmarkBadge01Icon} className="text-[#3b82f6]" size={16} />
                       </div>
                       <div className="text-[13px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
                         From: {sender.email}
@@ -1069,13 +1068,13 @@ export const ReaderView = memo(function ReaderView({
                   </div>
                   <div className="flex items-center gap-2">
                     <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
-                      <Archive size={18} />
+                      <HugeiconsIcon icon={ArchiveIcon} size={18} />
                     </button>
                     <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
-                      <Trash size={18} />
+                      <HugeiconsIcon icon={Delete02Icon} size={18} />
                     </button>
                     <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
-                      <ArrowBendUpLeft size={18} />
+                      <HugeiconsIcon icon={MailReply01Icon} size={18} />
                     </button>
                   </div>
                 </div>
@@ -1104,7 +1103,7 @@ export const ReaderView = memo(function ReaderView({
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1">
                       <span className="font-semibold text-radius-text-primary text-[15px] font-[family-name:var(--font-family-sans)]">{sender.name || sender.email}</span>
-                      <SealCheck weight="fill" className="text-[#3b82f6]" size={16} />
+                      <HugeiconsIcon icon={CheckmarkBadge01Icon} className="text-[#3b82f6]" size={16} />
                     </div>
                     <div className="text-[13px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
                       From: {sender.email}
@@ -1113,13 +1112,13 @@ export const ReaderView = memo(function ReaderView({
                 </div>
                 <div className="flex items-center gap-2">
                   <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
-                    <Archive size={18} />
+                    <HugeiconsIcon icon={ArchiveIcon} size={18} />
                   </button>
                   <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
-                    <Trash size={18} />
+                    <HugeiconsIcon icon={Delete02Icon} size={18} />
                   </button>
                   <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
-                    <ArrowBendUpLeft size={18} />
+                    <HugeiconsIcon icon={MailReply01Icon} size={18} />
                   </button>
                 </div>
               </div>
@@ -1150,36 +1149,6 @@ export const ReaderView = memo(function ReaderView({
           </article>
         )}
       </div>
-
-      {message && totalCount > 1 && (
-        <div className="pointer-events-none fixed bottom-6 left-0 right-0 z-30 flex justify-center">
-          <div className="pointer-events-auto inline-flex items-center gap-1 rounded-full border border-radius-border-subtle bg-radius-bg-primary/80 px-2 py-1.5 shadow-lg backdrop-blur-xl">
-            <button
-              type="button"
-              onClick={onPrev}
-              disabled={currentIndex <= 0}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-full text-radius-text-secondary transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-radius-text-secondary"
-              aria-label="Previous email"
-              title="Previous email"
-            >
-              <CaretLeft size={14} weight="bold" />
-            </button>
-            <span className="min-w-[3.5rem] select-none text-center text-[11px] font-medium tabular-nums text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-              {currentIndex + 1} / {totalCount}
-            </span>
-            <button
-              type="button"
-              onClick={onNext}
-              disabled={currentIndex >= totalCount - 1}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-full text-radius-text-secondary transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-radius-text-secondary"
-              aria-label="Next email"
-              title="Next email"
-            >
-              <CaretRight size={14} weight="bold" />
-            </button>
-          </div>
-        </div>
-      )}
 
       <style>{EMAIL_BODY_STYLES}</style>
     </div>

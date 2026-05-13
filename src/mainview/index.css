@@ -64,6 +64,24 @@
    Both share identical duration/easing so they stay perfectly in sync.
    (Emil Kowalski: transform is GPU-accelerated; margin-left is the minimal
    layout property needed for a true push effect.) */
+.global-sidebar {
+    width: 60px;
+    flex-shrink: 0;
+    transform: translateX(0);
+    margin-left: 0;
+    transition:
+        transform var(--sidebar-duration) var(--sidebar-easing),
+        margin-left var(--sidebar-duration) var(--sidebar-easing),
+        width var(--sidebar-duration) var(--sidebar-easing);
+    overflow: hidden;
+}
+
+.global-sidebar[data-open="false"] {
+    transform: translateX(-100%);
+    margin-left: -60px;
+    width: 0;
+}
+
 .sidebar-panel {
     width: var(--sidebar-width);
     flex-shrink: 0;

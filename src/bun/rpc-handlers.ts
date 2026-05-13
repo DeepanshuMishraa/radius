@@ -334,20 +334,23 @@ export async function handleGetSenderAvatars(params: { domains: string[] }): Pro
   const domains = [...new Set(params.domains.map(d => getBaseDomain(d.toLowerCase())))].slice(0, 100);
   if (domains.length === 0) return { avatars: {} };
 
-  // Check cache first
+  // Check cache first — treat stale Clearbit URLs as missing
   const cached = await getSenderAvatarsBatch(domains);
-  const missing = domains.filter(d => !(d in cached));
+  const missing = domains.filter(d => {
+    const url = cached[d];
+    return !(d in cached) || url == null || url.includes('logo.clearbit.com');
+  });
 
-  // Fetch missing from Clearbit in parallel
+  // Fetch missing from Hunter.io in parallel
   if (missing.length > 0) {
     const results = await Promise.allSettled(
       missing.map(async (domain) => {
         try {
-          const res = await fetch(`https://logo.clearbit.com/${domain}`, {
+          const res = await fetch(`https://logos.hunter.io/${domain}`, {
             method: 'HEAD',
             signal: AbortSignal.timeout(3000),
           });
-          const url = res.ok ? `https://logo.clearbit.com/${domain}` : null;
+          const url = res.ok ? `https://logos.hunter.io/${domain}` : null;
           await upsertSenderAvatar(domain, url);
           return { domain, url };
         } catch {

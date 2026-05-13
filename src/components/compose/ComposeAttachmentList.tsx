@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "motion/react";
-import { File as FileIcon, LinkSimple, X } from "@phosphor-icons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { File01Icon, Link01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { type Attachment } from "./types";
 
 interface ComposeAttachmentListProps {
@@ -37,9 +38,9 @@ export function ComposeAttachmentList({ attachments, onRemove }: ComposeAttachme
               {attachment.type === "image" && attachment.url ? (
                 <img src={attachment.url} alt={attachment.name} className="h-full w-full object-cover" />
               ) : attachment.type === "link" ? (
-                <LinkSimple size={14} />
+                <HugeiconsIcon icon={Link01Icon} size={14} />
               ) : (
-                <FileIcon size={14} />
+                <HugeiconsIcon icon={File01Icon} size={14} />
               )}
             </div>
 
@@ -64,7 +65,7 @@ export function ComposeAttachmentList({ attachments, onRemove }: ComposeAttachme
               className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-radius-border-subtle bg-radius-bg-primary text-radius-text-muted opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:text-radius-error hover:border-radius-error/30"
               aria-label="Remove attachment"
             >
-              <X size={10} weight="bold" />
+              <HugeiconsIcon icon={Cancel01Icon} size={10} />
             </motion.button>
           </motion.div>
         ))}
