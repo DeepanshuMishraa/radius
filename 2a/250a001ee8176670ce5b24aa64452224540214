@@ -1,0 +1,36 @@
+src/mainview/App.tsx
+  s_600406c6b58a32::t_70f05a3e9f33ec 820,822,824,826,834,836
+  s_600406c6b58a32::t_3caa9a78c4eba2 786-787,789-790,797
+src/mainview/components/Avatar.tsx
+  s_600406c6b58a32::t_122cf675158298 34-37
+  s_600406c6b58a32::t_4a34ae823313b7 1
+src/mainview/hooks/useAvatarCache.ts
+  s_600406c6b58a32::t_6e6bde16dba311 118,120-124,126-127,130,134-137
+src/mainview/components/InboxList.tsx
+  s_600406c6b58a32::t_10c0a4bba0179b 3
+  s_600406c6b58a32::t_69be9961a317a2 100,102-109,112-114,116
+  s_600406c6b58a32::t_390605328df3ca 101
+src/mainview/components/ReaderView.tsx
+  s_600406c6b58a32::t_a7f221a02e26f7 1034,1042,1045,1048,1078,1086,1089,1092
+  s_600406c6b58a32::t_4a903e7da1674d 200
+src/mainview/index.css
+  s_600406c6b58a32::t_ab7f4397872500 161-168
+src/bun/rpc-handlers.ts
+  s_600406c6b58a32::t_64df8789ac928e 365-368,370,383
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "2a250a001ee8176670ce5b24aa64452224540214",
+  "prompts": {},
+  "sessions": {
+    "s_600406c6b58a32": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e21dc-2c53-727e-9ba1-6cdb1ce5669e",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
