@@ -1,0 +1,27 @@
+src/mainview/components/ReaderView.tsx
+  s_600406c6b58a32::t_df22dc9f2de8ae 6
+  s_600406c6b58a32::t_24f16f1e3bc6d2 1030
+  s_600406c6b58a32::t_00a82d62cd99ad 1074
+src/mainview/components/InboxList.tsx
+  s_600406c6b58a32::t_8a782e6f6bb69e 108
+src/mainview/components/Avatar.tsx
+  s_600406c6b58a32::t_064c49979fa715 19,22-41,59,61,69-73,76
+src/mainview/hooks/useAvatarCache.ts
+  s_600406c6b58a32::t_66143c9b5f137f 49-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "64ee2736a886240b897e22f5928c3553a42e58b0",
+  "prompts": {},
+  "sessions": {
+    "s_600406c6b58a32": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e21dc-2c53-727e-9ba1-6cdb1ce5669e",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
