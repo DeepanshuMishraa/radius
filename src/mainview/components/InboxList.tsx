@@ -4,7 +4,7 @@ import type { Message, SyncStatus, EmailCategory } from "../hooks/useInbox";
 import { useAvatarCache } from "../hooks/useAvatarCache";
 import { Avatar } from "./Avatar";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { CheckmarkBadge01Icon, CheckmarkSquare01Icon } from "@hugeicons/core-free-icons";
+import { CheckmarkSquare01Icon } from "@hugeicons/core-free-icons";
 
 interface InboxListProps {
   messages: Message[];
@@ -100,10 +100,15 @@ function EmailRow({
     <div
       onClick={onClick}
       className={`
-        h-[110px] px-6 py-4 cursor-pointer select-none overflow-hidden transition-colors border-b border-radius-border-subtle
-        ${isSelected ? "bg-radius-bg-secondary" : "hover:bg-radius-bg-secondary/50 bg-radius-bg-primary"}
+        relative h-[110px] px-6 py-4 cursor-pointer select-none overflow-hidden transition-all duration-200 border-b border-radius-border-subtle
+        ${isSelected ? "bg-radius-bg-secondary" : message.isRead ? "hover:bg-radius-bg-secondary/50 bg-radius-bg-primary" : "hover:bg-radius-accent-subtle/30 bg-radius-bg-primary"}
       `}
     >
+      {/* Unread accent bar */}
+      {!message.isRead && (
+        <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full bg-radius-accent" />
+      )}
+
       <div className="flex gap-4">
         <Avatar name={senderName} email={senderEmail} cachedUrl={avatarUrl} size={40} />
         <div className="flex-1 min-w-0">
@@ -112,16 +117,18 @@ function EmailRow({
               <span className={`truncate text-[15px] font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-primary font-medium" : "text-radius-text-primary font-bold"}`}>
                 {senderName}
               </span>
-              <HugeiconsIcon icon={CheckmarkBadge01Icon} className="text-[#3b82f6] shrink-0" size={15} />
+              {!message.isRead && (
+                <span className="shrink-0 inline-flex h-[7px] w-[7px] rounded-full bg-radius-accent" />
+              )}
             </div>
-            <span className="shrink-0 text-[12px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
+            <span className={`shrink-0 text-[12px] font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary" : "text-radius-accent font-medium"}`}>
               {formatDateShort(message.internalDate)}
             </span>
           </div>
-          <p className={`text-[13px] truncate mb-1 font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary font-normal" : "text-radius-text-primary font-medium"}`}>
+          <p className={`text-[13px] truncate mb-1 font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary font-normal" : "text-radius-text-primary font-semibold"}`}>
             {message.subject}
           </p>
-          <p className="text-[13px] text-radius-text-muted truncate leading-[1.4] font-[family-name:var(--font-family-sans)]">
+          <p className={`text-[13px] truncate leading-[1.4] font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-muted" : "text-radius-text-secondary"}`}>
             {message.snippet}
           </p>
         </div>
