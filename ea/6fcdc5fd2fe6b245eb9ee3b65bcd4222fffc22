@@ -1,0 +1,20 @@
+src/mainview/components/InboxList.tsx
+  s_600406c6b58a32::t_e6529fbaff5258 7
+  s_600406c6b58a32::t_9c9b5cbe68cfe7 103-104,107-111,120-122,124,128,131
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "ea6fcdc5fd2fe6b245eb9ee3b65bcd4222fffc22",
+  "prompts": {},
+  "sessions": {
+    "s_600406c6b58a32": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e21dc-2c53-727e-9ba1-6cdb1ce5669e",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
