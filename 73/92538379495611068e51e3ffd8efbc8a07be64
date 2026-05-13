@@ -1,0 +1,26 @@
+src/bun/rpc-handlers.ts
+  s_600406c6b58a32::t_53373c04903a5a 370
+  s_600406c6b58a32::t_8dbb1b421e9b09 381,386-387,391-409
+  s_600406c6b58a32::t_a7c3f7cbe515ec 430-431,433-434,436-437
+  s_600406c6b58a32::t_6f6fd3265ee4f8 329-336
+src/components/sync-pill.tsx
+  s_600406c6b58a32::t_21d2943b6da264 23
+src/mainview/hooks/useAvatarCache.ts
+  s_600406c6b58a32::t_549d6400d00eaa 9-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "7392538379495611068e51e3ffd8efbc8a07be64",
+  "prompts": {},
+  "sessions": {
+    "s_600406c6b58a32": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e21dc-2c53-727e-9ba1-6cdb1ce5669e",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
