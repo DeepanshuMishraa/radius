@@ -3,6 +3,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import { useTheme } from "@/components/theme-provider";
 import type { Message, EmailCategory } from "../hooks/useInbox";
+import { useAvatarCache } from "../hooks/useAvatarCache";
 import { 
   ListIcon, 
   FileIcon, 
@@ -156,30 +157,30 @@ function MessageStatusWidget({ message }: { message: Message }) {
   );
 }
 
-const FREE_EMAIL_DOMAINS = new Set([
-  "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com", "icloud.com", "me.com", "mac.com", "live.com", "msn.com"
-]);
-
-function Avatar({ name, email }: { name: string; email: string }) {
-  const [logoFailed, setLogoFailed] = useState(false);
+function Avatar({ name, email, cachedUrl }: { name: string; email: string; cachedUrl?: string | null }) {
   const initial = (name || email || "?").charAt(0).toUpperCase();
-  const domain = email?.split('@')[1]?.toLowerCase();
-  
-  const isFreeEmail = domain ? FREE_EMAIL_DOMAINS.has(domain) : true;
-  
-  if (domain && !isFreeEmail && !logoFailed) {
+
+  if (cachedUrl) {
     return (
       <img 
-        src={`https://logo.clearbit.com/${domain}`} 
+        src={cachedUrl} 
         alt={name}
-        onError={() => setLogoFailed(true)}
+        loading="lazy"
+        decoding="async"
         className="w-10 h-10 rounded-full shrink-0 object-cover bg-white border border-radius-border-subtle"
       />
     );
   }
 
+  const colors = ["#4A90E2", "#E26D5C", "#5AA8C4", "#C47D5A", "#5A8C6F", "#A35AC4", "#c4a35a", "#a35ac4"];
+  const colorIndex = email ? email.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length : 0;
+  const bgColor = colors[colorIndex];
+
   return (
-    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[18px] font-medium shrink-0 bg-[#4A90E2]">
+    <div 
+      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[16px] font-medium shrink-0 shadow-sm"
+      style={{ backgroundColor: bgColor }}
+    >
       {initial}
     </div>
   );
@@ -889,6 +890,12 @@ export const ReaderView = memo(function ReaderView({
   totalCount = 0,
 }: ReaderViewProps) {
   const { theme, appearance, resolvedTheme } = useTheme();
+
+  // Avatar cache for the current sender
+  const senderEmail = message?.from?.match(/<([^>]+)>/)?.[1] || message?.from || "";
+  const senderEmails = useMemo(() => senderEmail ? [senderEmail] : [], [senderEmail]);
+  const { getAvatarUrl } = useAvatarCache(senderEmails);
+
   const newsletterThemeConfig = useMemo(() => {
     const variables = resolvedTheme?.variables ?? {};
 
@@ -1038,7 +1045,7 @@ export const ReaderView = memo(function ReaderView({
   const recipient = parseAddress(message.to);
 
   return (
-    <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative">
+    <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative scrollbar-none">
       <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
 
       <div className="flex-1 email-enter relative" key={message.id}>
@@ -1049,7 +1056,7 @@ export const ReaderView = memo(function ReaderView({
               <header className="mb-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
-                    <Avatar name={sender.name} email={sender.email} />
+                    <Avatar name={sender.name} email={sender.email} cachedUrl={getAvatarUrl(sender.email)} />
                     <div className="flex flex-col">
                       <div className="flex items-center gap-1">
                         <span className="font-semibold text-radius-text-primary text-[15px] font-[family-name:var(--font-family-sans)]">{sender.name || sender.email}</span>
@@ -1093,7 +1100,7 @@ export const ReaderView = memo(function ReaderView({
             <header className="max-w-[800px] mx-auto mb-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
-                  <Avatar name={sender.name} email={sender.email} />
+                  <Avatar name={sender.name} email={sender.email} cachedUrl={getAvatarUrl(sender.email)} />
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1">
                       <span className="font-semibold text-radius-text-primary text-[15px] font-[family-name:var(--font-family-sans)]">{sender.name || sender.email}</span>

@@ -295,6 +295,13 @@
         background: var(--radius-border);
         border-radius: 4px;
     }
+    .scrollbar-none {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    .scrollbar-none::-webkit-scrollbar {
+        display: none;
+    }
     * {
         @apply border-border outline-ring/50;
     }

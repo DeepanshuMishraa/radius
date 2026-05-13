@@ -1,6 +1,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRef, useCallback, useEffect, useState } from "react";
+import { useRef, useCallback, useEffect, useMemo } from "react";
 import type { Message, SyncStatus, EmailCategory } from "../hooks/useInbox";
+import { useAvatarCache } from "../hooks/useAvatarCache";
 import { SealCheck, Funnel, CheckSquare } from "@phosphor-icons/react";
 
 interface InboxListProps {
@@ -79,30 +80,30 @@ function ReadIndicator({ isRead }: { isRead: boolean }) {
   );
 }
 
-const FREE_EMAIL_DOMAINS = new Set([
-  "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com", "icloud.com", "me.com", "mac.com", "live.com", "msn.com"
-]);
-
-function Avatar({ name, email }: { name: string; email: string }) {
-  const [logoFailed, setLogoFailed] = useState(false);
+function Avatar({ name, email, cachedUrl }: { name: string; email: string; cachedUrl: string | null }) {
   const initial = (name || email || "?").charAt(0).toUpperCase();
-  const domain = email?.split('@')[1]?.toLowerCase();
-  
-  const isFreeEmail = domain ? FREE_EMAIL_DOMAINS.has(domain) : true;
-  
-  if (domain && !isFreeEmail && !logoFailed) {
+
+  if (cachedUrl) {
     return (
       <img 
-        src={`https://logo.clearbit.com/${domain}`} 
+        src={cachedUrl} 
         alt={name}
-        onError={() => setLogoFailed(true)}
+        loading="lazy"
+        decoding="async"
         className="w-10 h-10 rounded-full shrink-0 object-cover bg-white border border-radius-border-subtle"
       />
     );
   }
 
+  const colors = ["#4A90E2", "#E26D5C", "#5AA8C4", "#C47D5A", "#5A8C6F", "#A35AC4", "#c4a35a", "#a35ac4"];
+  const colorIndex = email ? email.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length : 0;
+  const bgColor = colors[colorIndex];
+
   return (
-    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[16px] font-medium shrink-0 bg-[#4A90E2]">
+    <div 
+      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[16px] font-medium shrink-0 shadow-sm"
+      style={{ backgroundColor: bgColor }}
+    >
       {initial}
     </div>
   );
@@ -112,10 +113,12 @@ function EmailRow({
   message,
   isSelected,
   onClick,
+  avatarUrl,
 }: {
   message: Message;
   isSelected: boolean;
   onClick: () => void;
+  avatarUrl: string | null;
 }) {
   const senderName = message.from?.split("<")[0].trim() || message.from || "";
   const senderEmail = message.from?.match(/<([^>]+)>/)?.[1] || message.from || "";
@@ -129,7 +132,7 @@ function EmailRow({
       `}
     >
       <div className="flex gap-4">
-        <Avatar name={senderName} email={senderEmail} />
+        <Avatar name={senderName} email={senderEmail} cachedUrl={avatarUrl} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-1.5 min-w-0">
@@ -167,6 +170,13 @@ export function InboxList({
   emptyMessage,
 }: InboxListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
+
+  // Collect all sender emails for batch avatar fetching
+  const senderEmails = useMemo(() => 
+    messages.map(m => m.from?.match(/<([^>]+)>/)?.[1] || m.from || "").filter(Boolean),
+    [messages]
+  );
+  const { getAvatarUrl } = useAvatarCache(senderEmails);
 
   const virtualizer = useVirtualizer({
     count: messages.length,
@@ -244,6 +254,7 @@ export function InboxList({
           >
             {virtualItems.map((virtualItem) => {
               const message = messages[virtualItem.index];
+              const senderEmail = message.from?.match(/<([^>]+)>/)?.[1] || message.from || "";
               return (
                 <div
                   key={message.id}
@@ -260,6 +271,7 @@ export function InboxList({
                     message={message}
                     isSelected={selectedId === message.id}
                     onClick={() => handleMessageClick(message.id)}
+                    avatarUrl={getAvatarUrl(senderEmail)}
                   />
                 </div>
               );

@@ -1,5 +1,5 @@
 import type { RadiusRPC } from "../shared/types";
-import { getInboxMessages, searchInboxMessages, getMessageById, updateMessageBodies, getSyncState, setMessageReadState, getComposeContactRows, getComposeSessionRecipientRows, searchComposeContacts, upsertComposeContacts, getMailboxMessages as getStoredMailboxMessages } from "./db";
+import { getInboxMessages, searchInboxMessages, getMessageById, updateMessageBodies, getSyncState, setMessageReadState, getComposeContactRows, getComposeSessionRecipientRows, searchComposeContacts, upsertComposeContacts, getMailboxMessages as getStoredMailboxMessages, getSenderAvatarsBatch, upsertSenderAvatar } from "./db";
 import { getAccountEmail, getValidAccessToken } from "./auth";
 import { getMessage as getGmailMessage, extractBodies, getAttachment, modifyMessageLabels, GmailAPIError, parseHeaders, classifyMessageNature, isReadFromLabels } from "./gmail";
 import {
@@ -320,3 +320,49 @@ export const handleQueueSend = queueSendForSession;
 export const handleUndoSend = undoPendingSend;
 export const handleDiscardComposeSession = discardComposeSession;
 export { handleResyncAccount } from "./sync-lifecycle";
+
+function getBaseDomain(domain: string): string {
+  const parts = domain.split('.');
+  if (parts.length <= 2) return domain;
+  if (['co', 'com', 'org', 'net'].includes(parts[parts.length - 2])) {
+    return parts.slice(-3).join('.');
+  }
+  return parts.slice(-2).join('.');
+}
+
+export async function handleGetSenderAvatars(params: { domains: string[] }): Promise<{ avatars: Record<string, string | null> }> {
+  const domains = [...new Set(params.domains.map(d => getBaseDomain(d.toLowerCase())))].slice(0, 100);
+  if (domains.length === 0) return { avatars: {} };
+
+  // Check cache first
+  const cached = await getSenderAvatarsBatch(domains);
+  const missing = domains.filter(d => !(d in cached));
+
+  // Fetch missing from Clearbit in parallel
+  if (missing.length > 0) {
+    const results = await Promise.allSettled(
+      missing.map(async (domain) => {
+        try {
+          const res = await fetch(`https://logo.clearbit.com/${domain}`, {
+            method: 'HEAD',
+            signal: AbortSignal.timeout(3000),
+          });
+          const url = res.ok ? `https://logo.clearbit.com/${domain}` : null;
+          await upsertSenderAvatar(domain, url);
+          return { domain, url };
+        } catch {
+          await upsertSenderAvatar(domain, null);
+          return { domain, url: null };
+        }
+      })
+    );
+
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        cached[result.value.domain] = result.value.url;
+      }
+    }
+  }
+
+  return { avatars: cached };
+}
