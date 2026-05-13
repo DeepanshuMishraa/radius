@@ -46,6 +46,12 @@ function extractDomain(email: string): string | null {
   return getBaseDomain(email.slice(at + 1).toLowerCase());
 }
 
+export function isPersonalDomain(email: string): boolean {
+  const domain = extractDomain(email);
+  if (!domain) return false;
+  return PERSONAL_DOMAINS.has(domain);
+}
+
 // Module-level cache — survives component re-mounts, shared across all instances
 // Keys can be either domain (company logos) or lowercase email (Gravatar)
 const globalCache = new Map<string, string | null>();
