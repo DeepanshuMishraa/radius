@@ -326,6 +326,14 @@ const DOMAIN_ALIASES: Record<string, string> = {
   "redditmail.com": "reddit.com",
   "pinterestmail.com": "pinterest.com",
   "quoramail.com": "quora.com",
+  "facebookmail.com": "facebook.com",
+  "instagram.com": "instagram.com",
+  "twitter.com": "twitter.com",
+  "x.com": "x.com",
+  "substack.com": "substack.com",
+  "ghost.io": "ghost.io",
+  "bounces.google.com": "google.com",
+  "amazonses.com": "amazon.com",
 };
 
 function resolveDomainAlias(domain: string): string {
@@ -359,7 +367,7 @@ export async function handleGetSenderAvatars(params: { domains: string[]; emails
   const allKeys = [...domains, ...emails];
   if (allKeys.length === 0) return { avatars: {} };
 
-  // Check cache first — treat stale Clearbit URLs as missing
+  // Check cache first
   const cached = await getSenderAvatarsBatch(allKeys);
   const missingDomains = domains.filter(d => {
     const url = cached[d];
@@ -370,18 +378,35 @@ export async function handleGetSenderAvatars(params: { domains: string[]; emails
     return !(e in cached) || url == null;
   });
 
-  // Fetch missing company logos from Hunter.io in parallel
+  // Fetch missing company logos from Hunter.io first, then favicon fallback
   if (missingDomains.length > 0) {
     const results = await Promise.allSettled(
       missingDomains.map(async (domain) => {
         try {
-          const res = await fetch(`https://logos.hunter.io/${domain}`, {
+          // Try Hunter.io first
+          const hunterRes = await fetch(`https://logos.hunter.io/${domain}`, {
             method: 'HEAD',
             signal: AbortSignal.timeout(3000),
           });
-          const url = res.ok ? `https://logos.hunter.io/${domain}` : null;
-          await upsertSenderAvatar(domain, url);
-          return { key: domain, url };
+          if (hunterRes.ok) {
+            const url = `https://logos.hunter.io/${domain}`;
+            await upsertSenderAvatar(domain, url);
+            return { key: domain, url };
+          }
+
+          // Fallback to Unavatar for larger logos
+          const unavatarRes = await fetch(`https://unavatar.io/${domain}`, {
+            method: 'HEAD',
+            signal: AbortSignal.timeout(3000),
+          });
+          if (unavatarRes.ok) {
+            const url = `https://unavatar.io/${domain}`;
+            await upsertSenderAvatar(domain, url);
+            return { key: domain, url };
+          }
+
+          await upsertSenderAvatar(domain, null);
+          return { key: domain, url: null };
         } catch {
           await upsertSenderAvatar(domain, null);
           return { key: domain, url: null };
@@ -402,12 +427,14 @@ export async function handleGetSenderAvatars(params: { domains: string[]; emails
       missingEmails.map(async (email) => {
         try {
           const hash = md5Hex(email);
-          const gravatarUrl = `https://gravatar.com/avatar/${hash}?d=404&s=80`;
+          // Use www.gravatar.com for better CDN routing; d=404 returns 404 when no custom avatar
+          const gravatarUrl = `https://www.gravatar.com/avatar/${hash}?d=404&s=80`;
           const res = await fetch(gravatarUrl, {
-            method: 'HEAD',
-            signal: AbortSignal.timeout(3000),
+            method: 'GET',
+            signal: AbortSignal.timeout(5000),
           });
-          const url = res.ok && res.status !== 404 ? gravatarUrl : null;
+          // Gravatar returns 302 → 200 for existing avatars, 404 for missing
+          const url = res.ok ? gravatarUrl : null;
           await upsertSenderAvatar(email, url);
           return { key: email, url };
         } catch {

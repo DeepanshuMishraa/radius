@@ -6,7 +6,14 @@ const DOMAIN_ALIASES: Record<string, string> = {
   "redditmail.com": "reddit.com",
   "pinterestmail.com": "pinterest.com",
   "quoramail.com": "quora.com",
-  "medium.com": "medium.com", // same, but kept for explicitness
+  "facebookmail.com": "facebook.com",
+  "instagram.com": "instagram.com",
+  "twitter.com": "twitter.com",
+  "x.com": "x.com",
+  "substack.com": "substack.com",
+  "ghost.io": "ghost.io",
+  "bounces.google.com": "google.com",
+  "amazonses.com": "amazon.com",
 };
 
 // Personal email providers where Clearbit won't have a meaningful logo
