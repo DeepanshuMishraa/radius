@@ -3,7 +3,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import { useTheme } from "@/components/theme-provider";
 import type { Message, EmailCategory } from "../hooks/useInbox";
-import { useAvatarCache, isPersonalDomain } from "../hooks/useAvatarCache";
+import { useAvatarCache } from "../hooks/useAvatarCache";
 import { Avatar } from "./Avatar";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { 
@@ -1027,7 +1027,7 @@ export const ReaderView = memo(function ReaderView({
               <header className="mb-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
-                    <Avatar name={sender.name} email={sender.email} cachedUrl={getAvatarUrl(sender.email)} size={40} isPersonal={isPersonalDomain(sender.email)} />
+                    <Avatar name={sender.name} email={sender.email} cachedUrl={getAvatarUrl(sender.email)} size={40} />
                     <div className="flex flex-col">
                       <div className="flex items-center gap-1">
                         <span className="font-semibold text-radius-text-primary text-[15px] font-[family-name:var(--font-family-sans)]">{sender.name || sender.email}</span>
@@ -1071,7 +1071,7 @@ export const ReaderView = memo(function ReaderView({
             <header className="max-w-[800px] mx-auto mb-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
-                  <Avatar name={sender.name} email={sender.email} cachedUrl={getAvatarUrl(sender.email)} size={40} isPersonal={isPersonalDomain(sender.email)} />
+                  <Avatar name={sender.name} email={sender.email} cachedUrl={getAvatarUrl(sender.email)} size={40} />
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1">
                       <span className="font-semibold text-radius-text-primary text-[15px] font-[family-name:var(--font-family-sans)]">{sender.name || sender.email}</span>

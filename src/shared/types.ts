@@ -314,7 +314,7 @@ export type RadiusRPC = {
         response: { success: boolean; error?: string };
       };
       getSenderAvatars: {
-        params: { domains: string[]; emails?: string[] };
+        params: { domains: string[] };
         response: { avatars: Record<string, string | null> };
       };
       getAllSenderAvatars: {

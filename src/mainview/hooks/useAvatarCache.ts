@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { radiusRpc } from "../lib/rpc";
 
+const DEFAULT_PERSONAL_AVATAR = "https://github.com/shadcn.png";
+
 // Known email wrapper domains that map to a different brand domain
 const DOMAIN_ALIASES: Record<string, string> = {
   "redditmail.com": "reddit.com",
@@ -16,7 +18,7 @@ const DOMAIN_ALIASES: Record<string, string> = {
   "amazonses.com": "amazon.com",
 };
 
-// Personal email providers where Clearbit won't have a meaningful logo
+// Personal email providers — always use the default personal avatar
 const PERSONAL_DOMAINS = new Set([
   "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.in", "yahoo.co.uk",
   "hotmail.com", "outlook.com", "live.com", "msn.com", "aol.com",
@@ -53,10 +55,8 @@ export function isPersonalDomain(email: string): boolean {
 }
 
 // Module-level cache — survives component re-mounts, shared across all instances
-// Keys can be either domain (company logos) or lowercase email (Gravatar)
 const globalCache = new Map<string, string | null>();
 const pendingDomains = new Set<string>();
-const pendingEmails = new Set<string>();
 let batchTimeout: ReturnType<typeof setTimeout> | null = null;
 let batchResolvers: Array<() => void> = [];
 let preloadPromise: Promise<void> | null = null;
@@ -83,36 +83,28 @@ preloadAllAvatars();
 
 function flushBatch() {
   const domains = [...pendingDomains];
-  const emails = [...pendingEmails];
   pendingDomains.clear();
-  pendingEmails.clear();
   const resolvers = [...batchResolvers];
   batchResolvers = [];
   batchTimeout = null;
 
-  if (domains.length === 0 && emails.length === 0) {
+  if (domains.length === 0) {
     resolvers.forEach(r => r());
     return;
   }
 
   radiusRpc.request
-    .getSenderAvatars({ domains, emails })
+    .getSenderAvatars({ domains })
     .then((result) => {
-      for (const [key, url] of Object.entries(result.avatars)) {
-        globalCache.set(key, url);
+      for (const [domain, url] of Object.entries(result.avatars)) {
+        globalCache.set(domain, url);
       }
     })
     .catch((err: unknown) => {
       console.error("Failed to fetch sender avatars:", err);
-      // Mark as failed so we don't retry immediately
       for (const domain of domains) {
         if (!globalCache.has(domain)) {
           globalCache.set(domain, null);
-        }
-      }
-      for (const email of emails) {
-        if (!globalCache.has(email)) {
-          globalCache.set(email, null);
         }
       }
     })
@@ -121,17 +113,11 @@ function flushBatch() {
     });
 }
 
-function requestBatch(domains: string[], emails: string[]): Promise<void> {
+function requestDomains(domains: string[]): Promise<void> {
   let added = false;
   for (const domain of domains) {
     if (!globalCache.has(domain) && !pendingDomains.has(domain) && !PERSONAL_DOMAINS.has(domain)) {
       pendingDomains.add(domain);
-      added = true;
-    }
-  }
-  for (const email of emails) {
-    if (!globalCache.has(email) && !pendingEmails.has(email)) {
-      pendingEmails.add(email);
       added = true;
     }
   }
@@ -141,7 +127,6 @@ function requestBatch(domains: string[], emails: string[]): Promise<void> {
   return new Promise<void>((resolve) => {
     batchResolvers.push(resolve);
     if (batchTimeout) clearTimeout(batchTimeout);
-    // Debounce 50ms to batch multiple components requesting at once
     batchTimeout = setTimeout(flushBatch, 50);
   });
 }
@@ -156,42 +141,34 @@ export function useAvatarCache(emails: string[]) {
   const prevEmailsRef = useRef<string>("");
 
   const getAvatarUrl = useCallback((email: string): string | null => {
-    const normalized = email.trim().toLowerCase();
-    // Check email-specific cache first (Gravatar for personal domains)
-    const emailCached = globalCache.get(normalized);
-    if (emailCached !== undefined) return emailCached;
-
     const domain = extractDomain(email);
     if (!domain) return null;
+
+    // Personal emails always show the default avatar
+    if (PERSONAL_DOMAINS.has(domain)) {
+      return DEFAULT_PERSONAL_AVATAR;
+    }
+
     return globalCache.get(domain) ?? null;
   }, []);
 
   useEffect(() => {
     const domains: string[] = [];
-    const personalEmails: string[] = [];
 
     for (const email of emails) {
       const domain = extractDomain(email);
-      if (!domain) continue;
-      const normalized = email.trim().toLowerCase();
-      if (PERSONAL_DOMAINS.has(domain)) {
-        if (!globalCache.has(normalized)) {
-          personalEmails.push(normalized);
-        }
-      } else {
-        if (!globalCache.has(domain)) {
-          domains.push(domain);
-        }
+      if (domain && !PERSONAL_DOMAINS.has(domain) && !globalCache.has(domain)) {
+        domains.push(domain);
       }
     }
 
-    // Check if we actually have new items to fetch
-    const key = [...domains, ...personalEmails].sort().join(",");
-    if (key === prevEmailsRef.current || (domains.length === 0 && personalEmails.length === 0)) return;
+    // Check if we actually have new domains to fetch
+    const key = domains.sort().join(",");
+    if (key === prevEmailsRef.current || domains.length === 0) return;
     prevEmailsRef.current = key;
 
     preloadAllAvatars().then(() => {
-      requestBatch(domains, personalEmails).then(() => {
+      requestDomains(domains).then(() => {
         forceUpdate(c => c + 1);
       });
     });

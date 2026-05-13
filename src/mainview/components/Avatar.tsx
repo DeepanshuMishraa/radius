@@ -16,29 +16,9 @@ interface AvatarProps {
   email: string;
   cachedUrl?: string | null;
   size?: number;
-  isPersonal?: boolean;
 }
 
-function PersonIcon({ size }: { size: number }) {
-  return (
-    <svg
-      width={size * 0.5}
-      height={size * 0.5}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="text-white/90"
-    >
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
-    </svg>
-  );
-}
-
-export function Avatar({ name, email, cachedUrl, size = 40, isPersonal = false }: AvatarProps) {
+export function Avatar({ name, email, cachedUrl, size = 40 }: AvatarProps) {
   const [loaded, setLoaded] = useState(false);
   const initial = (name || email || "?").charAt(0).toUpperCase();
 
@@ -56,9 +36,9 @@ export function Avatar({ name, email, cachedUrl, size = 40, isPersonal = false }
       className="relative shrink-0 overflow-hidden rounded-full border border-radius-border-subtle"
       style={{ width: size, height: size }}
     >
-      {/* Fallback initial or person icon — always rendered underneath */}
+      {/* Fallback initial — always rendered underneath */}
       <div
-        className="absolute inset-0 flex items-center justify-center font-medium shadow-sm"
+        className="absolute inset-0 flex items-center justify-center text-white font-medium shadow-sm"
         style={{
           backgroundColor: bgColor,
           fontSize: size * 0.4,
@@ -66,14 +46,10 @@ export function Avatar({ name, email, cachedUrl, size = 40, isPersonal = false }
           transition: "opacity 150ms ease-out",
         }}
       >
-        {isPersonal && !cachedUrl ? (
-          <PersonIcon size={size} />
-        ) : (
-          <span className="text-white">{initial}</span>
-        )}
+        {initial}
       </div>
 
-      {/* Logo / Gravatar image — rendered on top once it has loaded */}
+      {/* Logo image — rendered on top once it has loaded */}
       {cachedUrl && (
         <img
           src={cachedUrl}

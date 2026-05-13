@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import type { RadiusRPC } from "../shared/types";
 import { getInboxMessages, searchInboxMessages, getMessageById, updateMessageBodies, getSyncState, setMessageReadState, getComposeContactRows, getComposeSessionRecipientRows, searchComposeContacts, upsertComposeContacts, getMailboxMessages as getStoredMailboxMessages, getSenderAvatarsBatch, upsertSenderAvatar, getAllSenderAvatars } from "./db";
 import { getAccountEmail, getValidAccessToken } from "./auth";
@@ -356,29 +355,18 @@ export async function handleGetAllSenderAvatars(): Promise<{ avatars: Record<str
   return { avatars };
 }
 
-function md5Hex(input: string): string {
-  return createHash("md5").update(input).digest("hex");
-}
-
-export async function handleGetSenderAvatars(params: { domains: string[]; emails?: string[] }): Promise<{ avatars: Record<string, string | null> }> {
+export async function handleGetSenderAvatars(params: { domains: string[] }): Promise<{ avatars: Record<string, string | null> }> {
   const domains = [...new Set(params.domains.map(d => getBaseDomain(d.toLowerCase())))].slice(0, 100);
-  const emails = [...new Set((params.emails ?? []).map(e => e.trim().toLowerCase()))].slice(0, 100);
-
-  const allKeys = [...domains, ...emails];
-  if (allKeys.length === 0) return { avatars: {} };
+  if (domains.length === 0) return { avatars: {} };
 
   // Check cache first
-  const cached = await getSenderAvatarsBatch(allKeys);
+  const cached = await getSenderAvatarsBatch(domains);
   const missingDomains = domains.filter(d => {
     const url = cached[d];
-    return !(d in cached) || url == null || url.includes('logo.clearbit.com');
-  });
-  const missingEmails = emails.filter(e => {
-    const url = cached[e];
-    return !(e in cached) || url == null;
+    return !(d in cached) || url == null;
   });
 
-  // Fetch missing company logos from Hunter.io first, then favicon fallback
+  // Fetch missing company logos from Hunter.io first, then Unavatar fallback
   if (missingDomains.length > 0) {
     const results = await Promise.allSettled(
       missingDomains.map(async (domain) => {
@@ -410,36 +398,6 @@ export async function handleGetSenderAvatars(params: { domains: string[]; emails
         } catch {
           await upsertSenderAvatar(domain, null);
           return { key: domain, url: null };
-        }
-      })
-    );
-
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        cached[result.value.key] = result.value.url;
-      }
-    }
-  }
-
-  // Fetch missing personal avatars from Gravatar in parallel
-  if (missingEmails.length > 0) {
-    const results = await Promise.allSettled(
-      missingEmails.map(async (email) => {
-        try {
-          const hash = md5Hex(email);
-          // Use www.gravatar.com for better CDN routing; d=404 returns 404 when no custom avatar
-          const gravatarUrl = `https://www.gravatar.com/avatar/${hash}?d=404&s=80`;
-          const res = await fetch(gravatarUrl, {
-            method: 'GET',
-            signal: AbortSignal.timeout(5000),
-          });
-          // Gravatar returns 302 → 200 for existing avatars, 404 for missing
-          const url = res.ok ? gravatarUrl : null;
-          await upsertSenderAvatar(email, url);
-          return { key: email, url };
-        } catch {
-          await upsertSenderAvatar(email, null);
-          return { key: email, url: null };
         }
       })
     );

@@ -1,7 +1,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useCallback, useEffect, useMemo } from "react";
 import type { Message, SyncStatus, EmailCategory } from "../hooks/useInbox";
-import { useAvatarCache, isPersonalDomain } from "../hooks/useAvatarCache";
+import { useAvatarCache } from "../hooks/useAvatarCache";
 import { Avatar } from "./Avatar";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CheckmarkBadge01Icon, CheckmarkSquare01Icon } from "@hugeicons/core-free-icons";
@@ -105,7 +105,7 @@ function EmailRow({
       `}
     >
       <div className="flex gap-4">
-        <Avatar name={senderName} email={senderEmail} cachedUrl={avatarUrl} size={40} isPersonal={isPersonalDomain(senderEmail)} />
+        <Avatar name={senderName} email={senderEmail} cachedUrl={avatarUrl} size={40} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-1.5 min-w-0">
