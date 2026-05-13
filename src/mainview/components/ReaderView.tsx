@@ -197,7 +197,7 @@ function AttachmentList({ attachments, messageId }: { attachments: Array<{ filen
           Attachment
         </span>
         <span className="flex items-center gap-1 text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-          Secure by data.ai <HugeiconsIcon icon={SecurityCheckIcon} size={14} className="text-[#0f9d58]" />
+          Attachments <HugeiconsIcon icon={SecurityCheckIcon} size={14} className="text-radius-success" />
         </span>
       </div>
       <div className="flex flex-wrap gap-3">
@@ -1031,7 +1031,7 @@ export const ReaderView = memo(function ReaderView({
                     <div className="flex flex-col">
                       <div className="flex items-center gap-1">
                         <span className="font-semibold text-radius-text-primary text-[15px] font-[family-name:var(--font-family-sans)]">{sender.name || sender.email}</span>
-                        <HugeiconsIcon icon={CheckmarkBadge01Icon} className="text-[#3b82f6]" size={16} />
+                        <HugeiconsIcon icon={CheckmarkBadge01Icon} className="text-radius-info" size={16} />
                       </div>
                       <div className="text-[13px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
                         From: {sender.email}
@@ -1039,13 +1039,13 @@ export const ReaderView = memo(function ReaderView({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
+                    <button onClick={() => console.log("Archive:", message.id)} className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
                       <HugeiconsIcon icon={ArchiveIcon} size={18} />
                     </button>
-                    <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
+                    <button onClick={() => console.log("Delete:", message.id)} className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
                       <HugeiconsIcon icon={Delete02Icon} size={18} />
                     </button>
-                    <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
+                    <button onClick={() => console.log("Reply:", message.id)} className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
                       <HugeiconsIcon icon={MailReply01Icon} size={18} />
                     </button>
                   </div>
@@ -1075,7 +1075,7 @@ export const ReaderView = memo(function ReaderView({
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1">
                       <span className="font-semibold text-radius-text-primary text-[15px] font-[family-name:var(--font-family-sans)]">{sender.name || sender.email}</span>
-                      <HugeiconsIcon icon={CheckmarkBadge01Icon} className="text-[#3b82f6]" size={16} />
+                      <HugeiconsIcon icon={CheckmarkBadge01Icon} className="text-radius-info" size={16} />
                     </div>
                     <div className="text-[13px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
                       From: {sender.email}
@@ -1083,13 +1083,13 @@ export const ReaderView = memo(function ReaderView({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
+                  <button onClick={() => console.log("Archive:", message.id)} className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
                     <HugeiconsIcon icon={ArchiveIcon} size={18} />
                   </button>
-                  <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
+                  <button onClick={() => console.log("Delete:", message.id)} className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
                     <HugeiconsIcon icon={Delete02Icon} size={18} />
                   </button>
-                  <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
+                  <button onClick={() => console.log("Reply:", message.id)} className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
                     <HugeiconsIcon icon={MailReply01Icon} size={18} />
                   </button>
                 </div>

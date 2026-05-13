@@ -326,11 +326,6 @@ const DOMAIN_ALIASES: Record<string, string> = {
   "pinterestmail.com": "pinterest.com",
   "quoramail.com": "quora.com",
   "facebookmail.com": "facebook.com",
-  "instagram.com": "instagram.com",
-  "twitter.com": "twitter.com",
-  "x.com": "x.com",
-  "substack.com": "substack.com",
-  "ghost.io": "ghost.io",
   "bounces.google.com": "google.com",
   "amazonses.com": "amazon.com",
 };
@@ -367,9 +362,12 @@ export async function handleGetSenderAvatars(params: { domains: string[] }): Pro
   });
 
   // Fetch missing company logos from Hunter.io first, then Unavatar fallback
-  if (missingDomains.length > 0) {
+  // Process in chunks of 5 to avoid hammering external services
+  const CONCURRENCY = 5;
+  for (let i = 0; i < missingDomains.length; i += CONCURRENCY) {
+    const chunk = missingDomains.slice(i, i + CONCURRENCY);
     const results = await Promise.allSettled(
-      missingDomains.map(async (domain) => {
+      chunk.map(async (domain) => {
         try {
           // Try Hunter.io first
           const hunterRes = await fetch(`https://logos.hunter.io/${domain}`, {
@@ -382,7 +380,7 @@ export async function handleGetSenderAvatars(params: { domains: string[] }): Pro
             return { key: domain, url };
           }
 
-          // Fallback to Unavatar for larger logos
+          // Fallback to Unavatar when Hunter.io lookup fails
           const unavatarRes = await fetch(`https://unavatar.io/${domain}`, {
             method: 'HEAD',
             signal: AbortSignal.timeout(3000),

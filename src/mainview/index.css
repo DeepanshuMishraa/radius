@@ -158,6 +158,14 @@
 
 /* Reduced motion: disable layout animations, keep opacity fade */
 @media (prefers-reduced-motion: reduce) {
+    .global-sidebar {
+        transition: none;
+    }
+    .global-sidebar[data-open="false"] {
+        transform: translateX(-100%);
+        margin-left: -60px;
+        width: 0;
+    }
     .sidebar-panel {
         transition: none;
     }

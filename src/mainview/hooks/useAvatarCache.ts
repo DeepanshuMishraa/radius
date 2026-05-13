@@ -115,19 +115,26 @@ function flushBatch() {
 
 function requestDomains(domains: string[]): Promise<void> {
   let added = false;
+  let hasPending = false;
   for (const domain of domains) {
-    if (!globalCache.has(domain) && !pendingDomains.has(domain) && !PERSONAL_DOMAINS.has(domain)) {
-      pendingDomains.add(domain);
-      added = true;
+    if (PERSONAL_DOMAINS.has(domain)) continue;
+    if (globalCache.has(domain)) continue;
+    if (pendingDomains.has(domain)) {
+      hasPending = true;
+      continue;
     }
+    pendingDomains.add(domain);
+    added = true;
   }
 
-  if (!added) return Promise.resolve();
+  if (!added && !hasPending) return Promise.resolve();
 
   return new Promise<void>((resolve) => {
     batchResolvers.push(resolve);
-    if (batchTimeout) clearTimeout(batchTimeout);
-    batchTimeout = setTimeout(flushBatch, 50);
+    if (added) {
+      if (batchTimeout) clearTimeout(batchTimeout);
+      batchTimeout = setTimeout(flushBatch, 50);
+    }
   });
 }
 

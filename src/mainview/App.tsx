@@ -783,15 +783,18 @@ function App() {
       
       {/* Global Sidebar — mailbox navigation */}
       <nav className="global-sidebar flex flex-col items-center pt-10 pb-6 bg-radius-bg-primary z-50 electrobun-webkit-app-region-drag" data-open={sidebarOpen}>
-        <div
+        <button
+          type="button"
           onClick={() => setSidebarOpen((prev) => !prev)}
+          aria-label="Toggle sidebar"
+          aria-expanded={sidebarOpen}
           className="mb-10 w-8 h-8 rounded-[10px] flex items-center justify-center electrobun-webkit-app-region-no-drag cursor-pointer hover:opacity-90 transition-opacity overflow-hidden shadow-sm bg-radius-bg-secondary"
         >
           <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="text-radius-accent">
             <circle cx="14" cy="14" r="9" stroke="currentColor" strokeWidth="1.2" fill="none" opacity="0.5" />
             <circle cx="14" cy="14" r="3.5" fill="currentColor" />
           </svg>
-        </div>
+        </button>
         <div className="flex flex-col gap-5 electrobun-webkit-app-region-no-drag text-radius-text-muted">
           <button 
             onClick={handleShowInbox} 
@@ -814,13 +817,13 @@ function App() {
           >
             <HugeiconsIcon icon={File02Icon} size={20} />
           </button>
-          <button title="Favorites" className="p-1.5 rounded-lg transition-all hover:text-radius-text-primary">
+          <div title="Favorites" aria-disabled="true" tabIndex={-1} className="p-1.5 rounded-lg transition-all text-radius-text-muted">
             <HugeiconsIcon icon={StarIcon} size={20} />
-          </button>
+          </div>
           <div className="w-5 h-[1px] bg-radius-border-subtle mx-auto" />
-          <button title="Archive" className="p-1.5 rounded-lg transition-all hover:text-radius-text-primary">
+          <div title="Archive" aria-disabled="true" tabIndex={-1} className="p-1.5 rounded-lg transition-all text-radius-text-muted">
             <HugeiconsIcon icon={ArchiveIcon} size={20} />
-          </button>
+          </div>
           <button 
             onClick={() => void handleOpenMailbox("trash")} 
             title="Deleted"
@@ -828,9 +831,9 @@ function App() {
           >
             <HugeiconsIcon icon={Delete02Icon} size={20} />
           </button>
-          <button title="Spam" className="p-1.5 rounded-lg transition-all hover:text-radius-text-primary">
+          <div title="Spam" aria-disabled="true" tabIndex={-1} className="p-1.5 rounded-lg transition-all text-radius-text-muted">
             <HugeiconsIcon icon={BlockedIcon} size={20} />
-          </button>
+          </div>
         </div>
       </nav>
 

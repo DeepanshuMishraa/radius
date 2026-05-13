@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 const COLORS = [
   "#4A90E2",
@@ -30,6 +30,10 @@ export function Avatar({ name, email, cachedUrl, size = 40 }: AvatarProps) {
   const handleLoad = useCallback(() => {
     setLoaded(true);
   }, []);
+
+  useEffect(() => {
+    setLoaded(false);
+  }, [cachedUrl]);
 
   return (
     <div

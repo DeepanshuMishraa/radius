@@ -1,5 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useCallback, useEffect, useMemo } from "react";
+import type { KeyboardEvent } from "react";
 import type { Message, SyncStatus, EmailCategory } from "../hooks/useInbox";
 import { useAvatarCache } from "../hooks/useAvatarCache";
 import { Avatar } from "./Avatar";
@@ -96,9 +97,23 @@ function EmailRow({
   const senderName = message.from?.split("<")[0].trim() || message.from || "";
   const senderEmail = message.from?.match(/<([^>]+)>/)?.[1] || message.from || "";
 
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick();
+      }
+    },
+    [onClick]
+  );
+
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Email from ${senderName}: ${message.subject}`}
       onClick={onClick}
+      onKeyDown={handleKeyDown}
       className={`
         relative h-[110px] px-6 py-4 cursor-pointer select-none overflow-hidden transition-all duration-200 border-b border-radius-border-subtle
         ${isSelected ? "bg-radius-bg-secondary" : message.isRead ? "hover:bg-radius-bg-secondary/50 bg-radius-bg-primary" : "hover:bg-radius-accent-subtle/30 bg-radius-bg-primary"}
