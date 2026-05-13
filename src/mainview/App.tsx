@@ -783,7 +783,10 @@ function App() {
       
       {/* Global Sidebar — mailbox navigation */}
       <nav className="global-sidebar flex flex-col items-center pt-10 pb-6 bg-radius-bg-primary z-50 electrobun-webkit-app-region-drag" data-open={sidebarOpen}>
-        <div className="mb-10 w-8 h-8 rounded-[10px] flex items-center justify-center electrobun-webkit-app-region-no-drag cursor-pointer hover:opacity-90 transition-opacity overflow-hidden shadow-sm bg-radius-bg-secondary">
+        <div
+          onClick={() => setSidebarOpen((prev) => !prev)}
+          className="mb-10 w-8 h-8 rounded-[10px] flex items-center justify-center electrobun-webkit-app-region-no-drag cursor-pointer hover:opacity-90 transition-opacity overflow-hidden shadow-sm bg-radius-bg-secondary"
+        >
           <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="text-radius-accent">
             <circle cx="14" cy="14" r="9" stroke="currentColor" strokeWidth="1.2" fill="none" opacity="0.5" />
             <circle cx="14" cy="14" r="3.5" fill="currentColor" />

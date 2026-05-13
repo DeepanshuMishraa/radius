@@ -322,7 +322,19 @@ export const handleUndoSend = undoPendingSend;
 export const handleDiscardComposeSession = discardComposeSession;
 export { handleResyncAccount } from "./sync-lifecycle";
 
+const DOMAIN_ALIASES: Record<string, string> = {
+  "redditmail.com": "reddit.com",
+  "pinterestmail.com": "pinterest.com",
+  "quoramail.com": "quora.com",
+};
+
+function resolveDomainAlias(domain: string): string {
+  return DOMAIN_ALIASES[domain] ?? domain;
+}
+
 function getBaseDomain(domain: string): string {
+  const aliased = resolveDomainAlias(domain);
+  if (aliased !== domain) return aliased;
   const parts = domain.split('.');
   if (parts.length <= 2) return domain;
   if (['co', 'com', 'org', 'net'].includes(parts[parts.length - 2])) {

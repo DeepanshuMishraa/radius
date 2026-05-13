@@ -1,6 +1,14 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { radiusRpc } from "../lib/rpc";
 
+// Known email wrapper domains that map to a different brand domain
+const DOMAIN_ALIASES: Record<string, string> = {
+  "redditmail.com": "reddit.com",
+  "pinterestmail.com": "pinterest.com",
+  "quoramail.com": "quora.com",
+  "medium.com": "medium.com", // same, but kept for explicitness
+};
+
 // Personal email providers where Clearbit won't have a meaningful logo
 const PERSONAL_DOMAINS = new Set([
   "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.in", "yahoo.co.uk",
@@ -10,7 +18,13 @@ const PERSONAL_DOMAINS = new Set([
   "fastmail.com", "tutanota.com", "hey.com",
 ]);
 
+function resolveDomainAlias(domain: string): string {
+  return DOMAIN_ALIASES[domain] ?? domain;
+}
+
 function getBaseDomain(domain: string): string {
+  const aliased = resolveDomainAlias(domain);
+  if (aliased !== domain) return aliased;
   const parts = domain.split('.');
   if (parts.length <= 2) return domain;
   if (['co', 'com', 'org', 'net'].includes(parts[parts.length - 2])) {
