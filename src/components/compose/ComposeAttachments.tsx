@@ -46,7 +46,8 @@ export function ComposeAttachments({ onAddAttachment }: ComposeAttachmentsProps)
 
   useEffect(() => {
     if (mode === "link") {
-      setTimeout(() => linkInputRef.current?.focus(), 50);
+      const timer = window.setTimeout(() => linkInputRef.current?.focus(), 50);
+      return () => window.clearTimeout(timer);
     }
   }, [mode]);
 

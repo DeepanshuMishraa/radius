@@ -115,35 +115,32 @@ function EmailRow({
       onClick={onClick}
       onKeyDown={handleKeyDown}
       className={`
-        relative h-[110px] px-6 py-4 cursor-pointer select-none overflow-hidden transition-all duration-200 border-b border-radius-border-subtle
-        ${isSelected ? "bg-radius-bg-secondary" : message.isRead ? "hover:bg-radius-bg-secondary/50 bg-radius-bg-primary" : "hover:bg-radius-accent-subtle/30 bg-radius-bg-primary"}
+        relative h-[82px] px-3 py-3 cursor-pointer select-none overflow-hidden transition-colors duration-150 ease-out border-b border-radius-border-subtle group
+        ${isSelected ? "bg-radius-bg-secondary" : "hover:bg-radius-bg-secondary/40 active:bg-radius-bg-secondary/60 bg-transparent"}
       `}
     >
-      {/* Unread accent bar */}
-      {!message.isRead && (
-        <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full bg-radius-accent" />
-      )}
+      <div className={`flex gap-2.5 h-full transition-transform duration-200 ease-out ${!isSelected ? 'group-active:scale-[0.99]' : ''}`}>
+        <div className="w-2 flex justify-center shrink-0">
+          {!message.isRead && (
+            <div className="w-2 h-2 rounded-full bg-radius-accent mt-1.5" />
+          )}
+        </div>
 
-      <div className="flex gap-4">
-        <Avatar name={senderName} email={senderEmail} cachedUrl={avatarUrl} size={40} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className={`truncate text-[15px] font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-primary font-medium" : "text-radius-text-primary font-bold"}`}>
-                {senderName}
-              </span>
-              {!message.isRead && (
-                <span className="shrink-0 inline-flex h-[7px] w-[7px] rounded-full bg-radius-accent" />
-              )}
-            </div>
-            <span className={`shrink-0 text-[12px] font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary" : "text-radius-accent font-medium"}`}>
+        <Avatar name={senderName} email={senderEmail} cachedUrl={avatarUrl} size={36} />
+        
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex items-center justify-between mb-0.5">
+            <span className={`truncate text-[14px] tracking-[-0.01em] font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-primary" : "text-radius-text-primary font-semibold"}`}>
+              {senderName}
+            </span>
+            <span className={`shrink-0 text-[11px] font-[family-name:var(--font-family-sans)] ml-2 ${message.isRead ? "text-radius-text-muted" : "text-radius-accent font-medium"}`}>
               {formatDateShort(message.internalDate)}
             </span>
           </div>
-          <p className={`text-[13px] truncate mb-1 font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary font-normal" : "text-radius-text-primary font-semibold"}`}>
+          <p className={`text-[13px] tracking-[-0.01em] truncate mb-0.5 font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary" : "text-radius-text-primary font-medium"}`}>
             {message.subject}
           </p>
-          <p className={`text-[13px] truncate leading-[1.4] font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-muted" : "text-radius-text-secondary"}`}>
+          <p className="text-[13px] tracking-[-0.01em] truncate font-[family-name:var(--font-family-sans)] text-radius-text-muted">
             {message.snippet}
           </p>
         </div>
@@ -176,7 +173,7 @@ export function InboxList({
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 110,
+    estimateSize: () => 82,
     getItemKey: (index) => messages[index]?.id ?? index,
     overscan: 5,
   });
@@ -206,29 +203,27 @@ export function InboxList({
   return (
     <div className="flex flex-col h-full bg-radius-bg-primary relative">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-radius-border-subtle bg-radius-bg-primary z-10">
-        <div className="flex items-center gap-3 text-radius-text-secondary">
-          <HugeiconsIcon icon={CheckmarkSquare01Icon} size={18} />
-          <span className="text-[14px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-radius-border-subtle bg-radius-bg-primary/80 backdrop-blur-md z-10">
+        <div className="flex items-center gap-2 text-radius-text-secondary">
+          <span className="text-[13px] font-semibold text-radius-text-primary font-[family-name:var(--font-family-sans)]">
             {heading}
           </span>
         </div>
-        <span className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)] tabular-nums">
+        <span className="text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)] tabular-nums font-medium">
           {total.toLocaleString()}
         </span>
       </div>
 
       {messages.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <div className="w-10 h-10 rounded-2xl border border-radius-border-subtle flex items-center justify-center mb-4">
+          <div className="w-10 h-10 rounded-full border border-radius-border-subtle flex items-center justify-center mb-4 text-radius-text-muted bg-radius-bg-secondary/30">
             <svg
-              width="18"
-              height="18"
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.5"
-              className="text-radius-text-muted"
             >
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
               <polyline points="22,6 12,13 2,6" />

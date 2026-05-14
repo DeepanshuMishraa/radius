@@ -158,8 +158,6 @@ function MessageStatusWidget({ message }: { message: Message }) {
 }
 
 function AttachmentList({ attachments, messageId }: { attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>; messageId: string }) {
-  if (attachments.length === 0) return null;
-
   const handlePreview = useCallback(async (attachment: { filename: string; attachmentId: string }) => {
     try {
       const result = await radiusRpc.request.previewAttachment({
@@ -189,6 +187,8 @@ function AttachmentList({ attachments, messageId }: { attachments: Array<{ filen
     if (ext === 'pdf') return { color: '#db4437', bg: '#fce8e6', label: 'PDF' };
     return { color: '#5f6368', bg: '#f1f3f4', label: 'FILE' };
   };
+
+  if (attachments.length === 0) return null;
 
   return (
     <div className="mt-8 border-t border-radius-border-subtle pt-6">

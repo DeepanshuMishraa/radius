@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef, useDeferredValue } from "react";
+import { motion } from "motion/react";
 import { Onboarding } from "./components/Onboarding";
 import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
@@ -18,12 +19,9 @@ import { AddAccountDialog } from "@/components/add-account";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Cancel01Icon,
-  InboxIcon,
-  File02Icon,
-  MailSend01Icon,
-  Delete02Icon,
   Mail01Icon,
 } from "@hugeicons/core-free-icons";
+import { AnimatedInboxIcon, AnimatedSentIcon, AnimatedDraftsIcon, AnimatedTrashIcon } from "./components/AnimatedSidebarIcons";
 import { Toaster, toast } from "sonner";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { radiusRpc } from "./lib/rpc";
@@ -780,47 +778,64 @@ function App() {
       
       {/* Global Sidebar — mailbox navigation */}
       <nav className="global-sidebar flex flex-col items-center pt-10 pb-6 bg-radius-bg-primary z-50 electrobun-webkit-app-region-drag" data-open={sidebarOpen}>
-        <button
+        <motion.button
           type="button"
           onClick={() => setSidebarOpen((prev) => !prev)}
           aria-label="Toggle sidebar"
           aria-expanded={sidebarOpen}
-          className="mb-10 w-8 h-8 rounded-[10px] flex items-center justify-center electrobun-webkit-app-region-no-drag cursor-pointer hover:opacity-90 transition-opacity overflow-hidden shadow-sm bg-radius-bg-secondary"
+          initial="rest"
+          whileHover="hover"
+          whileTap="tap"
+          className="mb-10 w-8 h-8 rounded-[10px] flex items-center justify-center electrobun-webkit-app-region-no-drag cursor-pointer transition-colors duration-200 ease-out hover:bg-radius-bg-secondary/80 overflow-hidden shadow-sm bg-radius-bg-secondary"
         >
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="text-radius-accent">
-            <circle cx="14" cy="14" r="9" stroke="currentColor" strokeWidth="1.2" fill="none" opacity="0.5" />
-            <circle cx="14" cy="14" r="3.5" fill="currentColor" />
-          </svg>
-        </button>
+          <motion.div variants={{ rest: { scale: 1 }, hover: { scale: 1.1 }, tap: { scale: 0.95 } }} transition={{ type: "spring", stiffness: 400, damping: 25 }}>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="text-radius-accent">
+              <circle cx="14" cy="14" r="9" stroke="currentColor" strokeWidth="1.2" fill="none" opacity="0.5" />
+              <circle cx="14" cy="14" r="3.5" fill="currentColor" />
+            </svg>
+          </motion.div>
+        </motion.button>
         <div className="flex flex-col gap-5 electrobun-webkit-app-region-no-drag text-radius-text-muted">
-          <button 
+          <motion.button 
             onClick={handleShowInbox} 
             title="Inbox"
-            className={`p-1.5 rounded-lg transition-all ${mailboxView === 'inbox' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'hover:text-radius-text-primary'}`}
+            initial="rest"
+            whileHover="hover"
+            whileTap="tap"
+            className={`p-1.5 rounded-lg transition-colors duration-200 ease-out hover:bg-radius-bg-secondary/40 ${mailboxView === 'inbox' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'text-radius-text-muted hover:text-radius-text-primary'}`}
           >
-            <HugeiconsIcon icon={InboxIcon} size={20} />
-          </button>
-          <button 
+            <AnimatedInboxIcon className="w-5 h-5" />
+          </motion.button>
+          <motion.button 
             onClick={() => void handleOpenMailbox("sent")} 
             title="Sent"
-            className={`p-1.5 rounded-lg transition-all ${mailboxView === 'sent' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'hover:text-radius-text-primary'}`}
+            initial="rest"
+            whileHover="hover"
+            whileTap="tap"
+            className={`p-1.5 rounded-lg transition-colors duration-200 ease-out hover:bg-radius-bg-secondary/40 ${mailboxView === 'sent' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'text-radius-text-muted hover:text-radius-text-primary'}`}
           >
-            <HugeiconsIcon icon={MailSend01Icon} size={20} />
-          </button>
-          <button 
+            <AnimatedSentIcon className="w-5 h-5" />
+          </motion.button>
+          <motion.button 
             onClick={() => void handleOpenMailbox("drafts")} 
             title="Drafts"
-            className={`p-1.5 rounded-lg transition-all ${mailboxView === 'drafts' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'hover:text-radius-text-primary'}`}
+            initial="rest"
+            whileHover="hover"
+            whileTap="tap"
+            className={`p-1.5 rounded-lg transition-colors duration-200 ease-out hover:bg-radius-bg-secondary/40 ${mailboxView === 'drafts' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'text-radius-text-muted hover:text-radius-text-primary'}`}
           >
-            <HugeiconsIcon icon={File02Icon} size={20} />
-          </button>
-          <button 
+            <AnimatedDraftsIcon className="w-5 h-5" />
+          </motion.button>
+          <motion.button 
             onClick={() => void handleOpenMailbox("trash")} 
             title="Deleted"
-            className={`p-1.5 rounded-lg transition-all ${mailboxView === 'trash' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'hover:text-radius-text-primary'}`}
+            initial="rest"
+            whileHover="hover"
+            whileTap="tap"
+            className={`p-1.5 rounded-lg transition-colors duration-200 ease-out hover:bg-radius-bg-secondary/40 ${mailboxView === 'trash' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'text-radius-text-muted hover:text-radius-text-primary'}`}
           >
-            <HugeiconsIcon icon={Delete02Icon} size={20} />
-          </button>
+            <AnimatedTrashIcon className="w-5 h-5" />
+          </motion.button>
         </div>
       </nav>
 
