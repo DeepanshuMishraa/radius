@@ -1,0 +1,36 @@
+src/mainview/components/AnimatedSidebarIcons.tsx
+  s_f27274246c43e7::t_1a3358a7b2dfc7 22-24
+  s_f27274246c43e7::t_353f49a93612a3 1-21,25-134
+src/mainview/App.tsx
+  s_f27274246c43e7::t_88a27f4df12a95 781,786-789,791,796-797,799,802-805,807-809,812-815,817-819,822-825,827-829,832-835,837-838
+  s_f27274246c43e7::t_3e11aee1ee2560 792-795
+  s_f27274246c43e7::t_5443107553c624 2,24
+src/mainview/components/InboxList.tsx
+  s_f27274246c43e7::t_c94b536ff5f7f6 118-119,122-136,140,143,176,206-208,212,219,221-222
+src/mainview/components/ReaderView.tsx
+  s_600406c6b58a32::t_361117b2efbb48 191-192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "beeecf3065d2c2a212af2f207db92223141d531c",
+  "prompts": {},
+  "sessions": {
+    "s_600406c6b58a32": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e21dc-2c53-727e-9ba1-6cdb1ce5669e",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    },
+    "s_f27274246c43e7": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "5c8e45c9-b58a-493a-a76b-41262bb381aa",
+        "model": "gemini-3.1-pro-preview"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
