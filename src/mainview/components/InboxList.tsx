@@ -4,6 +4,7 @@ import type { KeyboardEvent } from "react";
 import type { Message, SyncStatus } from "../hooks/useInbox";
 import { useAvatarCache } from "../hooks/useAvatarCache";
 import { Avatar } from "./Avatar";
+import { CategoryBadge } from "./CategoryBadge";
 
 
 interface InboxListProps {
@@ -68,21 +69,18 @@ function EmailRow({
       onClick={onClick}
       onKeyDown={handleKeyDown}
       className={`
-        relative h-[82px] px-3 py-3 cursor-pointer select-none overflow-hidden transition-colors duration-150 ease-out border-b border-radius-border-subtle group
+        relative h-[88px] pl-6 pr-4 py-3 cursor-pointer select-none overflow-hidden transition-colors duration-150 ease-out border-b border-radius-border-subtle group
         ${isSelected ? "bg-radius-bg-secondary" : "hover:bg-radius-bg-secondary/40 active:bg-radius-bg-secondary/60 bg-transparent"}
       `}
     >
-      <div className={`flex gap-2.5 h-full transition-transform duration-200 ease-out ${!isSelected ? 'group-active:scale-[0.99]' : ''}`}>
-        <div className="w-2 flex justify-center shrink-0">
-          {!message.isRead && (
-            <div className="w-2 h-2 rounded-full bg-radius-accent mt-1.5" />
-          )}
-        </div>
-
+      {!message.isRead && (
+        <div className="absolute left-2.5 top-[20px] w-2 h-2 rounded-full bg-radius-accent" />
+      )}
+      <div className={`flex gap-3 h-full transition-transform duration-200 ease-out ${!isSelected ? 'group-active:scale-[0.99]' : ''}`}>
         <Avatar name={senderName} email={senderEmail} cachedUrl={avatarUrl} size={36} />
         
         <div className="flex-1 min-w-0 flex flex-col">
-          <div className="flex items-center justify-between mb-0.5">
+          <div className="flex items-center gap-1.5 justify-between mb-0.5 min-w-0">
             <span className={`truncate text-[14px] tracking-[-0.01em] font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-primary" : "text-radius-text-primary font-semibold"}`}>
               {senderName}
             </span>
@@ -90,9 +88,12 @@ function EmailRow({
               {formatDateShort(message.internalDate)}
             </span>
           </div>
-          <p className={`text-[13px] tracking-[-0.01em] truncate mb-0.5 font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary" : "text-radius-text-primary font-medium"}`}>
-            {message.subject}
-          </p>
+          <div className="flex items-center gap-2 mb-0.5 min-w-0">
+            <p className={`text-[13px] tracking-[-0.01em] truncate font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary" : "text-radius-text-primary font-medium"}`}>
+              {message.subject}
+            </p>
+            <CategoryBadge category={message.category} className="shrink-0" />
+          </div>
           <p className={`text-[13px] tracking-[-0.01em] truncate font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-muted" : "text-radius-text-secondary"}`}>
             {message.snippet}
           </p>
@@ -126,7 +127,7 @@ export function InboxList({
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 82,
+    estimateSize: () => 88,
     getItemKey: (index) => messages[index]?.id ?? index,
     overscan: 5,
   });

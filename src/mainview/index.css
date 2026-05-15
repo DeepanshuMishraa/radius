@@ -238,9 +238,9 @@
     --color-radius-border: var(--radius-border);
 
     --font-family-display:
-        "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+        "Geist Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --font-family-sans:
-        "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+        "Geist Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --font-family-serif: "Playfair Display", Georgia, serif;
 
     --transition-duration-80: 80ms;

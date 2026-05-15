@@ -5,6 +5,7 @@ import { useTheme } from "@/components/theme-provider";
 import type { Message } from "../hooks/useInbox";
 import { useAvatarCache } from "../hooks/useAvatarCache";
 import { Avatar } from "./Avatar";
+import { CategoryBadge } from "./CategoryBadge";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   SidebarRight01Icon,
@@ -929,8 +930,9 @@ export const ReaderView = memo(function ReaderView({
                     </button>
                   </div>
                 </div>
-                <h1 className="mt-8 mb-4 font-[family-name:var(--font-family-sans)] text-[24px] font-semibold text-radius-text-primary leading-[1.2]">
-                  {message.subject || "Newsletter"}
+                <h1 className="mt-8 mb-4 flex items-center gap-3 font-[family-name:var(--font-family-sans)] text-[24px] font-semibold text-radius-text-primary leading-[1.2]">
+                  <span>{message.subject || "Newsletter"}</span>
+                  <CategoryBadge category={message.category} className="mt-1" />
                 </h1>
               </header>
 
@@ -973,8 +975,9 @@ export const ReaderView = memo(function ReaderView({
                   </button>
                 </div>
               </div>
-              <h1 className="mt-8 mb-4 font-[family-name:var(--font-family-sans)] text-[24px] font-semibold text-radius-text-primary leading-[1.2]">
-                {message.subject}
+              <h1 className="mt-8 mb-4 flex items-center gap-3 font-[family-name:var(--font-family-sans)] text-[24px] font-semibold text-radius-text-primary leading-[1.2]">
+                <span>{message.subject}</span>
+                <CategoryBadge category={message.category} className="mt-1" />
               </h1>
             </header>
 
