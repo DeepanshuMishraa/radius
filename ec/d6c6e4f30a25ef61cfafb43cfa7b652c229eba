@@ -1,0 +1,23 @@
+src/vite-env.d.ts
+  s_66f775fe8744fb::t_76bde6cce4687a 1
+src/mainview/components/ReaderView.tsx
+  s_66f775fe8744fb::t_038d3ccff14266 6
+src/components/theme-registry.ts
+  s_66f775fe8744fb::t_705068afe08b5c 195-217,219-269,271-273
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "ecd6c6e4f30a25ef61cfafb43cfa7b652c229eba",
+  "prompts": {},
+  "sessions": {
+    "s_66f775fe8744fb": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1d625f712ffeDc1T5dDEMdYzEY",
+        "model": "gpt-5.2-codex"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
