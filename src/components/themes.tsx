@@ -1,6 +1,5 @@
 import { CommandGroup, CommandItem } from "@/components/ui/command";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Sun02Icon, Tick01Icon } from "@hugeicons/core-free-icons";
+import { SunDimIcon, CheckIcon } from "@phosphor-icons/react/dist/ssr";
 
 interface ThemeItem {
   id: string;
@@ -32,11 +31,11 @@ export function Themes({
           className="justify-between"
         >
           <div className="flex items-center gap-2">
-            <HugeiconsIcon icon={Sun02Icon} />
+            <SunDimIcon />
             <span className="text-sm">{item.name}</span>
           </div>
           {item.id === currentTheme && (
-            <HugeiconsIcon icon={Tick01Icon} size={14} className="text-radius-accent" />
+            <CheckIcon size={14} className="text-radius-accent" />
           )}
         </CommandItem>
       ))}

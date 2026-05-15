@@ -1,10 +1,9 @@
 import { CommandGroup, CommandItem } from "@/components/ui/command";
-import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  ArchiveIcon,
-  MailSend01Icon,
-  Delete02Icon,
-} from "@hugeicons/core-free-icons";
+  ArchiveBoxIcon,
+  PaperPlaneTiltIcon,
+  TrashIcon,
+} from "@phosphor-icons/react/dist/ssr";
 
 type Mailbox = "sent" | "drafts" | "trash";
 
@@ -19,21 +18,21 @@ export function Mailboxes({ onSelectMailbox }: MailboxesProps) {
         value="sent"
         onSelect={() => onSelectMailbox("sent")}
       >
-        <HugeiconsIcon icon={MailSend01Icon} />
+        <PaperPlaneTiltIcon />
         <span>Sent</span>
       </CommandItem>
       <CommandItem
         value="drafts"
         onSelect={() => onSelectMailbox("drafts")}
       >
-        <HugeiconsIcon icon={ArchiveIcon} />
+        <ArchiveBoxIcon />
         <span>Drafts</span>
       </CommandItem>
       <CommandItem
         value="trash"
         onSelect={() => onSelectMailbox("trash")}
       >
-        <HugeiconsIcon icon={Delete02Icon} />
+        <TrashIcon />
         <span>Trash</span>
       </CommandItem>
     </CommandGroup>

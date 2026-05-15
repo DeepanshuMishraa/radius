@@ -33,8 +33,6 @@ import {
   handleUndoSend,
   handleDiscardComposeSession,
   handleResyncAccount,
-  handleGetSenderAvatars,
-  handleGetAllSenderAvatars,
 } from "./rpc-handlers";
 import {
   handleOpenExternalUrl,
@@ -105,8 +103,6 @@ async function createMainWindow() {
         resyncAccount: handleResyncAccount,
         downloadAttachment: handleDownloadAttachment,
         previewAttachment: handlePreviewAttachment,
-        getSenderAvatars: handleGetSenderAvatars,
-        getAllSenderAvatars: handleGetAllSenderAvatars,
 
         // Update handlers need rpc to send status — kept inline to avoid circular type
         async checkForUpdate() {

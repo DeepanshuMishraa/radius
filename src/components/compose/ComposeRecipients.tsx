@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { CheckmarkCircle01Icon, Cancel01Icon, UserAdd01Icon } from "@hugeicons/core-free-icons";
+import { CheckCircle, X, UserPlus } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { radiusRpc } from "@/mainview/lib/rpc";
 import { type ContactOption, isValidEmail } from "./types";
@@ -130,7 +129,7 @@ export function ComposeRecipients({
           <span className="text-[12px] text-radius-text-primary font-medium tracking-tight">
             {fromAccount?.name || fromAccount?.email || "No active account"}
           </span>
-          <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} className="text-[#1d9bf0]" />
+          <CheckCircle size={14} weight="fill" className="text-[#1d9bf0]" />
         </div>
       </motion.div>
 
@@ -159,15 +158,15 @@ export function ComposeRecipients({
                 </div>
                 <span className="text-[12px] text-radius-text-primary font-medium tracking-tight group-hover:text-radius-error transition-colors">{recipient.name}</span>
                 <div className="relative flex h-3.5 w-3.5 items-center justify-center">
-                  <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} className="absolute text-[#1d9bf0] transition-opacity duration-200 group-hover:opacity-0" />
-                  <HugeiconsIcon icon={Cancel01Icon} size={12} className="absolute text-radius-error opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                  <CheckCircle size={14} weight="fill" className="absolute text-[#1d9bf0] transition-opacity duration-200 group-hover:opacity-0" />
+                  <X size={12} weight="bold" className="absolute text-radius-error opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
                 </div>
               </motion.button>
             ))}
           </AnimatePresence>
 
           <motion.div layout className="flex min-w-[140px] flex-1 items-center gap-1.5">
-            <HugeiconsIcon icon={UserAdd01Icon} size={14} className="text-radius-text-muted shrink-0" />
+            <UserPlus size={14} className="text-radius-text-muted shrink-0" />
             <input
               ref={recipientInputRef}
               value={recipientQuery}

@@ -20,7 +20,7 @@ export function SyncPill({ syncStatus, notice }: SyncPillProps) {
   const isStillFetching = current >= total && syncStatus.status === "syncing";
 
   return (
-    <div className="fixed bottom-4 left-[72px] z-[55] w-[min(320px,calc(100vw-5rem))] overflow-hidden rounded-[18px] border border-radius-border-subtle bg-radius-bg-primary/92 shadow-[0_12px_36px_rgba(0,0,0,0.14)] backdrop-blur-xl">
+    <div className="fixed bottom-4 left-4 z-40 w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-[18px] border border-radius-border-subtle bg-radius-bg-primary/92 shadow-[0_12px_36px_rgba(0,0,0,0.14)] backdrop-blur-xl">
       <div className="flex items-start gap-3 px-3.5 py-3">
         {syncStatus.status === "error" ? (
           <span className="mt-0.5 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-radius-error" />

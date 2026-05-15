@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon, Mail01Icon } from "@hugeicons/core-free-icons";
+import { X, EnvelopeSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { radiusRpc } from "@/mainview/lib/rpc";
 import { type ContactOption, type Attachment } from "./types";
@@ -321,7 +320,7 @@ export function ComposeEmailDialog({
           >
             <motion.div layout className="flex items-center justify-between px-5 pt-4 pb-2 shrink-0">
               <div className="flex items-center gap-2">
-                <HugeiconsIcon icon={Mail01Icon} size={16} className="text-radius-text-primary" />
+                <EnvelopeSimple size={16} weight="regular" className="text-radius-text-primary" />
                 <h2 className="text-[13px] font-medium text-radius-text-primary">Compose email</h2>
               </div>
               <motion.button
@@ -332,7 +331,7 @@ export function ComposeEmailDialog({
                 className="inline-flex h-6 w-6 items-center justify-center rounded-md text-radius-text-muted transition-colors hover:text-radius-text-primary hover:bg-radius-bg-secondary"
                 aria-label="Close compose"
               >
-                <HugeiconsIcon icon={Cancel01Icon} size={14} />
+                <X size={14} weight="bold" />
               </motion.button>
             </motion.div>
 

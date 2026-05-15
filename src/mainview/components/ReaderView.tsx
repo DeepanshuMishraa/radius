@@ -2,19 +2,8 @@ import DOMPurify from "dompurify";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import { useTheme } from "@/components/theme-provider";
-import type { Message } from "../hooks/useInbox";
-import { useAvatarCache } from "../hooks/useAvatarCache";
-import { Avatar } from "./Avatar";
-import { CategoryBadge } from "./CategoryBadge";
-import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  SidebarRight01Icon,
-  ArchiveIcon,
-  Delete02Icon,
-  MailReply01Icon,
-  CheckmarkBadge01Icon,
-  SecurityCheckIcon,
-} from "@hugeicons/core-free-icons";
+import type { Message, EmailCategory } from "../hooks/useInbox";
+import { ListIcon, FileIcon, ArrowSquareOut, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { radiusRpc } from "../lib/rpc";
 
 interface ReaderViewProps {
@@ -23,6 +12,18 @@ interface ReaderViewProps {
   onOpenSidebar: () => void;
   onPrev?: () => void;
   onNext?: () => void;
+  currentIndex?: number;
+  totalCount?: number;
+}
+
+function formatFullDate(timestamp: number): string {
+  return new Date(timestamp).toLocaleString([], {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 function parseAddress(addr: string | null | undefined): {
@@ -40,7 +41,113 @@ function parseAddress(addr: string | null | undefined): {
   return { name: addr, email: addr };
 }
 
+function AddressReveal({
+  name,
+  email,
+}: {
+  name: string;
+  email: string;
+}) {
+  const primaryLabel = name || email || "Unknown";
+  const secondaryLabel = email || primaryLabel;
+  const canReveal = secondaryLabel !== primaryLabel;
+
+  return (
+    <span
+      className="group/address relative inline-grid min-h-[1.35rem] max-w-full text-[14px] font-[family-name:var(--font-family-serif)] text-radius-text-primary"
+      title={secondaryLabel}
+    >
+      <span
+        className={`col-start-1 row-start-1 truncate transition-all duration-300 ease-out ${
+          canReveal
+            ? "group-hover/address:translate-y-[-3px] group-hover/address:opacity-0"
+            : ""
+        }`}
+      >
+        {primaryLabel}
+      </span>
+      {canReveal ? (
+        <span className="pointer-events-none col-start-1 row-start-1 truncate text-radius-text-secondary opacity-0 translate-y-1 transition-all duration-300 ease-out group-hover/address:translate-y-0 group-hover/address:opacity-100">
+          {secondaryLabel}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+const CATEGORY_META: Record<
+  EmailCategory,
+  { label: string; bg: string; text: string; border: string }
+> = {
+  important: {
+    label: "Important",
+    bg: "rgba(196, 163, 90, 0.12)",
+    text: "#c4a35a",
+    border: "rgba(196, 163, 90, 0.25)",
+  },
+  promotional: {
+    label: "Promotional",
+    bg: "rgba(163, 90, 196, 0.12)",
+    text: "#a35ac4",
+    border: "rgba(163, 90, 196, 0.25)",
+  },
+  social: {
+    label: "Social",
+    bg: "rgba(90, 125, 196, 0.12)",
+    text: "#5a7dc4",
+    border: "rgba(90, 125, 196, 0.25)",
+  },
+  updates: {
+    label: "Updates",
+    bg: "rgba(90, 140, 111, 0.12)",
+    text: "#5a8c6f",
+    border: "rgba(90, 140, 111, 0.25)",
+  },
+  forums: {
+    label: "Forums",
+    bg: "rgba(196, 125, 90, 0.12)",
+    text: "#c47d5a",
+    border: "rgba(196, 125, 90, 0.25)",
+  },
+  spam: {
+    label: "Spam",
+    bg: "rgba(196, 90, 90, 0.12)",
+    text: "#c45a5a",
+    border: "rgba(196, 90, 90, 0.25)",
+  },
+  personal: {
+    label: "Personal",
+    bg: "rgba(90, 168, 196, 0.12)",
+    text: "#5aa8c4",
+    border: "rgba(90, 168, 196, 0.25)",
+  },
+  regular: {
+    label: "Regular",
+    bg: "transparent",
+    text: "var(--radius-text-muted)",
+    border: "transparent",
+  },
+};
+
+function MessageStatusWidget({ message }: { message: Message }) {
+  const meta = CATEGORY_META[message.category];
+
+  return (
+    <div className="inline-flex items-center gap-[5px] text-[11px] font-medium font-[family-name:var(--font-family-sans)]">
+      <span
+        className="inline-block rounded-full"
+        style={{ width: 4, height: 4, backgroundColor: meta.text }}
+      />
+      <span style={{ color: meta.text }}>
+        {meta.label}
+      </span>
+    </div>
+  );
+}
+
 function AttachmentList({ attachments, messageId }: { attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>; messageId: string }) {
+  if (attachments.length === 0) return null;
+
   const handlePreview = useCallback(async (attachment: { filename: string; attachmentId: string }) => {
     try {
       const result = await radiusRpc.request.previewAttachment({
@@ -62,54 +169,31 @@ function AttachmentList({ attachments, messageId }: { attachments: Array<{ filen
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const getFileStyle = (filename: string) => {
-    const ext = filename.split('.').pop()?.toLowerCase();
-    if (ext === 'pptx' || ext === 'ppt') return { color: '#db4437', bg: '#fce8e6', label: 'P' };
-    if (ext === 'docx' || ext === 'doc') return { color: '#4285f4', bg: '#e8f0fe', label: 'W' };
-    if (ext === 'xlsx' || ext === 'xls') return { color: '#0f9d58', bg: '#e6f4ea', label: 'X' };
-    if (ext === 'pdf') return { color: '#db4437', bg: '#fce8e6', label: 'PDF' };
-    return { color: '#5f6368', bg: '#f1f3f4', label: 'FILE' };
-  };
-
-  if (attachments.length === 0) return null;
-
   return (
-    <div className="mt-8 border-t border-radius-border-subtle pt-6">
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-[14px] font-semibold text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-          Attachment
-        </span>
-        <span className="flex items-center gap-1 text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-          Attachments <HugeiconsIcon icon={SecurityCheckIcon} size={14} className="text-radius-success" />
-        </span>
+    <div className="mt-6 space-y-2">
+      <div className="text-[11px] font-medium text-radius-text-muted uppercase tracking-wide font-[family-name:var(--font-family-sans)]">
+        {attachments.length} attachment{attachments.length > 1 ? "s" : ""}
       </div>
-      <div className="flex flex-wrap gap-3">
-        {attachments.map((att) => {
-          const style = getFileStyle(att.filename);
-          return (
-            <button
-              key={att.attachmentId}
-              onClick={() => void handlePreview(att)}
-              className="group relative flex items-center gap-3 rounded-xl border border-radius-border-subtle bg-radius-bg-primary px-4 py-3 text-left transition-all hover:shadow-md hover:border-[rgba(0,0,0,0.1)] w-[240px]"
-              title={`Open ${att.filename}`}
-            >
-              <div 
-                className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 font-bold text-[12px]"
-                style={{ backgroundColor: style.bg, color: style.color }}
-              >
-                {style.label}
+      <div className="flex flex-wrap gap-2">
+        {attachments.map((att) => (
+          <button
+            key={att.attachmentId}
+            onClick={() => void handlePreview(att)}
+            className="inline-flex items-center gap-2 rounded-lg border border-radius-border-subtle bg-radius-bg-secondary px-3 py-2 text-left transition-colors hover:bg-radius-bg-tertiary"
+            title={`Open ${att.filename}`}
+          >
+            <FileIcon size={16} className="shrink-0 text-radius-text-muted" />
+            <div className="min-w-0">
+              <div className="truncate text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)] max-w-[200px]">
+                {att.filename}
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-                  {att.filename}
-                </div>
-                <div className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-                  {formatSize(att.size)}
-                </div>
+              <div className="text-[10px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                {formatSize(att.size)}
               </div>
-            </button>
-          );
-        })}
+            </div>
+            <ArrowSquareOut size={14} className="shrink-0 text-radius-text-muted ml-1" />
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -129,7 +213,7 @@ function InboxWidget({
       onClick={onClick}
       className="
         electrobun-webkit-app-region-no-drag
-        fixed top-[50px] left-[76px] z-30
+        fixed top-[50px] left-4 z-30
         p-2
         rounded-lg
         text-radius-text-muted
@@ -145,7 +229,7 @@ function InboxWidget({
       }
       title="Open inbox"
     >
-      <HugeiconsIcon icon={SidebarRight01Icon} size={18} />
+      <ListIcon size={16} />
     </button>
   );
 }
@@ -577,14 +661,14 @@ const EMAIL_BODY_STYLES = `
     font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
     background: transparent;
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: 1.08rem;
+    line-height: 1.85;
   }
   .email-section--simple {
     font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: 1.08rem;
+    line-height: 1.85;
   }
   /* ── Newsletter / rich-email card ─────────────────────────── */
   .email-section--rich {
@@ -740,14 +824,10 @@ export const ReaderView = memo(function ReaderView({
   onOpenSidebar,
   onPrev,
   onNext,
+  currentIndex = 0,
+  totalCount = 0,
 }: ReaderViewProps) {
   const { theme, appearance, resolvedTheme } = useTheme();
-
-  // Avatar cache for the current sender
-  const senderEmail = message?.from?.match(/<([^>]+)>/)?.[1] || message?.from || "";
-  const senderEmails = useMemo(() => senderEmail ? [senderEmail] : [], [senderEmail]);
-  const { getAvatarUrl } = useAvatarCache(senderEmails);
-
   const newsletterThemeConfig = useMemo(() => {
     const variables = resolvedTheme?.variables ?? {};
 
@@ -894,46 +974,35 @@ export const ReaderView = memo(function ReaderView({
   }
 
   const sender = parseAddress(message.from);
+  const recipient = parseAddress(message.to);
 
   return (
-    <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative scrollbar-none">
+    <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-11">
       <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
 
       <div className="flex-1 email-enter relative" key={message.id}>
         {isPureNewsletter ? (
           /* ═════ DOCUMENT MODE — Newsletters ═════ */
-          <article className="w-full px-8 pt-8 pb-24">
-            <div className="mx-auto max-w-[800px]">
-              <header className="mb-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    <Avatar name={sender.name} email={sender.email} cachedUrl={getAvatarUrl(sender.email)} size={40} />
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1">
-                        <span className="font-semibold text-radius-text-primary text-[15px] font-[family-name:var(--font-family-sans)]">{sender.name || sender.email}</span>
-                        <HugeiconsIcon icon={CheckmarkBadge01Icon} className="text-radius-info" size={16} />
-                      </div>
-                      <div className="text-[13px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
-                        From: {sender.email}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => console.log("Archive:", message.id)} className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
-                      <HugeiconsIcon icon={ArchiveIcon} size={18} />
-                    </button>
-                    <button onClick={() => console.log("Delete:", message.id)} className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
-                      <HugeiconsIcon icon={Delete02Icon} size={18} />
-                    </button>
-                    <button onClick={() => console.log("Reply:", message.id)} className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
-                      <HugeiconsIcon icon={MailReply01Icon} size={18} />
-                    </button>
-                  </div>
+          <article className="w-full px-6 pt-6 pb-24">
+            <div className="mx-auto max-w-[920px]">
+              <header className="mb-6 flex flex-col gap-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="inline-flex items-center gap-[6px] rounded-full border border-[rgba(163,90,196,0.22)] bg-[rgba(163,90,196,0.10)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a35ac4] font-[family-name:var(--font-family-sans)]">
+                    <span className="inline-block rounded-full bg-[#a35ac4]" style={{ width: 5, height: 5 }} />
+                    Newsletter
+                  </span>
+                  <span className="truncate text-[12px] uppercase tracking-[0.16em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                    {sender.name || sender.email}
+                  </span>
                 </div>
-                <h1 className="mt-8 mb-4 flex items-center gap-3 font-[family-name:var(--font-family-sans)] text-[24px] font-semibold text-radius-text-primary leading-[1.2]">
-                  <span>{message.subject || "Newsletter"}</span>
-                  <CategoryBadge category={message.category} className="mt-1" />
-                </h1>
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <h1 className="min-w-0 max-w-[42rem] text-[28px] leading-[1.08] tracking-[-0.02em] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
+                    {message.subject || "Newsletter"}
+                  </h1>
+                  <time className="shrink-0 text-[12px] uppercase tracking-[0.16em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                    {formatFullDate(message.internalDate)}
+                  </time>
+                </div>
               </header>
 
               <div className="newsletter-stage">
@@ -948,43 +1017,42 @@ export const ReaderView = memo(function ReaderView({
           </article>
         ) : (
           /* ═════ READING MODE — Text emails ═════ */
-          <article className="w-full px-8 pt-8 pb-24">
-            <header className="max-w-[800px] mx-auto mb-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  <Avatar name={sender.name} email={sender.email} cachedUrl={getAvatarUrl(sender.email)} size={40} />
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-1">
-                      <span className="font-semibold text-radius-text-primary text-[15px] font-[family-name:var(--font-family-sans)]">{sender.name || sender.email}</span>
-                      <HugeiconsIcon icon={CheckmarkBadge01Icon} className="text-radius-info" size={16} />
-                    </div>
-                    <div className="text-[13px] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
-                      From: {sender.email}
-                    </div>
-                  </div>
+          <article className="w-full px-6 pt-8 pb-24">
+            <header className="max-w-[720px] mx-auto">
+              <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-wide mb-4">
+                {message.subject}
+              </h1>
+
+              <div className="mb-8">
+                <MessageStatusWidget message={message} />
+              </div>
+
+              <div className="mb-10 pb-8 border-b border-radius-border-subtle space-y-2">
+                <div className="flex items-start gap-6">
+                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
+                    From
+                  </span>
+                  <AddressReveal name={sender.name} email={sender.email} />
                 </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => console.log("Archive:", message.id)} className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
-                    <HugeiconsIcon icon={ArchiveIcon} size={18} />
-                  </button>
-                  <button onClick={() => console.log("Delete:", message.id)} className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
-                    <HugeiconsIcon icon={Delete02Icon} size={18} />
-                  </button>
-                  <button onClick={() => console.log("Reply:", message.id)} className="w-9 h-9 flex items-center justify-center rounded-lg border border-radius-border-subtle bg-transparent hover:bg-radius-bg-secondary transition-colors text-radius-text-secondary">
-                    <HugeiconsIcon icon={MailReply01Icon} size={18} />
-                  </button>
+                <div className="flex items-start gap-6">
+                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
+                    To
+                  </span>
+                  <AddressReveal name={recipient.name} email={recipient.email} />
+                </div>
+                <div className="flex items-baseline gap-6 pt-1">
+                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]"></span>
+                  <time className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-serif)]">
+                    {formatFullDate(message.internalDate)}
+                  </time>
                 </div>
               </div>
-              <h1 className="mt-8 mb-4 flex items-center gap-3 font-[family-name:var(--font-family-sans)] text-[24px] font-semibold text-radius-text-primary leading-[1.2]">
-                <span>{message.subject}</span>
-                <CategoryBadge category={message.category} className="mt-1" />
-              </h1>
             </header>
 
             {sanitizedHtml ? (
-              <div className="max-w-[800px] mx-auto">
+              <div className="max-w-[720px] mx-auto">
                 <div
-                  className={hasRichHtml ? "email-body min-w-0 text-[15px] leading-[1.6]" : "email-body email-body--simple min-w-0 text-[15px] leading-[1.6]"}
+                  className={hasRichHtml ? "email-body min-w-0 text-[15px] leading-[1.6]" : "email-body email-body--simple min-w-0 text-[17px] leading-[1.85]"}
                   onClick={handleBodyClick}
                   dangerouslySetInnerHTML={{
                     __html: hasRichHtml ? (htmlRender.html ?? sanitizedHtml) : sanitizedHtml,
@@ -993,8 +1061,8 @@ export const ReaderView = memo(function ReaderView({
                 <AttachmentList attachments={message.attachments} messageId={message.id} />
               </div>
             ) : (
-              <div className="max-w-[800px] mx-auto">
-                <div className="font-[family-name:var(--font-family-sans)] text-[15px] leading-[1.6] text-radius-text-primary whitespace-pre-wrap">
+              <div className="max-w-[720px] mx-auto">
+                <div className="font-[family-name:var(--font-family-sans)] text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
                   {message.bodyText || message.snippet}
                 </div>
                 <AttachmentList attachments={message.attachments} messageId={message.id} />
@@ -1003,6 +1071,36 @@ export const ReaderView = memo(function ReaderView({
           </article>
         )}
       </div>
+
+      {message && totalCount > 1 && (
+        <div className="pointer-events-none fixed bottom-6 left-0 right-0 z-30 flex justify-center">
+          <div className="pointer-events-auto inline-flex items-center gap-1 rounded-full border border-radius-border-subtle bg-radius-bg-primary/80 px-2 py-1.5 shadow-lg backdrop-blur-xl">
+            <button
+              type="button"
+              onClick={onPrev}
+              disabled={currentIndex <= 0}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full text-radius-text-secondary transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-radius-text-secondary"
+              aria-label="Previous email"
+              title="Previous email"
+            >
+              <CaretLeft size={14} weight="bold" />
+            </button>
+            <span className="min-w-[3.5rem] select-none text-center text-[11px] font-medium tabular-nums text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+              {currentIndex + 1} / {totalCount}
+            </span>
+            <button
+              type="button"
+              onClick={onNext}
+              disabled={currentIndex >= totalCount - 1}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full text-radius-text-secondary transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-radius-text-secondary"
+              aria-label="Next email"
+              title="Next email"
+            >
+              <CaretRight size={14} weight="bold" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <style>{EMAIL_BODY_STYLES}</style>
     </div>

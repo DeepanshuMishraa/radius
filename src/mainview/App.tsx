@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useMemo, useRef, useDeferredValue } from "react";
-import { motion } from "motion/react";
 import { Onboarding } from "./components/Onboarding";
 import { InboxList } from "./components/InboxList";
 import { ReaderView } from "./components/ReaderView";
@@ -16,12 +15,10 @@ import { UpdateNotification } from "@/components/update-notification";
 import { SyncPill } from "@/components/sync-pill";
 import { AboutDialog } from "@/components/about";
 import { AddAccountDialog } from "@/components/add-account";
-import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Cancel01Icon,
-  Mail01Icon,
-} from "@hugeicons/core-free-icons";
-import { AnimatedInboxIcon, AnimatedSentIcon, AnimatedDraftsIcon, AnimatedTrashIcon } from "./components/AnimatedSidebarIcons";
+  X,
+  EnvelopeSimple,
+} from "@phosphor-icons/react";
 import { Toaster, toast } from "sonner";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { radiusRpc } from "./lib/rpc";
@@ -89,7 +86,6 @@ function ThemedToaster() {
     <Toaster
       position="bottom-right"
       theme={appearance}
-      className="z-[60]"
       toastOptions={{
         style: {
           background: "var(--radius-bg-primary)",
@@ -309,7 +305,7 @@ function App() {
             >
               <div className="flex items-start gap-2.5 p-3">
                 <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-radius-accent-subtle">
-                  <HugeiconsIcon icon={Mail01Icon} size={12} className="text-radius-accent" />
+                  <EnvelopeSimple weight="fill" size={12} className="text-radius-accent" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-radius-accent font-[family-name:var(--font-family-sans)]">
@@ -330,7 +326,7 @@ function App() {
               className="absolute top-2.5 right-2.5 inline-flex h-5 w-5 items-center justify-center rounded-md text-radius-text-muted opacity-0 transition-all duration-150 hover:bg-radius-bg-secondary hover:text-radius-text-primary group-hover:opacity-100"
               aria-label="Dismiss"
             >
-              <HugeiconsIcon icon={Cancel01Icon} size={11} />
+              <X size={11} weight="bold" />
             </button>
           </div>
         ),
@@ -544,6 +540,7 @@ function App() {
       }));
       if (result.messages[0]) {
         setSelectedMessageId(result.messages[0].id);
+        setSidebarOpen(false);
       }
     } catch (error) {
       console.error(`Failed to load ${mailbox}:`, error);
@@ -678,13 +675,6 @@ function App() {
     [removeAccount, accounts.length, activeAccount]
   );
 
-  // Clear selected message when the inbox empties (e.g. during resync)
-  useEffect(() => {
-    if (visibleMessages.length === 0 && selectedMessageId !== null && !searchActive) {
-      setSelectedMessageId(null);
-    }
-  }, [visibleMessages.length, selectedMessageId, searchActive]);
-
   const handleResync = useCallback(async () => {
     setCmdOpen(false);
     try {
@@ -773,120 +763,52 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-    <div className="relative flex h-full bg-radius-bg-tertiary overflow-hidden text-radius-text-primary">
+    <div className="relative flex h-full bg-radius-bg-primary overflow-hidden">
       <DragRegion />
-      
-      {/* Global Sidebar — mailbox navigation */}
-      <nav className="global-sidebar flex flex-col items-center pt-10 pb-6 bg-radius-bg-primary z-50 electrobun-webkit-app-region-drag" data-open={sidebarOpen}>
-        <motion.button
-          type="button"
-          onClick={() => setSidebarOpen((prev) => !prev)}
-          aria-label="Toggle sidebar"
-          aria-expanded={sidebarOpen}
-          initial="rest"
-          whileHover="hover"
-          whileTap="tap"
-          className="mb-10 w-8 h-8 rounded-[10px] flex items-center justify-center electrobun-webkit-app-region-no-drag cursor-pointer transition-colors duration-200 ease-out hover:bg-radius-bg-secondary/80 overflow-hidden shadow-sm bg-radius-bg-secondary"
-        >
-          <motion.div variants={{ rest: { scale: 1 }, hover: { scale: 1.1 }, tap: { scale: 0.95 } }} transition={{ type: "spring", stiffness: 400, damping: 25 }}>
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="text-radius-accent">
-              <circle cx="14" cy="14" r="9" stroke="currentColor" strokeWidth="1.2" fill="none" opacity="0.5" />
-              <circle cx="14" cy="14" r="3.5" fill="currentColor" />
-            </svg>
-          </motion.div>
-        </motion.button>
-        <div className="flex flex-col gap-5 electrobun-webkit-app-region-no-drag text-radius-text-muted">
-          <motion.button 
-            onClick={handleShowInbox} 
-            title="Inbox"
-            initial="rest"
-            whileHover="hover"
-            whileTap="tap"
-            className={`p-1.5 rounded-lg transition-colors duration-200 ease-out hover:bg-radius-bg-secondary/40 ${mailboxView === 'inbox' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'text-radius-text-muted hover:text-radius-text-primary'}`}
-          >
-            <AnimatedInboxIcon className="w-5 h-5" />
-          </motion.button>
-          <motion.button 
-            onClick={() => void handleOpenMailbox("sent")} 
-            title="Sent"
-            initial="rest"
-            whileHover="hover"
-            whileTap="tap"
-            className={`p-1.5 rounded-lg transition-colors duration-200 ease-out hover:bg-radius-bg-secondary/40 ${mailboxView === 'sent' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'text-radius-text-muted hover:text-radius-text-primary'}`}
-          >
-            <AnimatedSentIcon className="w-5 h-5" />
-          </motion.button>
-          <motion.button 
-            onClick={() => void handleOpenMailbox("drafts")} 
-            title="Drafts"
-            initial="rest"
-            whileHover="hover"
-            whileTap="tap"
-            className={`p-1.5 rounded-lg transition-colors duration-200 ease-out hover:bg-radius-bg-secondary/40 ${mailboxView === 'drafts' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'text-radius-text-muted hover:text-radius-text-primary'}`}
-          >
-            <AnimatedDraftsIcon className="w-5 h-5" />
-          </motion.button>
-          <motion.button 
-            onClick={() => void handleOpenMailbox("trash")} 
-            title="Deleted"
-            initial="rest"
-            whileHover="hover"
-            whileTap="tap"
-            className={`p-1.5 rounded-lg transition-colors duration-200 ease-out hover:bg-radius-bg-secondary/40 ${mailboxView === 'trash' && !searchActive ? 'text-radius-text-primary bg-radius-bg-secondary/60' : 'text-radius-text-muted hover:text-radius-text-primary'}`}
-          >
-            <AnimatedTrashIcon className="w-5 h-5" />
-          </motion.button>
-        </div>
-      </nav>
-
-      {/* Main Content Card */}
-      <div className="flex-1 flex min-w-0 h-full bg-radius-bg-primary overflow-hidden z-10">
-
-        {/* Inbox List — smooth CSS transition panel */}
-        <aside
-          className="sidebar-panel h-full border-r border-radius-border-subtle bg-radius-bg-primary flex flex-col"
-          data-open={sidebarOpen}
-        >
-          <InboxList
-            messages={visibleMessages}
-            total={visibleTotal}
-            selectedId={selectedMessageId}
-            onSelect={handleSelectMessage}
-            syncStatus={syncStatus}
-            heading={
-              searchActive
-                ? "Search Results"
-                : mailboxView === "inbox"
-                  ? "Inbox"
-                  : mailboxView === "sent"
-                    ? "Sent"
-                    : mailboxView === "drafts"
-                      ? "Drafts"
-                      : "Trash"
-            }
-            detail={searchMeta ?? undefined}
-            loading={searchLoading}
-            onReachEnd={searchActive || mailboxView !== "inbox" ? undefined : handleLoadMoreInbox}
-            emptyMessage={
-              searchActive
-                ? `No emails match "${deferredSearchQuery.trim()}"`
-                : mailboxView === "inbox"
-                  ? undefined
-                  : `No ${mailboxView} emails`
-            }
-          />
-        </aside>
-
-        <main className="flex-1 min-w-0 h-full bg-radius-bg-primary relative">
-            <ReaderView
-              message={selectedMessage}
-              sidebarOpen={sidebarOpen}
-              onOpenSidebar={handleOpenSidebar}
-              onPrev={handlePrevMessage}
-              onNext={handleNextMessage}
-            />
-        </main>
-      </div>
+      <aside
+        className="sidebar-panel h-full border-r border-radius-border-subtle bg-radius-bg-primary will-change-transform"
+        data-open={sidebarOpen}
+      >
+        <InboxList
+          messages={visibleMessages}
+          total={visibleTotal}
+          selectedId={selectedMessageId}
+          onSelect={handleSelectMessage}
+          syncStatus={syncStatus}
+          heading={
+            searchActive
+              ? "Search Results"
+              : mailboxView === "inbox"
+                ? "Inbox"
+                : mailboxView === "sent"
+                  ? "Sent"
+                  : mailboxView === "drafts"
+                    ? "Drafts"
+                    : "Trash"
+          }
+          detail={searchMeta ?? undefined}
+          loading={searchLoading}
+          onReachEnd={searchActive || mailboxView !== "inbox" ? undefined : handleLoadMoreInbox}
+          emptyMessage={
+            searchActive
+              ? `No emails match “${deferredSearchQuery.trim()}”`
+              : mailboxView === "inbox"
+                ? undefined
+                : `No ${mailboxView} emails`
+          }
+        />
+      </aside>
+      <main className="flex-1 min-w-0 h-full">
+        <ReaderView
+          message={selectedMessage}
+          sidebarOpen={sidebarOpen}
+          onOpenSidebar={handleOpenSidebar}
+          onPrev={handlePrevMessage}
+          onNext={handleNextMessage}
+          currentIndex={currentMessageIndex}
+          totalCount={visibleMessages.length}
+        />
+      </main>
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen} modal={false}>
         <DialogContent
           showCloseButton={false}

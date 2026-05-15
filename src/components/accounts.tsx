@@ -1,6 +1,5 @@
 import { CommandGroup, CommandItem, CommandShortcut } from "@/components/ui/command";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { UserCircleIcon, Add01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
+import { UserCircleIcon, PlusIcon, CheckIcon } from "@phosphor-icons/react/dist/ssr";
 import type { Account } from "@/mainview/hooks/useInbox";
 
 interface AccountsProps {
@@ -34,12 +33,12 @@ export function Accounts({
             disabled={!!deleteTarget}
           >
             <div className="flex items-center gap-2">
-              <HugeiconsIcon icon={UserCircleIcon} />
+              <UserCircleIcon />
               <span className="text-sm">{account.email}</span>
             </div>
             <div className="flex items-center gap-2">
               {account.email === activeAccount && (
-                <HugeiconsIcon icon={Tick01Icon} size={14} className="text-radius-accent" />
+                <CheckIcon size={14} className="text-radius-accent" />
               )}
               <CommandShortcut className="inline-flex h-5 items-center rounded border border-radius-border-subtle bg-radius-bg-secondary px-1.5 text-[10px] font-medium text-radius-text-muted duration-150 font-[family-name:var(--font-family-sans)]">
                 D
@@ -53,7 +52,7 @@ export function Accounts({
           value="add-account"
           onSelect={onAddAccount}
         >
-          <HugeiconsIcon icon={Add01Icon} />
+          <PlusIcon />
           <span>Add Account</span>
         </CommandItem>
       </CommandGroup>
