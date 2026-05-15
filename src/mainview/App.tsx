@@ -878,15 +878,13 @@ function App() {
         </aside>
 
         <main className="flex-1 min-w-0 h-full bg-radius-bg-primary relative">
-          <ReaderView
-            message={selectedMessage}
-            sidebarOpen={sidebarOpen}
-            onOpenSidebar={handleOpenSidebar}
-            onPrev={handlePrevMessage}
-            onNext={handleNextMessage}
-            currentIndex={currentMessageIndex}
-            totalCount={visibleMessages.length}
-          />
+            <ReaderView
+              message={selectedMessage}
+              sidebarOpen={sidebarOpen}
+              onOpenSidebar={handleOpenSidebar}
+              onPrev={handlePrevMessage}
+              onNext={handleNextMessage}
+            />
         </main>
       </div>
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen} modal={false}>

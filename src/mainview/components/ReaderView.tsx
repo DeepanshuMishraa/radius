@@ -2,14 +2,12 @@ import DOMPurify from "dompurify";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import { useTheme } from "@/components/theme-provider";
-import type { Message, EmailCategory } from "../hooks/useInbox";
+import type { Message } from "../hooks/useInbox";
 import { useAvatarCache } from "../hooks/useAvatarCache";
 import { Avatar } from "./Avatar";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { 
+import {
   SidebarRight01Icon,
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
   ArchiveIcon,
   Delete02Icon,
   MailReply01Icon,
@@ -24,18 +22,6 @@ interface ReaderViewProps {
   onOpenSidebar: () => void;
   onPrev?: () => void;
   onNext?: () => void;
-  currentIndex?: number;
-  totalCount?: number;
-}
-
-function formatFullDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleString([], {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
 
 function parseAddress(addr: string | null | undefined): {
@@ -51,110 +37,6 @@ function parseAddress(addr: string | null | undefined): {
     };
   }
   return { name: addr, email: addr };
-}
-
-function AddressReveal({
-  name,
-  email,
-}: {
-  name: string;
-  email: string;
-}) {
-  const primaryLabel = name || email || "Unknown";
-  const secondaryLabel = email || primaryLabel;
-  const canReveal = secondaryLabel !== primaryLabel;
-
-  return (
-    <span
-      className="group/address relative inline-grid min-h-[1.35rem] max-w-full text-[14px] font-[family-name:var(--font-family-serif)] text-radius-text-primary"
-      title={secondaryLabel}
-    >
-      <span
-        className={`col-start-1 row-start-1 truncate transition-all duration-300 ease-out ${
-          canReveal
-            ? "group-hover/address:translate-y-[-3px] group-hover/address:opacity-0"
-            : ""
-        }`}
-      >
-        {primaryLabel}
-      </span>
-      {canReveal ? (
-        <span className="pointer-events-none col-start-1 row-start-1 truncate text-radius-text-secondary opacity-0 translate-y-1 transition-all duration-300 ease-out group-hover/address:translate-y-0 group-hover/address:opacity-100">
-          {secondaryLabel}
-        </span>
-      ) : null}
-    </span>
-  );
-}
-
-const CATEGORY_META: Record<
-  EmailCategory,
-  { label: string; bg: string; text: string; border: string }
-> = {
-  important: {
-    label: "Important",
-    bg: "rgba(196, 163, 90, 0.12)",
-    text: "#c4a35a",
-    border: "rgba(196, 163, 90, 0.25)",
-  },
-  promotional: {
-    label: "Promotional",
-    bg: "rgba(163, 90, 196, 0.12)",
-    text: "#a35ac4",
-    border: "rgba(163, 90, 196, 0.25)",
-  },
-  social: {
-    label: "Social",
-    bg: "rgba(90, 125, 196, 0.12)",
-    text: "#5a7dc4",
-    border: "rgba(90, 125, 196, 0.25)",
-  },
-  updates: {
-    label: "Updates",
-    bg: "rgba(90, 140, 111, 0.12)",
-    text: "#5a8c6f",
-    border: "rgba(90, 140, 111, 0.25)",
-  },
-  forums: {
-    label: "Forums",
-    bg: "rgba(196, 125, 90, 0.12)",
-    text: "#c47d5a",
-    border: "rgba(196, 125, 90, 0.25)",
-  },
-  spam: {
-    label: "Spam",
-    bg: "rgba(196, 90, 90, 0.12)",
-    text: "#c45a5a",
-    border: "rgba(196, 90, 90, 0.25)",
-  },
-  personal: {
-    label: "Personal",
-    bg: "rgba(90, 168, 196, 0.12)",
-    text: "#5aa8c4",
-    border: "rgba(90, 168, 196, 0.25)",
-  },
-  regular: {
-    label: "Regular",
-    bg: "transparent",
-    text: "var(--radius-text-muted)",
-    border: "transparent",
-  },
-};
-
-function MessageStatusWidget({ message }: { message: Message }) {
-  const meta = CATEGORY_META[message.category];
-
-  return (
-    <div className="inline-flex items-center gap-[5px] text-[11px] font-medium font-[family-name:var(--font-family-sans)]">
-      <span
-        className="inline-block rounded-full"
-        style={{ width: 4, height: 4, backgroundColor: meta.text }}
-      />
-      <span style={{ color: meta.text }}>
-        {meta.label}
-      </span>
-    </div>
-  );
 }
 
 function AttachmentList({ attachments, messageId }: { attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>; messageId: string }) {
@@ -857,8 +739,6 @@ export const ReaderView = memo(function ReaderView({
   onOpenSidebar,
   onPrev,
   onNext,
-  currentIndex = 0,
-  totalCount = 0,
 }: ReaderViewProps) {
   const { theme, appearance, resolvedTheme } = useTheme();
 
@@ -1013,7 +893,6 @@ export const ReaderView = memo(function ReaderView({
   }
 
   const sender = parseAddress(message.from);
-  const recipient = parseAddress(message.to);
 
   return (
     <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative scrollbar-none">

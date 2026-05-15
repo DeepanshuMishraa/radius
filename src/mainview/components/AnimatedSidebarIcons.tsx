@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
-import type { SVGProps } from "react";
+import type { ComponentPropsWithoutRef } from "react";
 
-type AnimatedIconProps = SVGProps<SVGSVGElement>;
+type AnimatedIconProps = ComponentPropsWithoutRef<typeof motion.svg>;
 
 export function AnimatedInboxIcon(props: AnimatedIconProps) {
   return (

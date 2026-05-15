@@ -1,11 +1,10 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useCallback, useEffect, useMemo } from "react";
 import type { KeyboardEvent } from "react";
-import type { Message, SyncStatus, EmailCategory } from "../hooks/useInbox";
+import type { Message, SyncStatus } from "../hooks/useInbox";
 import { useAvatarCache } from "../hooks/useAvatarCache";
 import { Avatar } from "./Avatar";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { CheckmarkSquare01Icon } from "@hugeicons/core-free-icons";
+
 
 interface InboxListProps {
   messages: Message[];
@@ -35,52 +34,6 @@ function formatDateShort(timestamp: number): string {
   } else {
     return date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
   }
-}
-
-const CATEGORY_DOT: Record<EmailCategory, string> = {
-  important: "#c4a35a",
-  promotional: "#a35ac4",
-  social: "#5a7dc4",
-  updates: "#5a8c6f",
-  forums: "#c47d5a",
-  spam: "#c45a5a",
-  personal: "#5aa8c4",
-  regular: "transparent",
-};
-
-function CategoryDot({ category }: { category: EmailCategory }) {
-  const color = CATEGORY_DOT[category];
-  if (color === "transparent") return null;
-  return (
-    <span
-      className="inline-block rounded-full shrink-0"
-      style={{
-        width: 5,
-        height: 5,
-        backgroundColor: color,
-        marginRight: 6,
-        marginBottom: 1,
-      }}
-      title={category}
-    />
-  );
-}
-
-function ReadIndicator({ isRead }: { isRead: boolean }) {
-  if (isRead) return null;
-
-  return (
-    <span
-      className="inline-block rounded-full shrink-0 bg-radius-accent"
-      style={{
-        width: 7,
-        height: 7,
-        marginLeft: 8,
-      }}
-      title="Unread"
-      aria-label="Unread"
-    />
-  );
 }
 
 function EmailRow({
@@ -140,7 +93,7 @@ function EmailRow({
           <p className={`text-[13px] tracking-[-0.01em] truncate mb-0.5 font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary" : "text-radius-text-primary font-medium"}`}>
             {message.subject}
           </p>
-          <p className="text-[13px] tracking-[-0.01em] truncate font-[family-name:var(--font-family-sans)] text-radius-text-muted">
+          <p className={`text-[13px] tracking-[-0.01em] truncate font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-muted" : "text-radius-text-secondary"}`}>
             {message.snippet}
           </p>
         </div>
@@ -157,7 +110,7 @@ export function InboxList({
   syncStatus,
   onReachEnd,
   heading = "Inbox",
-  detail,
+  detail: _detail,
   loading = false,
   emptyMessage,
 }: InboxListProps) {
