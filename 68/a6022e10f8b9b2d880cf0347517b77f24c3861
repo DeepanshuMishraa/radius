@@ -1,0 +1,44 @@
+src/mainview/components/ReaderView.tsx
+  s_f27274246c43e7::t_1d9c345de3aa89 8
+  s_f27274246c43e7::t_c636a622889734 978-980
+  s_f27274246c43e7::t_6372ca9d0f9904 933-935
+src/components/theme-registry.ts
+  s_d77c7cefb65a7f::t_1704d056f84d7f 197
+  s_d77c7cefb65a7f::t_b0019a26c38eb5 30-31,271
+src/mainview/components/InboxList.tsx
+  s_f27274246c43e7::t_41a029fffbc1c7 7
+  s_f27274246c43e7::t_9ab4a5388e1c5b 130
+  s_f27274246c43e7::t_b523a720d8de3b 76,78-79
+  s_f27274246c43e7::t_c4fbbc4c8b2335 72,77
+  s_f27274246c43e7::t_ecb35b755aeb78 83,91-96
+src/mainview/index.css
+  s_f27274246c43e7::t_2cbd3efd1ca12a 241,243
+src/mainview/main.tsx
+  s_f27274246c43e7::t_8e30657e82af5c 3
+src/mainview/components/CategoryBadge.tsx
+  s_f27274246c43e7::t_bd93093399fb40 1-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "68a6022e10f8b9b2d880cf0347517b77f24c3861",
+  "prompts": {},
+  "sessions": {
+    "s_d77c7cefb65a7f": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e29d7-f009-71d9-aa31-eea2af7f5cd7",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    },
+    "s_f27274246c43e7": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "5c8e45c9-b58a-493a-a76b-41262bb381aa",
+        "model": "gemini-3.1-pro-preview"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
