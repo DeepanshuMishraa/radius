@@ -1,0 +1,19 @@
+src/mainview/components/Avatar.tsx
+  s_f27274246c43e7::t_9f748ff73db413 40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "ee0338ac511e249da02a5767e19bfe26a3f4e4f2",
+  "prompts": {},
+  "sessions": {
+    "s_f27274246c43e7": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "5c8e45c9-b58a-493a-a76b-41262bb381aa",
+        "model": "gemini-3.1-pro-preview"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
