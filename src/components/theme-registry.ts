@@ -192,84 +192,85 @@ function normalizeZedTheme(filePath: string, file: ZedThemeFile): AppTheme[] {
     return [];
   }
 
-  return file.themes
-    .map((theme) => {
-      if (!theme.name || !theme.appearance || !theme.style) {
-        return null;
-      }
+  return file.themes.reduce<AppTheme[]>((themes, theme) => {
+    if (!theme.name || !theme.appearance || !theme.style) {
+      return themes;
+    }
 
-      const slugBase = `${file.name ?? "theme"}-${theme.name}`
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-      const id =
-        slugBase || filePath.split("/").pop()?.replace(".json", "") || "theme";
-      const appearance = theme.appearance;
-      const style = theme.style;
-      const primaryText = String(style.text ?? "#000000");
-      const mutedText = String(style["text.muted"] ?? primaryText);
-      const placeholderText = String(style["text.placeholder"] ?? mutedText);
-      const accent = String(style["text.accent"] ?? style.info ?? "#7aa2f7");
-      const bg = String(style.background ?? style["editor.background"] ?? "#111111");
-      const surface = String(style["surface.background"] ?? style["panel.background"] ?? bg);
-      const elevatedSurface = String(style["elevated_surface.background"] ?? surface);
-      const tertiarySurface = String(style["element.active"] ?? style["element.hover"] ?? elevatedSurface);
-      const border = String(style.border ?? style["border.variant"] ?? tertiarySurface);
-      const separator = String(style["border.variant"] ?? border);
+    const slugBase = `${file.name ?? "theme"}-${theme.name}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    const id =
+      slugBase || filePath.split("/").pop()?.replace(".json", "") || "theme";
+    const appearance = theme.appearance;
+    const style = theme.style;
+    const primaryText = String(style.text ?? "#000000");
+    const mutedText = String(style["text.muted"] ?? primaryText);
+    const placeholderText = String(style["text.placeholder"] ?? mutedText);
+    const accent = String(style["text.accent"] ?? style.info ?? "#7aa2f7");
+    const bg = String(style.background ?? style["editor.background"] ?? "#111111");
+    const surface = String(style["surface.background"] ?? style["panel.background"] ?? bg);
+    const elevatedSurface = String(style["elevated_surface.background"] ?? surface);
+    const tertiarySurface = String(style["element.active"] ?? style["element.hover"] ?? elevatedSurface);
+    const border = String(style.border ?? style["border.variant"] ?? tertiarySurface);
+    const separator = String(style["border.variant"] ?? border);
 
-      return {
-        id,
-        name: theme.name,
-        appearance,
-        variables: {
-          "--radius-frame-bg": bg,
-          "--radius-bg-primary": surface,
-          "--radius-bg-secondary": elevatedSurface,
-          "--radius-bg-tertiary": tertiarySurface,
-          "--radius-text-primary": primaryText,
-          "--radius-text-secondary": mutedText,
-          "--radius-text-muted": placeholderText,
-          "--radius-text-inverse": appearance === "dark" ? "#111111" : "#ffffff",
-          "--radius-accent": accent,
-          "--radius-accent-hover": accent,
-          "--radius-accent-subtle": String(
-            style["search.match_background"] ?? withAlpha(accent, 0.18)
-          ),
-          "--radius-success": String(style.success ?? accent),
-          "--radius-warning": String(style.warning ?? accent),
-          "--radius-error": String(style.error ?? accent),
-          "--radius-info": String(style.info ?? accent),
-          "--radius-border-subtle": separator,
-          "--radius-border": border,
-          "--background": bg,
-          "--foreground": primaryText,
-          "--card": surface,
-          "--card-foreground": primaryText,
-          "--popover": elevatedSurface,
-          "--popover-foreground": primaryText,
-          "--primary": accent,
-          "--primary-foreground": appearance === "dark" ? "#111111" : "#ffffff",
-          "--secondary": elevatedSurface,
-          "--secondary-foreground": primaryText,
-          "--muted": tertiarySurface,
-          "--muted-foreground": mutedText,
-          "--accent": String(style["element.hover"] ?? tertiarySurface),
-          "--accent-foreground": primaryText,
-          "--destructive": String(style.error ?? accent),
-          "--input": border,
-          "--ring": String(style["border.focused"] ?? accent),
-          "--sidebar": elevatedSurface,
-          "--sidebar-foreground": primaryText,
-          "--sidebar-primary": accent,
-          "--sidebar-primary-foreground": appearance === "dark" ? "#111111" : "#ffffff",
-          "--sidebar-accent": tertiarySurface,
-          "--sidebar-accent-foreground": primaryText,
-          "--sidebar-border": border,
-          "--sidebar-ring": String(style["border.focused"] ?? accent),
-        },
-      } satisfies AppTheme;
-    })
-    .filter((theme): theme is AppTheme => theme !== null);
+    const normalized: AppTheme = {
+      id,
+      name: theme.name,
+      appearance,
+      variables: {
+        "--radius-frame-bg": bg,
+        "--radius-bg-primary": surface,
+        "--radius-bg-secondary": elevatedSurface,
+        "--radius-bg-tertiary": tertiarySurface,
+        "--radius-text-primary": primaryText,
+        "--radius-text-secondary": mutedText,
+        "--radius-text-muted": placeholderText,
+        "--radius-text-inverse": appearance === "dark" ? "#111111" : "#ffffff",
+        "--radius-accent": accent,
+        "--radius-accent-hover": accent,
+        "--radius-accent-subtle": String(
+          style["search.match_background"] ?? withAlpha(accent, 0.18)
+        ),
+        "--radius-success": String(style.success ?? accent),
+        "--radius-warning": String(style.warning ?? accent),
+        "--radius-error": String(style.error ?? accent),
+        "--radius-info": String(style.info ?? accent),
+        "--radius-border-subtle": separator,
+        "--radius-border": border,
+        "--background": bg,
+        "--foreground": primaryText,
+        "--card": surface,
+        "--card-foreground": primaryText,
+        "--popover": elevatedSurface,
+        "--popover-foreground": primaryText,
+        "--primary": accent,
+        "--primary-foreground": appearance === "dark" ? "#111111" : "#ffffff",
+        "--secondary": elevatedSurface,
+        "--secondary-foreground": primaryText,
+        "--muted": tertiarySurface,
+        "--muted-foreground": mutedText,
+        "--accent": String(style["element.hover"] ?? tertiarySurface),
+        "--accent-foreground": primaryText,
+        "--destructive": String(style.error ?? accent),
+        "--input": border,
+        "--ring": String(style["border.focused"] ?? accent),
+        "--sidebar": elevatedSurface,
+        "--sidebar-foreground": primaryText,
+        "--sidebar-primary": accent,
+        "--sidebar-primary-foreground": appearance === "dark" ? "#111111" : "#ffffff",
+        "--sidebar-accent": tertiarySurface,
+        "--sidebar-accent-foreground": primaryText,
+        "--sidebar-border": border,
+        "--sidebar-ring": String(style["border.focused"] ?? accent),
+      },
+    };
+
+    themes.push(normalized);
+    return themes;
+  }, []);
 }
 
 export const APP_THEMES = Object.entries(themeFiles)

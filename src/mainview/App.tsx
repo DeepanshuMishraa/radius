@@ -805,8 +805,6 @@ function App() {
           onOpenSidebar={handleOpenSidebar}
           onPrev={handlePrevMessage}
           onNext={handleNextMessage}
-          currentIndex={currentMessageIndex}
-          totalCount={visibleMessages.length}
         />
       </main>
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen} modal={false}>
