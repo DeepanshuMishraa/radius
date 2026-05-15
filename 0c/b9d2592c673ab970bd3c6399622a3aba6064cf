@@ -1,0 +1,44 @@
+src/mainview/components/InboxList.tsx
+  s_66f775fe8744fb::t_543da547d6a36e 4
+  s_d77c7cefb65a7f::t_a80726544bf8f7 113
+  s_f27274246c43e7::t_cdbbc29f2a9187 96
+src/mainview/components/ReaderView.tsx
+  s_66f775fe8744fb::t_332bc6e3950210 5
+  s_66f775fe8744fb::t_58bef4734edc40 9
+src/mainview/App.tsx
+  s_66f775fe8744fb::t_4c8324ec36b130 881-887
+src/mainview/components/AnimatedSidebarIcons.tsx
+  s_66f775fe8744fb::t_d54286c726153a 2,4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "0cb9d2592c673ab970bd3c6399622a3aba6064cf",
+  "prompts": {},
+  "sessions": {
+    "s_66f775fe8744fb": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1d625f712ffeDc1T5dDEMdYzEY",
+        "model": "gpt-5.2-codex"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    },
+    "s_d77c7cefb65a7f": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e29d7-f009-71d9-aa31-eea2af7f5cd7",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    },
+    "s_f27274246c43e7": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "5c8e45c9-b58a-493a-a76b-41262bb381aa",
+        "model": "gemini-3.1-pro-preview"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
