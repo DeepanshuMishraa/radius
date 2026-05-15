@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, File as FileIcon, Image as ImageIcon, LinkSimple, ArrowRight } from "@phosphor-icons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Add01Icon, File01Icon, Image01Icon, Link01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { type Attachment, isValidUrl } from "./types";
 
@@ -45,7 +46,8 @@ export function ComposeAttachments({ onAddAttachment }: ComposeAttachmentsProps)
 
   useEffect(() => {
     if (mode === "link") {
-      setTimeout(() => linkInputRef.current?.focus(), 50);
+      const timer = window.setTimeout(() => linkInputRef.current?.focus(), 50);
+      return () => window.clearTimeout(timer);
     }
   }, [mode]);
 
@@ -125,7 +127,7 @@ export function ComposeAttachments({ onAddAttachment }: ComposeAttachmentsProps)
         aria-label="Add attachment"
       >
         <motion.div animate={{ rotate: open ? 45 : 0 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}>
-          <Plus size={14} />
+          <HugeiconsIcon icon={Add01Icon} size={14} />
         </motion.div>
       </motion.button>
 
@@ -166,9 +168,9 @@ export function ComposeAttachments({ onAddAttachment }: ComposeAttachmentsProps)
                   transition={{ duration: 0.15 }}
                   className="flex flex-col"
                 >
-                  <AttachmentOption icon={<FileIcon size={14} />} label="Upload file" onClick={() => fileInputRef.current?.click()} />
-                  <AttachmentOption icon={<ImageIcon size={14} />} label="Add image" onClick={() => imageInputRef.current?.click()} />
-                  <AttachmentOption icon={<LinkSimple size={14} />} label="Insert link" onClick={() => setMode("link")} />
+                  <AttachmentOption icon={<HugeiconsIcon icon={File01Icon} size={14} />} label="Upload file" onClick={() => fileInputRef.current?.click()} />
+                  <AttachmentOption icon={<HugeiconsIcon icon={Image01Icon} size={14} />} label="Add image" onClick={() => imageInputRef.current?.click()} />
+                  <AttachmentOption icon={<HugeiconsIcon icon={Link01Icon} size={14} />} label="Insert link" onClick={() => setMode("link")} />
                 </motion.div>
               ) : (
                 <motion.div
@@ -179,7 +181,7 @@ export function ComposeAttachments({ onAddAttachment }: ComposeAttachmentsProps)
                   transition={{ duration: 0.15 }}
                   className="flex w-[200px] items-center gap-1.5 px-1 py-1"
                 >
-                  <LinkSimple size={14} className="text-radius-text-muted shrink-0 ml-1.5" />
+                  <HugeiconsIcon icon={Link01Icon} size={14} className="text-radius-text-muted shrink-0 ml-1.5" />
                   <input
                     ref={linkInputRef}
                     value={linkInput}
@@ -200,7 +202,7 @@ export function ComposeAttachments({ onAddAttachment }: ComposeAttachmentsProps)
                     onClick={handleAddLink}
                     className="flex h-6 w-6 items-center justify-center rounded-md bg-radius-text-primary text-radius-bg-primary shadow-sm hover:opacity-90 transition-opacity"
                   >
-                    <ArrowRight size={12} weight="bold" />
+                    <HugeiconsIcon icon={ArrowRight01Icon} size={12} />
                   </motion.button>
                 </motion.div>
               )}

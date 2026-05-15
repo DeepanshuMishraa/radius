@@ -27,7 +27,8 @@ export type AppTheme = {
   variables: Record<string, string>;
 };
 
-const themeFiles = import.meta.glob("../../themes/*.json", {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const themeFiles = (import.meta as any).glob("../../themes/*.json", {
   eager: true,
   import: "default",
 }) as Record<string, FlatThemeFile | ZedThemeFile>;
@@ -193,7 +194,7 @@ function normalizeZedTheme(filePath: string, file: ZedThemeFile): AppTheme[] {
   }
 
   return file.themes
-    .map((theme) => {
+    .map((theme): AppTheme | null => {
       if (!theme.name || !theme.appearance || !theme.style) {
         return null;
       }
@@ -267,7 +268,7 @@ function normalizeZedTheme(filePath: string, file: ZedThemeFile): AppTheme[] {
           "--sidebar-border": border,
           "--sidebar-ring": String(style["border.focused"] ?? accent),
         },
-      } satisfies AppTheme;
+      };
     })
     .filter((theme): theme is AppTheme => theme !== null);
 }

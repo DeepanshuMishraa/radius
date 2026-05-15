@@ -1,6 +1,11 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRef, useCallback, useEffect } from "react";
-import type { Message, SyncStatus, EmailCategory } from "../hooks/useInbox";
+import { useRef, useCallback, useEffect, useMemo } from "react";
+import type { KeyboardEvent } from "react";
+import type { Message, SyncStatus } from "../hooks/useInbox";
+import { useAvatarCache } from "../hooks/useAvatarCache";
+import { Avatar } from "./Avatar";
+import { CategoryBadge } from "./CategoryBadge";
+
 
 interface InboxListProps {
   messages: Message[];
@@ -32,111 +37,65 @@ function formatDateShort(timestamp: number): string {
   }
 }
 
-const CATEGORY_DOT: Record<EmailCategory, string> = {
-  important: "#c4a35a",
-  promotional: "#a35ac4",
-  social: "#5a7dc4",
-  updates: "#5a8c6f",
-  forums: "#c47d5a",
-  spam: "#c45a5a",
-  personal: "#5aa8c4",
-  regular: "transparent",
-};
-
-function CategoryDot({ category }: { category: EmailCategory }) {
-  const color = CATEGORY_DOT[category];
-  if (color === "transparent") return null;
-  return (
-    <span
-      className="inline-block rounded-full shrink-0"
-      style={{
-        width: 5,
-        height: 5,
-        backgroundColor: color,
-        marginRight: 6,
-        marginBottom: 1,
-      }}
-      title={category}
-    />
-  );
-}
-
-function ReadIndicator({ isRead }: { isRead: boolean }) {
-  if (isRead) return null;
-
-  return (
-    <span
-      className="inline-block rounded-full shrink-0 bg-radius-accent"
-      style={{
-        width: 7,
-        height: 7,
-        marginLeft: 8,
-      }}
-      title="Unread"
-      aria-label="Unread"
-    />
-  );
-}
-
 function EmailRow({
   message,
   isSelected,
   onClick,
+  avatarUrl,
 }: {
   message: Message;
   isSelected: boolean;
   onClick: () => void;
+  avatarUrl: string | null;
 }) {
   const senderName = message.from?.split("<")[0].trim() || message.from || "";
+  const senderEmail = message.from?.match(/<([^>]+)>/)?.[1] || message.from || "";
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick();
+      }
+    },
+    [onClick]
+  );
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Email from ${senderName}: ${message.subject}`}
       onClick={onClick}
+      onKeyDown={handleKeyDown}
       className={`
-        h-[104px] px-5 py-3.5 cursor-pointer select-none overflow-hidden transition-colors duration-80
-        ${isSelected ? "border-l-[2px] border-l-radius-accent bg-radius-bg-secondary" : "border-l-[2px] border-l-transparent hover:bg-radius-bg-secondary"}
-        ${!message.isRead ? "bg-radius-bg-secondary/40" : ""}
+        relative h-[88px] px-4 py-3 cursor-pointer select-none overflow-hidden transition-colors duration-150 ease-out border-b border-radius-border-subtle group
+        ${isSelected ? "bg-radius-bg-secondary" : "hover:bg-radius-bg-secondary/40 active:bg-radius-bg-secondary/60 bg-transparent"}
       `}
     >
-      {/* Top line: sender + date pill */}
-      <div className="flex items-center justify-between gap-3 mb-1">
-        <span
-          className={`min-w-0 flex flex-1 items-center text-[13px] truncate pr-3 font-[family-name:var(--font-family-sans)] ${
-            message.isRead
-              ? "font-medium text-radius-text-primary"
-              : "font-semibold text-radius-text-primary"
-          }`}
-        >
-          <CategoryDot category={message.category} />
-          <span className="truncate">{senderName}</span>
-          <ReadIndicator isRead={message.isRead} />
-        </span>
-        <span className="shrink-0 text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)] border border-radius-border-subtle rounded-full px-2 py-0.5">
-          {formatDateShort(message.internalDate)}
-        </span>
+      <div className={`flex gap-3 h-full transition-transform duration-200 ease-out ${!isSelected ? 'group-active:scale-[0.99]' : ''}`}>
+        <Avatar name={senderName} email={senderEmail} cachedUrl={avatarUrl} size={36} />
+        
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex items-center gap-1.5 justify-between mb-0.5 min-w-0">
+            <span className={`truncate text-[14px] tracking-[-0.01em] font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary font-medium" : "text-radius-text-primary font-bold"}`}>
+              {senderName}
+            </span>
+            <span className={`shrink-0 text-[11px] font-[family-name:var(--font-family-sans)] ml-2 ${message.isRead ? "text-radius-text-muted" : "text-radius-accent font-semibold"}`}>
+              {formatDateShort(message.internalDate)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 mb-0.5 min-w-0">
+            <p className={`text-[13px] tracking-[-0.01em] truncate font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary" : "text-radius-text-primary font-bold"}`}>
+              {message.subject}
+            </p>
+            <CategoryBadge category={message.category} className="shrink-0" />
+          </div>
+          <p className={`text-[13px] tracking-[-0.01em] truncate font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-muted" : "text-radius-text-secondary font-medium"}`}>
+            {message.snippet}
+          </p>
+        </div>
       </div>
-
-      {/* Subject */}
-      <p
-        className={`text-[13px] truncate mb-0.5 font-[family-name:var(--font-family-sans)] ${
-          message.isRead
-            ? "text-radius-text-primary/88 font-normal"
-            : "text-radius-text-primary font-semibold"
-        }`}
-      >
-        {message.subject}
-      </p>
-
-      {/* Snippet */}
-      <p
-        className={`text-[12px] truncate leading-[1.4] font-[family-name:var(--font-family-sans)] ${
-          message.isRead
-            ? "text-radius-text-muted"
-            : "text-radius-text-secondary"
-        }`}
-      >
-        {message.snippet}
-      </p>
     </div>
   );
 }
@@ -149,16 +108,23 @@ export function InboxList({
   syncStatus,
   onReachEnd,
   heading = "Inbox",
-  detail,
+  detail: _detail,
   loading = false,
   emptyMessage,
 }: InboxListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
+  // Collect all sender emails for batch avatar fetching
+  const senderEmails = useMemo(() => 
+    messages.map(m => m.from?.match(/<([^>]+)>/)?.[1] || m.from || "").filter(Boolean),
+    [messages]
+  );
+  const { getAvatarUrl } = useAvatarCache(senderEmails);
+
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 104,
+    estimateSize: () => 88,
     getItemKey: (index) => messages[index]?.id ?? index,
     overscan: 5,
   });
@@ -186,40 +152,29 @@ export function InboxList({
   }, [lastVirtualItem?.index, loading, messages.length, onReachEnd, total]);
 
   return (
-    <div className="flex flex-col h-full bg-radius-bg-primary pt-11">
+    <div className="flex flex-col h-full bg-radius-bg-primary relative">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-radius-border-subtle">
-        <div className="min-w-0">
-          <span className="block text-[11px] font-semibold text-radius-text-muted uppercase tracking-[1px] font-[family-name:var(--font-family-sans)]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-radius-border-subtle bg-radius-bg-primary/80 backdrop-blur-md z-10">
+        <div className="flex items-center gap-2 text-radius-text-secondary">
+          <span className="text-[13px] font-semibold text-radius-text-primary font-[family-name:var(--font-family-sans)]">
             {heading}
           </span>
-          {detail ? (
-            <span className="block mt-1 text-[11px] text-radius-text-muted/90 truncate font-[family-name:var(--font-family-sans)]">
-              {detail}
-            </span>
-          ) : null}
         </div>
-        <div className="shrink-0 flex items-center gap-2">
-          {loading ? (
-            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-radius-accent animate-pulse" />
-          ) : null}
-          <span className="text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-            {total.toLocaleString()}
-          </span>
-        </div>
+        <span className="text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)] tabular-nums font-medium">
+          {total.toLocaleString()}
+        </span>
       </div>
 
       {messages.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <div className="w-10 h-10 rounded-2xl border border-radius-border-subtle flex items-center justify-center mb-4">
+          <div className="w-10 h-10 rounded-full border border-radius-border-subtle flex items-center justify-center mb-4 text-radius-text-muted bg-radius-bg-secondary/30">
             <svg
-              width="18"
-              height="18"
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.5"
-              className="text-radius-text-muted"
             >
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
               <polyline points="22,6 12,13 2,6" />
@@ -230,7 +185,7 @@ export function InboxList({
           </p>
         </div>
       ) : (
-        <div ref={parentRef} className="flex-1 overflow-auto">
+        <div ref={parentRef} className="flex-1 overflow-auto bg-radius-bg-primary">
           <div
             style={{
               height: `${virtualizer.getTotalSize()}px`,
@@ -240,6 +195,7 @@ export function InboxList({
           >
             {virtualItems.map((virtualItem) => {
               const message = messages[virtualItem.index];
+              const senderEmail = message.from?.match(/<([^>]+)>/)?.[1] || message.from || "";
               return (
                 <div
                   key={message.id}
@@ -256,6 +212,7 @@ export function InboxList({
                     message={message}
                     isSelected={selectedId === message.id}
                     onClick={() => handleMessageClick(message.id)}
+                    avatarUrl={getAvatarUrl(senderEmail)}
                   />
                 </div>
               );

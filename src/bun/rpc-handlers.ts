@@ -1,5 +1,5 @@
 import type { RadiusRPC } from "../shared/types";
-import { getInboxMessages, searchInboxMessages, getMessageById, updateMessageBodies, getSyncState, setMessageReadState, getComposeContactRows, getComposeSessionRecipientRows, searchComposeContacts, upsertComposeContacts, getMailboxMessages as getStoredMailboxMessages } from "./db";
+import { getInboxMessages, searchInboxMessages, getMessageById, updateMessageBodies, getSyncState, setMessageReadState, getComposeContactRows, getComposeSessionRecipientRows, searchComposeContacts, upsertComposeContacts, getMailboxMessages as getStoredMailboxMessages, getSenderAvatarsBatch, upsertSenderAvatar, getAllSenderAvatars } from "./db";
 import { getAccountEmail, getValidAccessToken } from "./auth";
 import { getMessage as getGmailMessage, extractBodies, getAttachment, modifyMessageLabels, GmailAPIError, parseHeaders, classifyMessageNature, isReadFromLabels } from "./gmail";
 import {
@@ -320,3 +320,92 @@ export const handleQueueSend = queueSendForSession;
 export const handleUndoSend = undoPendingSend;
 export const handleDiscardComposeSession = discardComposeSession;
 export { handleResyncAccount } from "./sync-lifecycle";
+
+const DOMAIN_ALIASES: Record<string, string> = {
+  "redditmail.com": "reddit.com",
+  "pinterestmail.com": "pinterest.com",
+  "quoramail.com": "quora.com",
+  "facebookmail.com": "facebook.com",
+  "bounces.google.com": "google.com",
+  "amazonses.com": "amazon.com",
+};
+
+function resolveDomainAlias(domain: string): string {
+  return DOMAIN_ALIASES[domain] ?? domain;
+}
+
+function getBaseDomain(domain: string): string {
+  const aliased = resolveDomainAlias(domain);
+  if (aliased !== domain) return aliased;
+  const parts = domain.split('.');
+  if (parts.length <= 2) return domain;
+  if (['co', 'com', 'org', 'net'].includes(parts[parts.length - 2])) {
+    return parts.slice(-3).join('.');
+  }
+  return parts.slice(-2).join('.');
+}
+
+export async function handleGetAllSenderAvatars(): Promise<{ avatars: Record<string, string | null> }> {
+  const avatars = await getAllSenderAvatars();
+  return { avatars };
+}
+
+export async function handleGetSenderAvatars(params: { domains: string[] }): Promise<{ avatars: Record<string, string | null> }> {
+  const domains = [...new Set(params.domains.map(d => getBaseDomain(d.toLowerCase())))].slice(0, 100);
+  if (domains.length === 0) return { avatars: {} };
+
+  // Check cache first
+  const cached = await getSenderAvatarsBatch(domains);
+  const missingDomains = domains.filter(d => {
+    const url = cached[d];
+    return !(d in cached) || url == null;
+  });
+
+  // Fetch missing company logos from Hunter.io first, then Unavatar fallback
+  // Process in chunks of 5 to avoid hammering external services
+  const CONCURRENCY = 5;
+  for (let i = 0; i < missingDomains.length; i += CONCURRENCY) {
+    const chunk = missingDomains.slice(i, i + CONCURRENCY);
+    const results = await Promise.allSettled(
+      chunk.map(async (domain) => {
+        try {
+          // Try Hunter.io first
+          const hunterRes = await fetch(`https://logos.hunter.io/${domain}`, {
+            method: 'HEAD',
+            signal: AbortSignal.timeout(3000),
+          });
+          if (hunterRes.ok) {
+            const url = `https://logos.hunter.io/${domain}`;
+            await upsertSenderAvatar(domain, url);
+            return { key: domain, url };
+          }
+
+          // Fallback to Unavatar when Hunter.io lookup fails
+          const unavatarRes = await fetch(`https://unavatar.io/${domain}`, {
+            method: 'HEAD',
+            signal: AbortSignal.timeout(3000),
+          });
+          if (unavatarRes.ok) {
+            const url = `https://unavatar.io/${domain}`;
+            await upsertSenderAvatar(domain, url);
+            return { key: domain, url };
+          }
+
+          await upsertSenderAvatar(domain, null);
+          return { key: domain, url: null };
+        } catch {
+          await upsertSenderAvatar(domain, null);
+          return { key: domain, url: null };
+        }
+      })
+    );
+
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        cached[result.value.key] = result.value.url;
+      }
+    }
+  }
+
+  return { avatars: cached };
+}

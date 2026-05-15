@@ -313,6 +313,14 @@ export type RadiusRPC = {
         params: { messageId: string; attachmentId: string; filename: string };
         response: { success: boolean; error?: string };
       };
+      getSenderAvatars: {
+        params: { domains: string[] };
+        response: { avatars: Record<string, string | null> };
+      };
+      getAllSenderAvatars: {
+        params: {};
+        response: { avatars: Record<string, string | null> };
+      };
     };
     messages: {
       ready: {};

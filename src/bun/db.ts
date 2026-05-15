@@ -201,6 +201,12 @@ export async function createSchema(): Promise<void> {
 
     CREATE INDEX IF NOT EXISTS idx_compose_contacts_rank
       ON compose_contacts(account_email, frequency DESC, last_used_at DESC);
+
+    CREATE TABLE IF NOT EXISTS sender_avatars (
+      domain TEXT PRIMARY KEY,
+      avatar_url TEXT,
+      fetched_at INTEGER NOT NULL
+    );
   `);
 
   const syncStateColumns = db.query(
@@ -958,4 +964,45 @@ export async function searchComposeContacts(
       name: string;
       frequency: number;
     }>;
+}
+
+export async function getSenderAvatarsBatch(
+  domains: string[]
+): Promise<Record<string, string | null>> {
+  if (domains.length === 0) return {};
+  const db = await getDb();
+  const result: Record<string, string | null> = {};
+  const placeholders = domains.map(() => "?").join(", ");
+  const rows = db
+    .query(`SELECT domain, avatar_url FROM sender_avatars WHERE domain IN (${placeholders})`)
+    .all(...domains) as Array<{ domain: string; avatar_url: string | null }>;
+  for (const row of rows) {
+    result[row.domain] = row.avatar_url;
+  }
+  return result;
+}
+
+export async function getAllSenderAvatars(): Promise<Record<string, string | null>> {
+  const db = await getDb();
+  const rows = db
+    .query("SELECT domain, avatar_url FROM sender_avatars")
+    .all() as Array<{ domain: string; avatar_url: string | null }>;
+  const result: Record<string, string | null> = {};
+  for (const row of rows) {
+    result[row.domain] = row.avatar_url;
+  }
+  return result;
+}
+
+export async function upsertSenderAvatar(
+  domain: string,
+  avatarUrl: string | null
+): Promise<void> {
+  const db = await getDb();
+  db.run(
+    `INSERT INTO sender_avatars (domain, avatar_url, fetched_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT(domain) DO UPDATE SET avatar_url = excluded.avatar_url, fetched_at = excluded.fetched_at`,
+    [domain, avatarUrl, Math.floor(Date.now() / 1000)]
+  );
 }
