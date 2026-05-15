@@ -69,32 +69,29 @@ function EmailRow({
       onClick={onClick}
       onKeyDown={handleKeyDown}
       className={`
-        relative h-[88px] pl-6 pr-4 py-3 cursor-pointer select-none overflow-hidden transition-colors duration-150 ease-out border-b border-radius-border-subtle group
+        relative h-[88px] px-4 py-3 cursor-pointer select-none overflow-hidden transition-colors duration-150 ease-out border-b border-radius-border-subtle group
         ${isSelected ? "bg-radius-bg-secondary" : "hover:bg-radius-bg-secondary/40 active:bg-radius-bg-secondary/60 bg-transparent"}
       `}
     >
-      {!message.isRead && (
-        <div className="absolute left-2.5 top-[20px] w-2 h-2 rounded-full bg-radius-accent" />
-      )}
       <div className={`flex gap-3 h-full transition-transform duration-200 ease-out ${!isSelected ? 'group-active:scale-[0.99]' : ''}`}>
         <Avatar name={senderName} email={senderEmail} cachedUrl={avatarUrl} size={36} />
         
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="flex items-center gap-1.5 justify-between mb-0.5 min-w-0">
-            <span className={`truncate text-[14px] tracking-[-0.01em] font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-primary" : "text-radius-text-primary font-semibold"}`}>
+            <span className={`truncate text-[14px] tracking-[-0.01em] font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary font-medium" : "text-radius-text-primary font-bold"}`}>
               {senderName}
             </span>
-            <span className={`shrink-0 text-[11px] font-[family-name:var(--font-family-sans)] ml-2 ${message.isRead ? "text-radius-text-muted" : "text-radius-accent font-medium"}`}>
+            <span className={`shrink-0 text-[11px] font-[family-name:var(--font-family-sans)] ml-2 ${message.isRead ? "text-radius-text-muted" : "text-radius-accent font-semibold"}`}>
               {formatDateShort(message.internalDate)}
             </span>
           </div>
           <div className="flex items-center gap-2 mb-0.5 min-w-0">
-            <p className={`text-[13px] tracking-[-0.01em] truncate font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary" : "text-radius-text-primary font-medium"}`}>
+            <p className={`text-[13px] tracking-[-0.01em] truncate font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-secondary" : "text-radius-text-primary font-bold"}`}>
               {message.subject}
             </p>
             <CategoryBadge category={message.category} className="shrink-0" />
           </div>
-          <p className={`text-[13px] tracking-[-0.01em] truncate font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-muted" : "text-radius-text-secondary"}`}>
+          <p className={`text-[13px] tracking-[-0.01em] truncate font-[family-name:var(--font-family-sans)] ${message.isRead ? "text-radius-text-muted" : "text-radius-text-secondary font-medium"}`}>
             {message.snippet}
           </p>
         </div>
