@@ -37,7 +37,7 @@ export function Avatar({ name, email, cachedUrl, size = 40 }: AvatarProps) {
 
   return (
     <div
-      className="relative shrink-0 overflow-hidden rounded-full border border-radius-border-subtle"
+      className="relative shrink-0 overflow-hidden rounded-[10px] border border-radius-border-subtle"
       style={{ width: size, height: size }}
     >
       {/* Fallback initial — always rendered underneath */}
