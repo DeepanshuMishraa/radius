@@ -1,0 +1,19 @@
+src/mainview/components/InboxList.tsx
+  s_f27274246c43e7::t_e4ae8c194b09a1 72,81,84,89,94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "796237672bef4a1362697e68f7bb66c0fa3e34b0",
+  "prompts": {},
+  "sessions": {
+    "s_f27274246c43e7": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "5c8e45c9-b58a-493a-a76b-41262bb381aa",
+        "model": "gemini-3.1-pro-preview"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
