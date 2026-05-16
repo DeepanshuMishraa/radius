@@ -227,7 +227,7 @@ function InboxWidget({
           className="
             electrobun-webkit-app-region-no-drag
             fixed top-[46px] left-6 z-30
-            p-2
+            p-1.5
             rounded-lg
             text-radius-text-muted
             bg-radius-bg-primary/70 backdrop-blur-md
@@ -245,7 +245,7 @@ function InboxWidget({
             } as CSSProperties
           }
         >
-          <HugeiconsIcon icon={SidebarRight01Icon} />
+          <HugeiconsIcon icon={SidebarRight01Icon} size={16} />
         </button>
       </TooltipTrigger>
       <TooltipContent side="bottom" sideOffset={6} className="bg-radius-bg-primary text-radius-text-primary border border-radius-border-subtle shadow-md">
@@ -318,28 +318,74 @@ function ActionBarWidget({
 
 function ReplyThreadCard({ message }: { message: Message }) {
   const author = parseAddress(message.from);
-  const preview = (message.bodyText || message.snippet || "").trim();
+  const bodyText = (message.bodyText || message.snippet || "").trim();
+  
+  let replyText = bodyText;
+  let quotedText = "";
+  
+  const quoteRegex = /(?:\n|^)(?:On\s.*?wrote:.*|>\s.*|From:\s.*|--- Original Message ---.*)/is;
+  const match = bodyText.match(quoteRegex);
+  
+  if (match && match.index !== undefined) {
+    replyText = bodyText.substring(0, match.index).trim();
+    quotedText = bodyText.substring(match.index).trim();
+  }
+
+  if (!replyText && quotedText) {
+    replyText = quotedText;
+    quotedText = "";
+  }
+
+  const avatarLetter = (author.name || author.email || "?").charAt(0).toUpperCase();
 
   return (
-    <section className="rounded-[22px] border border-radius-border-subtle bg-radius-bg-secondary/55 p-5">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-            Your reply
+    <article className="group flex flex-col gap-1 py-6 border-t border-radius-border-subtle/20 first:border-0 transition-colors">
+      <header className="flex items-center justify-between gap-4 mb-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-radius-bg-secondary/80 border border-radius-border-subtle/50 text-[11px] font-medium text-radius-text-primary shadow-sm">
+            {avatarLetter}
           </div>
-          <div className="mt-1 text-[14px] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
-            {author.name || author.email || "You"}
+          <div className="flex items-baseline gap-2">
+            <span className="text-[14px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+              {author.name || author.email || "Unknown"}
+            </span>
+            {author.name && author.email && author.email !== author.name && (
+              <span className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                {author.email}
+              </span>
+            )}
           </div>
         </div>
-        <time className="text-[11px] uppercase tracking-[0.12em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+        <time className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)] tracking-wide">
           {formatFullDate(message.internalDate)}
         </time>
+      </header>
+      
+      <div className="pl-10">
+        <div className="whitespace-pre-wrap text-[14.5px] leading-[1.65] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
+          {replyText || "No content"}
+        </div>
+        
+        {quotedText && (
+          <details className="mt-3 group/quote">
+            <summary className="cursor-pointer text-radius-text-muted hover:text-radius-text-primary select-none flex h-6 w-8 items-center justify-center rounded bg-radius-bg-secondary/30 hover:bg-radius-bg-secondary/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-radius-border-strong">
+              <span className="text-[14px] leading-none tracking-widest translate-x-[1px]">•••</span>
+            </summary>
+            <div className="mt-4 border-l-2 border-radius-border-subtle/40 pl-4 py-0.5">
+              <div className="whitespace-pre-wrap text-[13px] leading-[1.6] text-radius-text-muted font-[family-name:var(--font-family-sans)] opacity-60">
+                {quotedText}
+              </div>
+            </div>
+          </details>
+        )}
+        
+        {message.attachments && message.attachments.length > 0 && (
+          <div className="mt-4">
+            <AttachmentList attachments={message.attachments} messageId={message.id} />
+          </div>
+        )}
       </div>
-      <div className="whitespace-pre-wrap text-[14px] leading-[1.7] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
-        {preview || "No preview available"}
-      </div>
-      <AttachmentList attachments={message.attachments} messageId={message.id} />
-    </section>
+    </article>
   );
 }
 
@@ -1105,6 +1151,22 @@ export const ReaderView = memo(function ReaderView({
     }
 
     const greeting = `Good ${timeGreeting}, ${systemName}.`;
+    const mailboxTitle =
+      mailbox === "sent"
+        ? "Welcome to Sent mail."
+        : mailbox === "drafts"
+          ? "Welcome to Drafts."
+          : mailbox === "trash"
+            ? "Welcome to Trash."
+            : greeting;
+    const mailboxSubtext =
+      mailbox === "sent"
+        ? "Pick a sent message from the left to review what you shipped."
+        : mailbox === "drafts"
+          ? "Your saved drafts are waiting on the left."
+          : mailbox === "trash"
+            ? "Recently deleted mail lives here until you empty trash."
+            : subtext;
 
     return (
       <div className="flex flex-col items-center justify-center h-full bg-radius-bg-primary relative w-full overflow-hidden">
@@ -1122,10 +1184,10 @@ export const ReaderView = memo(function ReaderView({
         
         <div className="relative z-10 flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] fill-mode-both">
           <h1 className="text-[32px] md:text-[42px] font-medium tracking-[-0.03em] text-radius-text-primary font-[family-name:var(--font-family-serif)] mb-3 text-center leading-[1.1]">
-            {greeting}
+            {mailboxTitle}
           </h1>
           <p className="text-[15px] text-radius-text-secondary font-[family-name:var(--font-family-sans)] tracking-[-0.01em]">
-            {subtext}
+            {mailboxSubtext}
           </p>
         </div>
       </div>
@@ -1179,13 +1241,22 @@ export const ReaderView = memo(function ReaderView({
               </div>
               <AttachmentList attachments={message.attachments} messageId={message.id} />
               {mailbox === "inbox" && repliedMessages.length > 0 ? (
-                <div className="mt-10 space-y-4">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-                    Replies in this thread
+                <div className="mt-16">
+                  <div className="relative mb-8">
+                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                      <div className="w-full border-t border-radius-border-subtle/30" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-radius-bg-primary px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-radius-text-muted/70 font-[family-name:var(--font-family-sans)]">
+                        Replies
+                      </span>
+                    </div>
                   </div>
-                  {repliedMessages.map((reply) => (
-                    <ReplyThreadCard key={reply.id} message={reply} />
-                  ))}
+                  <div className="flex flex-col">
+                    {repliedMessages.map((reply) => (
+                      <ReplyThreadCard key={reply.id} message={reply} />
+                    ))}
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -1242,13 +1313,22 @@ export const ReaderView = memo(function ReaderView({
               </div>
             )}
             {mailbox === "inbox" && repliedMessages.length > 0 ? (
-              <div className="max-w-[720px] mx-auto mt-12 space-y-4">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-                  Replies in this thread
+              <div className="max-w-[720px] mx-auto mt-16">
+                <div className="relative mb-8">
+                  <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div className="w-full border-t border-radius-border-subtle/30" />
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="bg-radius-bg-primary px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-radius-text-muted/70 font-[family-name:var(--font-family-sans)]">
+                      Replies
+                    </span>
+                  </div>
                 </div>
-                {repliedMessages.map((reply) => (
-                  <ReplyThreadCard key={reply.id} message={reply} />
-                ))}
+                <div className="flex flex-col">
+                  {repliedMessages.map((reply) => (
+                    <ReplyThreadCard key={reply.id} message={reply} />
+                  ))}
+                </div>
               </div>
             ) : null}
           </article>

@@ -6,10 +6,9 @@ type Mailbox = "sent" | "drafts" | "trash";
 
 interface MailboxesProps {
   onSelectMailbox: (mailbox: Mailbox) => void;
-  onEmptyTrash?: () => void;
 }
 
-export function Mailboxes({ onSelectMailbox, onEmptyTrash }: MailboxesProps) {
+export function Mailboxes({ onSelectMailbox }: MailboxesProps) {
   return (
     <CommandGroup heading="Mailroom">
       <CommandItem
@@ -33,15 +32,6 @@ export function Mailboxes({ onSelectMailbox, onEmptyTrash }: MailboxesProps) {
           <HugeiconsIcon icon={Delete01Icon} size={16} />
         <span>Trash</span>
       </CommandItem>
-      {onEmptyTrash ? (
-        <CommandItem
-          value="empty-trash"
-          onSelect={onEmptyTrash}
-        >
-          <HugeiconsIcon icon={Delete01Icon} size={16} />
-          <span>Empty Trash</span>
-        </CommandItem>
-      ) : null}
     </CommandGroup>
   );
 }

@@ -838,88 +838,114 @@ function parseRecipientEmails(value: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
+function isLikelyEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 export async function createReplyForwardSession(
   params: RadiusRPC["bun"]["requests"]["createReplyForwardSession"]["params"],
 ): Promise<RadiusRPC["bun"]["requests"]["createReplyForwardSession"]["response"]> {
-  const original = await getMessageById(params.messageId);
-  if (!original) {
-    return { success: false, error: "Original message not found." };
+  try {
+    const original = await getMessageById(params.messageId);
+    if (!original) {
+      return { success: false, error: "Original message not found." };
+    }
+
+    const db = await getDb();
+    const from = sanitizeHeaderText(params.from);
+    let messageIdHeader: string | null = null;
+    let references: string[] = [];
+    let threadId = String(original.threadId ?? "");
+
+    try {
+      const accessToken = await getValidAccessTokenForEmail(from);
+      const gmailMessage = await getGmailMessage(accessToken, params.messageId);
+      const headers = parseHeaders(gmailMessage.payload.headers ?? []);
+      messageIdHeader = headers["message-id"]?.trim() ?? null;
+      references = headers["references"]
+        ? headers["references"].split(/\s+/).map((entry) => entry.trim()).filter(Boolean)
+        : [];
+      if (messageIdHeader && !references.includes(messageIdHeader)) {
+        references.push(messageIdHeader);
+      }
+      threadId = threadId || gmailMessage.threadId;
+    } catch (error) {
+      console.warn("Reply/forward header lookup failed, continuing with local metadata:", error);
+    }
+
+    const originalFrom = String(original.from ?? "");
+    const originalTo = String(original.to ?? "");
+    const normalizedFrom = from.toLowerCase();
+    const forwardCandidates = parseRecipientEmails(originalTo).filter(
+      (email) => email !== normalizedFrom && isLikelyEmail(email),
+    );
+    const replyCandidates = parseRecipientEmails(originalFrom).filter(isLikelyEmail);
+    const recipients =
+      params.mode === "reply"
+        ? replyCandidates
+        : forwardCandidates.length > 0
+          ? forwardCandidates
+          : replyCandidates;
+
+    if (recipients.length === 0) {
+      return { success: false, error: "Couldn't determine a valid recipient for this message." };
+    }
+
+    const sessionId = randomUUID();
+    const now = Date.now();
+    const subject = normalizeSubjectPrefix(
+      String(original.subject ?? ""),
+      params.mode === "reply" ? "Re" : "Fwd",
+    );
+    const bodyText =
+      params.mode === "reply"
+        ? buildReplyQuote({
+            from: originalFrom,
+            to: originalTo,
+            subject: String(original.subject ?? ""),
+            internalDate: Number(original.internalDate ?? Date.now()),
+            bodyText: (original.bodyText as string | null | undefined) ?? null,
+            snippet: String(original.snippet ?? ""),
+          })
+        : buildForwardBody({
+            from: originalFrom,
+            to: originalTo,
+            subject: String(original.subject ?? ""),
+            internalDate: Number(original.internalDate ?? Date.now()),
+            bodyText: (original.bodyText as string | null | undefined) ?? null,
+            snippet: String(original.snippet ?? ""),
+          });
+
+    db.run(
+      `INSERT INTO compose_sessions
+        (id, account_email, from_addr, to_recipients, cc_recipients, bcc_recipients,
+         subject, body_text, mode, fixed_recipients, thread_id, reply_to_message_id,
+         reply_references, original_message_id, status, dirty, created_at, updated_at)
+       VALUES (?, ?, ?, ?, '[]', '[]', ?, ?, ?, ?, ?, ?, ?, ?, 'editing', 1, ?, ?)`,
+      [
+        sessionId,
+        from,
+        from,
+        JSON.stringify(recipients),
+        subject,
+        bodyText,
+        params.mode,
+        params.mode === "reply" ? 1 : 0,
+        threadId || null,
+        messageIdHeader,
+        JSON.stringify(references),
+        params.messageId,
+        now,
+        now,
+      ],
+    );
+
+    const session = await loadSessionById(db, sessionId);
+    return { success: true, session: session ?? undefined };
+  } catch (err) {
+    console.error("createReplyForwardSession error:", err);
+    return { success: false, error: "Failed to load composer" };
   }
-
-  const db = await getDb();
-  const from = sanitizeHeaderText(params.from);
-  const accessToken = await getValidAccessTokenForEmail(from);
-  const gmailMessage = await getGmailMessage(accessToken, params.messageId);
-  const headers = parseHeaders(gmailMessage.payload.headers ?? []);
-  const messageIdHeader = headers["message-id"]?.trim() ?? null;
-  const references = headers["references"]
-    ? headers["references"].split(/\s+/).map((entry) => entry.trim()).filter(Boolean)
-    : [];
-  if (messageIdHeader && !references.includes(messageIdHeader)) {
-    references.push(messageIdHeader);
-  }
-
-  const originalFrom = String(original.from ?? "");
-  const originalTo = String(original.to ?? "");
-  const normalizedFrom = from.toLowerCase();
-  const forwardCandidates = parseRecipientEmails(originalTo).filter((email) => email !== normalizedFrom);
-  const recipients =
-    params.mode === "reply"
-      ? parseRecipientEmails(originalFrom)
-      : forwardCandidates.length > 0
-        ? forwardCandidates
-        : parseRecipientEmails(originalFrom);
-
-  const sessionId = randomUUID();
-  const now = Date.now();
-  const subject = normalizeSubjectPrefix(
-    String(original.subject ?? ""),
-    params.mode === "reply" ? "Re" : "Fwd",
-  );
-  const bodyText =
-    params.mode === "reply"
-      ? buildReplyQuote({
-          from: originalFrom,
-          to: originalTo,
-          subject: String(original.subject ?? ""),
-          internalDate: Number(original.internalDate ?? Date.now()),
-          bodyText: (original.bodyText as string | null | undefined) ?? null,
-          snippet: String(original.snippet ?? ""),
-        })
-      : buildForwardBody({
-          from: originalFrom,
-          to: originalTo,
-          subject: String(original.subject ?? ""),
-          internalDate: Number(original.internalDate ?? Date.now()),
-          bodyText: (original.bodyText as string | null | undefined) ?? null,
-          snippet: String(original.snippet ?? ""),
-        });
-
-  db.run(
-    `INSERT INTO compose_sessions
-      (id, account_email, from_addr, to_recipients, cc_recipients, bcc_recipients,
-       subject, body_text, mode, fixed_recipients, thread_id, reply_to_message_id,
-       reply_references, original_message_id, status, dirty, created_at, updated_at)
-     VALUES (?, ?, ?, ?, '[]', '[]', ?, ?, ?, 1, ?, ?, ?, ?, 'editing', 1, ?, ?)`,
-    [
-      sessionId,
-      from,
-      from,
-      JSON.stringify(recipients),
-      subject,
-      bodyText,
-      params.mode,
-      String(original.threadId ?? gmailMessage.threadId),
-      messageIdHeader,
-      JSON.stringify(references),
-      params.messageId,
-      now,
-      now,
-    ],
-  );
-
-  const session = await loadSessionById(db, sessionId);
-  return { success: true, session: session ?? undefined };
 }
 
 export async function updateComposeSession(

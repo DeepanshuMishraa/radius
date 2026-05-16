@@ -188,6 +188,7 @@ async function startSyncForAccount() {
 async function handleOAuthCallback(
   code: string,
   syncMode: SyncMode,
+  options: { startSync: boolean } = { startSync: true },
 ): Promise<void> {
   if (!code || !codeVerifier) {
     console.error("❌ OAuth callback missing code or verifier");
@@ -217,6 +218,15 @@ async function handleOAuthCallback(
     await setActiveAccount(email);
     await switchDbAccount(email);
     setAccountEmail(email);
+
+    if (!options.startSync) {
+      await updateSyncState({
+        error: null,
+        lastSyncAt: Date.now(),
+      });
+      console.log(`✅ Reconnected ${email} without resyncing local mail`);
+      return;
+    }
 
     await updateSyncState({
       syncMode,
@@ -255,12 +265,12 @@ async function handleOAuthCallback(
 
 // ── Exposed RPC-style handlers ──
 
-export async function handleStartOAuth(params: { syncMode: SyncMode }) {
-  const { syncMode } = params;
+export async function handleStartOAuth(params: { syncMode: SyncMode; email?: string }) {
+  const { syncMode, email } = params;
   try {
     codeVerifier = generateCodeVerifier();
     const codeChallenge = await sha256(codeVerifier);
-    const authURL = buildAuthURL(codeChallenge);
+    const authURL = buildAuthURL(codeChallenge, email);
 
     authServer = Bun.serve({
       port: 3333,
@@ -272,7 +282,7 @@ export async function handleStartOAuth(params: { syncMode: SyncMode }) {
         ) {
           const code = url.searchParams.get("code");
           if (code) {
-            handleOAuthCallback(code, syncMode).catch((err) => {
+            handleOAuthCallback(code, syncMode, { startSync: true }).catch((err) => {
               console.error("OAuth callback failed:", err);
             });
 
@@ -295,6 +305,49 @@ export async function handleStartOAuth(params: { syncMode: SyncMode }) {
     return { success: true };
   } catch (err) {
     console.error("startOAuth error:", err);
+    return { success: false, error: String(err) };
+  }
+}
+
+export async function handleReconnectAccount(params: { email?: string }) {
+  const targetEmail = params.email ?? (await getActiveAccount()) ?? undefined;
+  if (!targetEmail) {
+    return { success: false, error: "No active account to reconnect." };
+  }
+  try {
+    codeVerifier = generateCodeVerifier();
+    const codeChallenge = await sha256(codeVerifier);
+    const authURL = buildAuthURL(codeChallenge, targetEmail);
+
+    authServer = Bun.serve({
+      port: 3333,
+      async fetch(req) {
+        const url = new URL(req.url);
+        if (url.pathname === "/" || url.pathname === "/oauth/callback") {
+          const code = url.searchParams.get("code");
+          if (code) {
+            handleOAuthCallback(code, "recent", { startSync: false }).catch((err) => {
+              console.error("Reconnect callback failed:", err);
+            });
+
+            authServer?.stop();
+            authServer = null;
+
+            return new Response(
+              "<html><body style='font-family: system-ui; text-align: center; padding-top: 40px;'><h2>✅ Reconnected successfully</h2><p>You can close this window and return to Radius.</p></body></html>",
+              { status: 200, headers: { "Content-Type": "text/html" } },
+            );
+          }
+        }
+        return new Response("Not found", { status: 404 });
+      },
+    });
+
+    spawn("open", [authURL]);
+    console.log(`🌐 Opened system browser to reconnect ${targetEmail}`);
+    return { success: true };
+  } catch (err) {
+    console.error("reconnectAccount error:", err);
     return { success: false, error: String(err) };
   }
 }

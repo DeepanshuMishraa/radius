@@ -52,6 +52,7 @@ import {
 } from "./ui";
 import {
   handleStartOAuth,
+  handleReconnectAccount,
   handleStartSync,
   startExistingUserSync,
   tryResumeSyncFromRefreshToken,
@@ -87,6 +88,7 @@ async function createMainWindow() {
         getSyncStatus: handleGetSyncStatus,
         openExternalUrl: handleOpenExternalUrl,
         startOAuth: handleStartOAuth,
+        reconnectAccount: handleReconnectAccount,
         startSync: handleStartSync,
         markMessageRead: handleMarkMessageRead,
         createComposeSession: handleCreateComposeSession,

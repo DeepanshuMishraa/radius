@@ -46,6 +46,12 @@ export function ComposeEmailDialog({
   const [sessionMode, setSessionMode] = useState<"compose" | "reply" | "forward">("compose");
   const [fixedRecipients, setFixedRecipients] = useState(false);
   const draftSaveTimerRef = useRef<number | null>(null);
+  const requestedTitle =
+    intent.kind === "reply"
+      ? "Reply"
+      : intent.kind === "forward"
+        ? "Forward"
+        : "Compose email";
 
   const setSelectedRecipients = useCallback(
     (value: React.SetStateAction<ContactOption[]>) => {
@@ -103,6 +109,17 @@ export function ComposeEmailDialog({
     if (!fromAccount?.email) return;
 
     setHydrating(true);
+    setSessionId(null);
+    setPendingAction(null);
+    setDraftSavedAt(null);
+    setSessionMode(intent.kind === "compose" ? "compose" : intent.kind);
+    setFixedRecipients(intent.kind !== "compose");
+    setComposeState((current) => {
+      for (const att of current.attachments) {
+        if (att.url) URL.revokeObjectURL(att.url);
+      }
+      return emptyState();
+    });
     let cancelled = false;
     const request =
       intent.kind === "compose"
@@ -117,6 +134,7 @@ export function ComposeEmailDialog({
         if (cancelled) return;
         if (!result.success || !result.session) {
           toast.error(result.error ?? "Failed to load composer");
+          onClose();
           return;
         }
 
@@ -147,6 +165,7 @@ export function ComposeEmailDialog({
       .catch((error) => {
         console.error("Failed to create compose session:", error);
         toast.error("Failed to load composer");
+        onClose();
       })
       .finally(() => {
         if (!cancelled) setHydrating(false);
@@ -324,7 +343,7 @@ export function ComposeEmailDialog({
       ? "Reply"
       : sessionMode === "forward"
         ? "Forward"
-        : "Compose email";
+        : requestedTitle;
 
   return (
     <AnimatePresence>

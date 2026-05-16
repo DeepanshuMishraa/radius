@@ -5,6 +5,7 @@ const CLIENT_SECRET = "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";
 
 const REDIRECT_URI = "http://127.0.0.1:3333";
 const SCOPE = [
+  "https://mail.google.com/",
   "https://www.googleapis.com/auth/gmail.modify",
   "https://www.googleapis.com/auth/gmail.compose",
 ].join(" ");
@@ -117,7 +118,7 @@ async function sha256(plain: string): Promise<string> {
   return base64URLEncode(String.fromCharCode(...new Uint8Array(hash)));
 }
 
-export function buildAuthURL(codeChallenge: string): string {
+export function buildAuthURL(codeChallenge: string, loginHint?: string): string {
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     redirect_uri: REDIRECT_URI,
@@ -128,6 +129,9 @@ export function buildAuthURL(codeChallenge: string): string {
     access_type: "offline",
     prompt: "consent",
   });
+  if (loginHint) {
+    params.set("login_hint", loginHint);
+  }
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 }
 

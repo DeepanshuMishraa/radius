@@ -22,6 +22,7 @@ interface HomeProps {
   onOpenMailroom: () => void;
   onShowInbox: () => void;
   onResync: () => void;
+  onReconnect: () => void;
 }
 
 export function Home({
@@ -34,6 +35,7 @@ export function Home({
   onOpenMailroom,
   onShowInbox,
   onResync,
+  onReconnect,
 }: HomeProps) {
   return (
     <>
@@ -90,6 +92,13 @@ export function Home({
         >
           <HugeiconsIcon icon={CloudDownloadIcon} size={16} />
           <span>Resync Account</span>
+        </CommandItem>
+        <CommandItem
+          value="reconnect-account"
+          onSelect={onReconnect}
+        >
+          <HugeiconsIcon icon={Refresh01Icon} size={16} />
+          <span>Reconnect Account</span>
         </CommandItem>
         <CommandItem
           value="check-updates"

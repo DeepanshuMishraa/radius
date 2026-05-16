@@ -516,13 +516,10 @@ function App() {
     setSearchOpen(false);
     setSidebarOpen(true);
     setMailboxView(mailbox);
+    setSelectedMessageId(null);
     try {
-      const messages = await refreshMailbox(mailbox);
+      await refreshMailbox(mailbox);
       if (activeMailboxRef.current !== mailbox) return;
-      if (messages[0]) {
-        setSelectedMessageId(messages[0].id);
-        setSidebarOpen(false);
-      }
     } catch (error) {
       console.error(`Failed to load ${mailbox}:`, error);
       toast.error(`Failed to load ${mailbox}`);
@@ -534,6 +531,7 @@ function App() {
     setSearchOpen(false);
     setMailboxView("inbox");
     setSidebarOpen(true);
+    setSelectedMessageId(null);
   }, []);
 
   const refreshVisibleMailboxData = useCallback(async () => {
@@ -570,6 +568,20 @@ function App() {
         toast.error(result.error ?? "Delete failed");
         return;
       }
+      setMailboxMessages((current) => ({
+        sent: current.sent.filter((message) => message.id !== selectedMessage.id),
+        drafts: current.drafts.filter((message) => message.id !== selectedMessage.id),
+        trash: [
+          {
+            ...selectedMessage,
+            isInbox: false,
+            isSent: false,
+            isDraft: false,
+            isTrash: true,
+          },
+          ...current.trash.filter((message) => message.id !== selectedMessage.id),
+        ],
+      }));
       setSelectedMessageId(fallbackMessage?.id ?? null);
       await refreshVisibleMailboxData();
       if (result.operationId && result.undoDeadlineAt) {
@@ -825,6 +837,23 @@ function App() {
     }
   }, []);
 
+  const handleReconnect = useCallback(async () => {
+    setCmdOpen(false);
+    if (!activeAccount) {
+      toast.error("No active account to reconnect");
+      return;
+    }
+    try {
+      const result = await radiusRpc.request.reconnectAccount({ email: activeAccount });
+      if (!result.success) {
+        toast.error(result.error ?? "Reconnect failed");
+      }
+    } catch (err) {
+      console.error("Reconnect error:", err);
+      toast.error("Reconnect failed");
+    }
+  }, [activeAccount]);
+
   const handleConnectNewAccount = useCallback(
     async (syncMode: SyncMode) => {
       setAddAccountMode(syncMode);
@@ -975,10 +1004,10 @@ function App() {
             onRemoveAccount={handleRemoveAccount}
             onAbout={handleOpenAbout}
             onShowMailbox={handleOpenMailbox}
-            onEmptyTrash={handleEmptyTrash}
             onShowInbox={handleShowInbox}
             onClose={() => setCmdOpen(false)}
             onResync={handleResync}
+            onReconnect={handleReconnect}
             accounts={accounts}
             activeAccount={activeAccount}
           />

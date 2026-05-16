@@ -188,7 +188,11 @@ export type RadiusRPC = {
         response: { success: boolean; error?: string };
       };
       startOAuth: {
-        params: { syncMode: SyncMode };
+        params: { syncMode: SyncMode; email?: string };
+        response: { success: boolean; error?: string };
+      };
+      reconnectAccount: {
+        params: { email?: string };
         response: { success: boolean; error?: string };
       };
       startSync: {

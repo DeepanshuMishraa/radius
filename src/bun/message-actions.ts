@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { PendingDeleteStatusMessage, RadiusRPC } from "../shared/types";
-import { getValidAccessToken } from "./auth";
+import { getAccountEmail, getValidAccessToken, getValidAccessTokenForEmail } from "./auth";
 import {
   getDb,
   getMessageById,
@@ -43,7 +43,7 @@ function mapDeleteError(err: unknown): string {
     err.status === 403 &&
     err.body.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")
   ) {
-    return "Gmail modify permission is missing. Reconnect Gmail and try again.";
+    return "Required Gmail delete permission is missing. Reconnect Gmail and try again.";
   }
   if (err instanceof GmailAPIError && err.isAuthError()) {
     return "Gmail authentication expired. Reconnect Gmail and try again.";
@@ -95,7 +95,7 @@ async function commitPendingDelete(operationId: string) {
   }
 
   try {
-    const accessToken = await getValidAccessToken();
+    const accessToken = await getValidAccessTokenForEmail(pending.account_email);
     await trashMessage(accessToken, pending.message_id);
     await markPendingDeleteStatus(operationId, "committed", { deletedAt: Date.now() });
     emitPendingDeleteStatus({
@@ -166,6 +166,16 @@ export async function queueDeleteMessage(
       await removeMessages([params.messageId]);
       return { success: true };
     } catch (err) {
+      if (
+        err instanceof GmailAPIError &&
+        err.status === 403 &&
+        err.body.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")
+      ) {
+        return {
+          success: false,
+          error: "Permanent delete needs full Gmail access. Reconnect Gmail and try again.",
+        };
+      }
       return { success: false, error: mapDeleteError(err) };
     }
   }
@@ -179,6 +189,10 @@ export async function queueDeleteMessage(
   };
   const operationId = randomUUID();
   const undoDeadlineAt = Date.now() + UNDO_DELETE_MS;
+  const accountEmail = getAccountEmail();
+  if (!accountEmail) {
+    return { success: false, error: "No active Gmail account found." };
+  }
   const db = await getDb();
   db.run(
     `INSERT INTO pending_message_deletes
@@ -187,7 +201,7 @@ export async function queueDeleteMessage(
     [
       operationId,
       params.messageId,
-      "active",
+      accountEmail,
       JSON.stringify(snapshot),
       undoDeadlineAt,
       Date.now(),
@@ -261,6 +275,16 @@ export async function emptyTrash(): Promise<RadiusRPC["bun"]["requests"]["emptyT
     await removeMessages(rows.map((row) => row.id));
     return { success: true, deletedCount: rows.length };
   } catch (err) {
+    if (
+      err instanceof GmailAPIError &&
+      err.status === 403 &&
+      err.body.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")
+    ) {
+      return {
+        success: false,
+        error: "Empty Trash needs full Gmail access. Reconnect Gmail and try again.",
+      };
+    }
     return { success: false, error: mapDeleteError(err) };
   }
 }

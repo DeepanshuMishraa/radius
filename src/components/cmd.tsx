@@ -27,10 +27,10 @@ interface CommandKProps {
   onRemoveAccount: (email: string) => void;
   onAbout: () => void;
   onShowMailbox: (mailbox: "sent" | "drafts" | "trash") => void;
-  onEmptyTrash: () => void;
   onShowInbox: () => void;
   onClose: () => void;
   onResync: () => void;
+  onReconnect: () => void;
   accounts: Account[];
   activeAccount: string | null;
 }
@@ -44,10 +44,10 @@ export function CommandK({
   onRemoveAccount,
   onAbout,
   onShowMailbox,
-  onEmptyTrash,
   onShowInbox,
   onClose,
   onResync,
+  onReconnect,
   accounts,
   activeAccount,
 }: CommandKProps) {
@@ -235,6 +235,7 @@ export function CommandK({
                   onAbout={onAbout}
                   onShowInbox={onShowInbox}
                   onResync={onResync}
+                  onReconnect={onReconnect}
                 />
               ) : page === "accounts" ? (
                 <Accounts
@@ -247,7 +248,6 @@ export function CommandK({
               ) : page === "mailboxes" ? (
                 <Mailboxes
                   onSelectMailbox={onShowMailbox}
-                  onEmptyTrash={onEmptyTrash}
                 />
               ) : (
                 <Themes
