@@ -6,10 +6,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useTheme } from "./theme-provider";
-import {
-  ArrowLeftIcon,
-  TrashIcon,
-} from "@phosphor-icons/react/dist/ssr";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowLeft01Icon, Delete01Icon } from "@hugeicons/core-free-icons";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import type { Account } from "@/mainview/hooks/useInbox";
 import { Home } from "./home";
@@ -155,7 +153,7 @@ export function CommandK({
             className="inline-flex h-6 w-6 items-center justify-center rounded-md text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary hover:shadow-sm"
             aria-label="Back"
           >
-            <ArrowLeftIcon size={14} />
+            <HugeiconsIcon icon={ArrowLeft01Icon} size={14} />
           </button>
           <span className="text-[13px] font-medium text-radius-text-primary">
             {page === "accounts"
@@ -170,7 +168,7 @@ export function CommandK({
       {deleteTarget && (
         <div className="mx-4 mt-4 mb-2 rounded-lg border border-radius-error/30 bg-radius-error/5 p-4 shadow-sm">
           <div className="flex items-center gap-2">
-            <TrashIcon size={16} className="text-radius-error shrink-0" />
+            <HugeiconsIcon icon={Delete01Icon} size={16} className="text-radius-error shrink-0" />
             <p className="text-[13px] font-semibold text-radius-text-primary">
               Delete account?
             </p>

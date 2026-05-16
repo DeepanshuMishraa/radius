@@ -1,4 +1,5 @@
-import { X } from "@phosphor-icons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import type { SyncMode } from "@/shared/types";
 
 interface AddAccountDialogProps {
@@ -31,7 +32,7 @@ export function AddAccountDialog({
             className="inline-flex h-6 w-6 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
             aria-label="Close"
           >
-            <X size={14} weight="bold" />
+            <HugeiconsIcon icon={Cancel01Icon} size={14} className="text-radius-text-muted" />
           </button>
         </div>
 

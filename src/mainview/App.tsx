@@ -7,6 +7,7 @@ import type { Message } from "./hooks/useInbox";
 import { CommandK } from "@/components/cmd";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ThemeProvider, useTheme } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { EmailSearchSpotlight } from "@/components/search-spotlight";
 import { DragRegion } from "@/components/drag-region";
 import { ComposeEmailDialog, type ContactOption } from "@/components/compose";
@@ -15,10 +16,8 @@ import { UpdateNotification } from "@/components/update-notification";
 import { SyncPill } from "@/components/sync-pill";
 import { AboutDialog } from "@/components/about";
 import { AddAccountDialog } from "@/components/add-account";
-import {
-  X,
-  EnvelopeSimple,
-} from "@phosphor-icons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Cancel01Icon, Mail01Icon } from "@hugeicons/core-free-icons";
 import { Toaster, toast } from "sonner";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { radiusRpc } from "./lib/rpc";
@@ -305,7 +304,7 @@ function App() {
             >
               <div className="flex items-start gap-2.5 p-3">
                 <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-radius-accent-subtle">
-                  <EnvelopeSimple weight="fill" size={12} className="text-radius-accent" />
+                  <HugeiconsIcon icon={Mail01Icon} size={12} className="text-radius-accent" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-radius-accent font-[family-name:var(--font-family-sans)]">
@@ -326,7 +325,7 @@ function App() {
               className="absolute top-2.5 right-2.5 inline-flex h-5 w-5 items-center justify-center rounded-md text-radius-text-muted opacity-0 transition-all duration-150 hover:bg-radius-bg-secondary hover:text-radius-text-primary group-hover:opacity-100"
               aria-label="Dismiss"
             >
-              <X size={11} weight="bold" />
+              <HugeiconsIcon icon={Cancel01Icon} size={11} className="text-radius-text-muted" />
             </button>
           </div>
         ),
@@ -763,8 +762,9 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-    <div className="relative flex h-full bg-radius-bg-primary overflow-hidden">
-      <DragRegion />
+      <TooltipProvider>
+      <div className="relative flex h-full bg-radius-bg-primary overflow-hidden">
+        <DragRegion />
       <aside
         className="sidebar-panel h-full border-r border-radius-border-subtle bg-radius-bg-primary will-change-transform"
         data-open={sidebarOpen}
@@ -893,6 +893,7 @@ function App() {
         info={aboutInfo}
       />
       </div>
+      </TooltipProvider>
     </ThemeProvider>
   );
 }

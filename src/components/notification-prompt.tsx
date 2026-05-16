@@ -1,4 +1,5 @@
-import { X, Bell } from "@phosphor-icons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Cancel01Icon, BellDotIcon } from "@hugeicons/core-free-icons";
 
 interface NotificationPermissionPromptProps {
   visible: boolean;
@@ -20,11 +21,7 @@ export function NotificationPermissionPrompt({
   return (
     <div className="toast pointer-events-auto w-[300px] rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl overflow-hidden">
       <div className="flex items-start gap-3 p-3.5">
-        <Bell
-          weight="fill"
-          size={18}
-          className="mt-0.5 shrink-0 text-radius-accent"
-        />
+        <HugeiconsIcon icon={BellDotIcon} size={18} className="mt-0.5 shrink-0 text-radius-accent" />
         <div className="min-w-0 flex-1">
           <p className="text-[12px] font-medium text-radius-text-primary leading-snug font-[family-name:var(--font-family-sans)]">
             {mode === "followup"
@@ -43,7 +40,7 @@ export function NotificationPermissionPrompt({
           className="mt-[-2px] inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
           aria-label="Dismiss"
         >
-          <X size={12} weight="bold" />
+          <HugeiconsIcon icon={Cancel01Icon} size={12} className="text-radius-text-muted" />
         </button>
       </div>
       <div className="flex items-center gap-2 border-t border-radius-border-subtle px-3.5 py-2.5">
