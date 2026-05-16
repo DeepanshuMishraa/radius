@@ -1,0 +1,68 @@
+src/components/compose/ComposeRecipients.tsx
+  s_829a617d95bb1d::t_170213f70b6bca 14,22,31,36,39,65,157-163,168-170,172-181,187-209,211-220
+src/mainview/App.tsx
+  s_829a617d95bb1d::t_78eb6bffaf341c 933-943,949,954-956,997-998,1001
+  s_829a617d95bb1d::t_05d2f2c9f7e6ea 978
+  s_829a617d95bb1d::t_c455085f1ac448 647-690
+  s_829a617d95bb1d::t_02e32a5b525ced 13,26,129,159,498,501-512,520,522-523,530,539-645
+src/bun/rpc-handlers.ts
+  s_829a617d95bb1d::t_1d95dba9008235 16,334
+  s_829a617d95bb1d::t_25f893b36bedb1 68-71
+  s_829a617d95bb1d::t_750dd045054ac9 7,14-15,17-19,328,335-337
+src/bun/compose.ts
+  s_829a617d95bb1d::t_abf2b75c8ed4ac 387-388,415-418,420,497-502,519-524,538-548,615,622-623,625
+  s_829a617d95bb1d::t_e5dbea3ae0665d 18,23-24,38,45-48,69-74,123-181
+  s_829a617d95bb1d::t_77d6326ce5c4c5 677-679,704,706-709,715-739
+  s_829a617d95bb1d::t_caaaf3f68bc609 983-985
+  s_829a617d95bb1d::t_5157ff2066472d 820-821,829-918
+  s_829a617d95bb1d::t_0ab4a8a3857162 705,802
+  s_829a617d95bb1d::t_8e3011a690fec9 419,624
+src/mainview/components/ReaderView.tsx
+  s_829a617d95bb1d::t_97f432d15e0661 932,1005-1022,1054-1067,1181-1190,1244-1253
+  s_829a617d95bb1d::t_d5617c03e19407 20,319-342
+  s_829a617d95bb1d::t_7e41d697997fea 1079-1093
+src/components/compose/index.tsx
+  s_829a617d95bb1d::t_7998f13d5ef51e 13-16,22,39,46-47,93-94,107-115,125-126,158,322-327,350,370
+src/mainview/components/InboxList.tsx
+  s_829a617d95bb1d::t_18737a2f888c42 157,206
+  s_829a617d95bb1d::t_7d2607851a35b3 3,17
+src/bun/message-actions.ts
+  s_829a617d95bb1d::t_db52dd78013580 1-285
+src/components/cmd.tsx
+  s_829a617d95bb1d::t_99561329d859cb 30,47,250
+src/bun/compose.test.ts
+  s_829a617d95bb1d::t_39798d442547f3 15-20
+src/bun/gmail.ts
+  s_829a617d95bb1d::t_f1a67fe145b204 425-427,444-449,562-564,567,573,577,587-595
+  s_829a617d95bb1d::t_667739e5e2c831 504-506,533-535
+src/bun/db.ts
+  s_829a617d95bb1d::t_0cdc0d8ca8ac0f 537-540
+  s_829a617d95bb1d::t_c8afa94cdf58bf 515-518
+  s_829a617d95bb1d::t_8cc171def07dee 148-153,199-215,261-282,526-536,541-549,889-926
+src/bun/index.ts
+  s_829a617d95bb1d::t_927c7049047a94 21-23,34,40-43,93,99-102,143-145,244
+src/components/mailboxes.tsx
+  s_829a617d95bb1d::t_b52e7d2ea0c041 9,12,36-44
+src/mainview/hooks/useInbox.ts
+  s_829a617d95bb1d::t_c9efcacd2f8f66 36-39
+src/shared/types.ts
+  s_829a617d95bb1d::t_db8347bc69e057 59-62,64,114-119,215-226,291-327,401
+  s_829a617d95bb1d::t_892a22a5ee442c 63
+  s_829a617d95bb1d::t_c6e7a399fe6820 108-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "7cf3d65edd58645478690acb8cd95e75c03e1bd2",
+  "prompts": {},
+  "sessions": {
+    "s_829a617d95bb1d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e31a4-65fb-7a70-8020-e19a7326f634",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
