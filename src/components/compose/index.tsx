@@ -10,11 +10,16 @@ import { ComposeAttachments } from "./ComposeAttachments";
 import { ComposeAttachmentList } from "./ComposeAttachmentList";
 import { ComposeSend, type SendActionType } from "./ComposeSend";
 
+export type ComposeIntent =
+  | { kind: "compose" }
+  | { kind: "reply" | "forward"; messageId: string };
+
 interface ComposeEmailDialogProps {
   open: boolean;
   onClose: () => void;
   fromAccount: { email: string; name: string } | null;
   contacts: ContactOption[];
+  intent: ComposeIntent;
 }
 
 function emptyState() {
@@ -31,12 +36,15 @@ export function ComposeEmailDialog({
   onClose,
   fromAccount,
   contacts,
+  intent,
 }: ComposeEmailDialogProps) {
   const [{ selectedRecipients, subject, body, attachments }, setComposeState] = useState(emptyState);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<SendActionType | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
   const [hydrating, setHydrating] = useState(false);
+  const [sessionMode, setSessionMode] = useState<"compose" | "reply" | "forward">("compose");
+  const [fixedRecipients, setFixedRecipients] = useState(false);
   const draftSaveTimerRef = useRef<number | null>(null);
 
   const setSelectedRecipients = useCallback(
@@ -82,6 +90,8 @@ export function ComposeEmailDialog({
       setPendingAction(null);
       setDraftSavedAt(null);
       setHydrating(false);
+      setSessionMode("compose");
+      setFixedRecipients(false);
       setComposeState((current) => {
         for (const att of current.attachments) {
           if (att.url) URL.revokeObjectURL(att.url);
@@ -94,8 +104,15 @@ export function ComposeEmailDialog({
 
     setHydrating(true);
     let cancelled = false;
-    void radiusRpc.request
-      .createComposeSession({ from: fromAccount.email })
+    const request =
+      intent.kind === "compose"
+        ? radiusRpc.request.createComposeSession({ from: fromAccount.email })
+        : radiusRpc.request.createReplyForwardSession({
+            from: fromAccount.email,
+            messageId: intent.messageId,
+            mode: intent.kind,
+          });
+    void request
       .then((result) => {
         if (cancelled) return;
         if (!result.success || !result.session) {
@@ -105,6 +122,8 @@ export function ComposeEmailDialog({
 
         setSessionId(result.session.id);
         setDraftSavedAt(result.session.lastSavedAt ?? null);
+        setSessionMode(result.session.mode);
+        setFixedRecipients(result.session.fixedRecipients);
         setComposeState({
           selectedRecipients: result.session.to.map((email) => ({
             email,
@@ -136,7 +155,7 @@ export function ComposeEmailDialog({
     return () => {
       cancelled = true;
     };
-  }, [fromAccount?.email, open]);
+  }, [fromAccount?.email, intent, open]);
 
   useEffect(() => {
     if (!open || hydrating || !sessionId || !fromAccount?.email) return;
@@ -300,6 +319,12 @@ export function ComposeEmailDialog({
     Boolean(fromAccount?.email) &&
     selectedRecipients.length > 0 &&
     (subject.trim().length > 0 || body.trim().length > 0 || attachments.length > 0);
+  const title =
+    sessionMode === "reply"
+      ? "Reply"
+      : sessionMode === "forward"
+        ? "Forward"
+        : "Compose email";
 
   return (
     <AnimatePresence>
@@ -322,7 +347,7 @@ export function ComposeEmailDialog({
             <motion.div layout className="flex items-center justify-between px-5 pt-4 pb-2 shrink-0">
               <div className="flex items-center gap-2">
                 <HugeiconsIcon icon={Mail01Icon} size={16} className="text-radius-text-primary" />
-                <h2 className="text-[13px] font-medium text-radius-text-primary">Compose email</h2>
+                <h2 className="text-[13px] font-medium text-radius-text-primary">{title}</h2>
               </div>
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -342,6 +367,7 @@ export function ComposeEmailDialog({
                 contacts={contacts}
                 selectedRecipients={selectedRecipients}
                 setSelectedRecipients={setSelectedRecipients}
+                locked={fixedRecipients}
               />
 
               <motion.div layout className="px-5">

@@ -15,11 +15,13 @@ import type {
   RadiusRPC,
 } from "../shared/types";
 import { getValidAccessTokenForEmail } from "./auth";
-import { APP_SUPPORT_DIR, getDb, upsertComposeContacts } from "./db";
+import { APP_SUPPORT_DIR, getDb, getMessageById, insertMessage, upsertComposeContacts } from "./db";
 import {
   createDraft,
   deleteDraft,
   GmailAPIError,
+  getMessage as getGmailMessage,
+  parseHeaders,
   sendMessage,
   updateDraft,
 } from "./gmail";
@@ -33,12 +35,17 @@ const MAX_TOTAL_ATTACHMENT_BYTES = 18 * 1024 * 1024;
 
 type PendingSendSnapshot = {
   sessionId: string;
+  mode: ComposeSession["mode"];
   from: string;
   to: string[];
   cc: string[];
   bcc: string[];
   subject: string;
   bodyText: string;
+  threadId: string | null;
+  replyToMessageId: string | null;
+  replyReferences: string[];
+  originalMessageId: string | null;
   gmailDraftId: string | null;
   attachments: Array<{
     id: string;
@@ -59,6 +66,12 @@ type ComposeSessionRow = {
   bcc_recipients: string;
   subject: string;
   body_text: string;
+  mode: ComposeSession["mode"];
+  fixed_recipients: number;
+  thread_id: string | null;
+  reply_to_message_id: string | null;
+  reply_references: string;
+  original_message_id: string | null;
   gmail_draft_id: string | null;
   gmail_message_id: string | null;
   status: ComposeSession["status"];
@@ -105,6 +118,67 @@ function parseJsonArray(value: string | null | undefined): string[] {
   } catch {
     return [];
   }
+}
+
+function normalizeSubjectPrefix(subject: string, prefix: "Re" | "Fwd"): string {
+  const trimmed = subject.trim();
+  if (!trimmed) return `${prefix}:`;
+  const pattern = new RegExp(`^${prefix}:\\s*`, "i");
+  return pattern.test(trimmed) ? trimmed : `${prefix}: ${trimmed}`;
+}
+
+function stripQuotedText(text: string | null | undefined): string {
+  if (!text) return "";
+  const normalized = text.replace(/\r\n/g, "\n").trim();
+  if (!normalized) return "";
+  const lines = normalized.split("\n");
+  const quoteStart = lines.findIndex((line) => /^>/.test(line.trim()) || /^On .+wrote:$/i.test(line.trim()));
+  const sliced = quoteStart === -1 ? lines : lines.slice(0, quoteStart);
+  return sliced.join("\n").trim();
+}
+
+function buildReplyQuote(message: {
+  from: string;
+  to: string;
+  subject: string;
+  internalDate: number;
+  bodyText: string | null;
+  snippet: string;
+}): string {
+  const sourceText = stripQuotedText(message.bodyText) || message.snippet.trim();
+  const quoted = sourceText
+    .split(/\r?\n/)
+    .map((line) => `> ${line}`)
+    .join("\n")
+    .trim();
+  const dateLabel = new Date(message.internalDate).toLocaleString();
+  const summary = `On ${dateLabel}, ${message.from || "someone"} wrote:`;
+  return quoted ? `\n\n${summary}\n${quoted}` : `\n\n${summary}`;
+}
+
+function buildForwardBody(message: {
+  from: string;
+  to: string;
+  subject: string;
+  internalDate: number;
+  bodyText: string | null;
+  snippet: string;
+}): string {
+  const body = stripQuotedText(message.bodyText) || message.snippet.trim();
+  const dateLabel = new Date(message.internalDate).toLocaleString();
+  return [
+    "",
+    "",
+    "---------- Forwarded message ---------",
+    `From: ${message.from || ""}`,
+    `Date: ${dateLabel}`,
+    `Subject: ${message.subject || ""}`,
+    `To: ${message.to || ""}`,
+    "",
+    body,
+  ]
+    .join("\n")
+    .trimEnd();
 }
 
 function sanitizeFilename(name: string): string {
@@ -310,7 +384,8 @@ async function loadSessionById(db: Database, sessionId: string): Promise<Compose
   const row = db
     .query(
       `SELECT id, from_addr, to_recipients, cc_recipients, bcc_recipients, subject,
-              body_text, gmail_draft_id, gmail_message_id, status, dirty,
+              body_text, mode, fixed_recipients, thread_id, reply_to_message_id,
+              reply_references, original_message_id, gmail_draft_id, gmail_message_id, status, dirty,
               created_at, updated_at, last_saved_at
        FROM compose_sessions
        WHERE id = ?`,
@@ -337,6 +412,12 @@ async function loadSessionById(db: Database, sessionId: string): Promise<Compose
     subject: row.subject,
     bodyText: row.body_text,
     attachments: await Promise.all(attachmentRows.map(hydrateAttachment)),
+    mode: row.mode ?? "compose",
+    fixedRecipients: Boolean(row.fixed_recipients),
+    threadId: row.thread_id,
+    replyToMessageId: row.reply_to_message_id,
+    replyReferences: parseJsonArray(row.reply_references),
+    originalMessageId: row.original_message_id,
     gmailDraftId: row.gmail_draft_id,
     gmailMessageId: row.gmail_message_id,
     status: row.status,
@@ -413,6 +494,12 @@ async function saveSessionState(
     attachments?: ComposeAttachmentInput[];
     status?: ComposeSession["status"];
     dirty?: boolean;
+    mode?: ComposeSession["mode"];
+    fixedRecipients?: boolean;
+    threadId?: string | null;
+    replyToMessageId?: string | null;
+    replyReferences?: string[] | null;
+    originalMessageId?: string | null;
     lastSavedAt?: number | null;
     gmailDraftId?: string | null;
     gmailMessageId?: string | null;
@@ -429,6 +516,12 @@ async function saveSessionState(
       `UPDATE compose_sessions
      SET from_addr = ?, to_recipients = ?, cc_recipients = ?, bcc_recipients = ?,
          subject = ?, body_text = ?, status = COALESCE(?, status),
+         mode = COALESCE(?, mode),
+         fixed_recipients = CASE WHEN ? THEN ? ELSE fixed_recipients END,
+         thread_id = CASE WHEN ? THEN ? ELSE thread_id END,
+         reply_to_message_id = CASE WHEN ? THEN ? ELSE reply_to_message_id END,
+         reply_references = CASE WHEN ? THEN ? ELSE reply_references END,
+         original_message_id = CASE WHEN ? THEN ? ELSE original_message_id END,
          dirty = ?, last_saved_at = CASE WHEN ? THEN ? ELSE last_saved_at END,
          gmail_draft_id = CASE WHEN ? THEN ? ELSE gmail_draft_id END,
          gmail_message_id = CASE WHEN ? THEN ? ELSE gmail_message_id END,
@@ -442,6 +535,17 @@ async function saveSessionState(
       input.subject,
       input.bodyText,
       input.status ?? null,
+      input.mode ?? null,
+      input.fixedRecipients !== undefined ? 1 : 0,
+      input.fixedRecipients ? 1 : 0,
+      input.threadId !== undefined ? 1 : 0,
+      input.threadId ?? null,
+      input.replyToMessageId !== undefined ? 1 : 0,
+      input.replyToMessageId ?? null,
+      input.replyReferences !== undefined ? 1 : 0,
+      JSON.stringify(input.replyReferences ?? []),
+      input.originalMessageId !== undefined ? 1 : 0,
+      input.originalMessageId ?? null,
       input.dirty === false ? 0 : 1,
       input.lastSavedAt !== undefined ? 1 : 0,
       input.lastSavedAt ?? null,
@@ -508,12 +612,17 @@ async function buildSendSnapshot(session: ComposeSession, db: Database): Promise
 
   return {
     sessionId: session.id,
+    mode: session.mode,
     from: session.from,
     to: session.to,
     cc: session.cc,
     bcc: session.bcc,
     subject: session.subject,
     bodyText: appendLinksToBody(session.bodyText, session.attachments),
+    threadId: session.threadId,
+    replyToMessageId: session.replyToMessageId,
+    replyReferences: session.replyReferences,
+    originalMessageId: session.originalMessageId,
     gmailDraftId: session.gmailDraftId,
     attachments: attachmentRows.map((attachment) => ({
       id: attachment.id,
@@ -565,6 +674,9 @@ async function sendPendingSnapshot(sendId: string) {
       bcc: snapshot.bcc,
       subject: snapshot.subject,
       bodyText: snapshot.bodyText,
+      threadId: snapshot.threadId ?? undefined,
+      inReplyTo: snapshot.replyToMessageId ?? undefined,
+      references: snapshot.replyReferences,
       attachments,
     });
 
@@ -589,10 +701,42 @@ async function sendPendingSnapshot(sendId: string) {
       bcc: snapshot.bcc,
       subject: snapshot.subject,
       bodyText: snapshot.bodyText,
+      mode: snapshot.mode,
+      fixedRecipients: snapshot.mode !== "compose",
+      threadId: snapshot.threadId,
+      replyToMessageId: snapshot.replyToMessageId,
+      replyReferences: snapshot.replyReferences,
+      originalMessageId: snapshot.originalMessageId,
       status: "sent",
       dirty: false,
       gmailDraftId: null,
       gmailMessageId: sent.id,
+    });
+    await insertMessage({
+      id: sent.id,
+      threadId: sent.threadId ?? snapshot.threadId ?? snapshot.sessionId,
+      historyId: String(Date.now()),
+      internalDate: Date.now(),
+      from: snapshot.from,
+      to: snapshot.to.join(", "),
+      subject: snapshot.subject,
+      snippet: stripQuotedText(snapshot.bodyText).slice(0, 180),
+      bodyText: snapshot.bodyText,
+      bodyHtml: null,
+      attachments: snapshot.attachments
+        .filter((attachment) => attachment.type !== "link")
+        .map((attachment) => ({
+          filename: attachment.name,
+          mimeType: attachment.mimeType ?? "application/octet-stream",
+          size: attachment.size ?? 0,
+          attachmentId: attachment.id,
+        })),
+      category: "regular",
+      isRead: true,
+      isInbox: false,
+      isSent: true,
+      isDraft: false,
+      isTrash: false,
     });
     emitComposeStatus({
       sessionId: snapshot.sessionId,
@@ -655,7 +799,7 @@ export async function createComposeSession(
     .query(
       `SELECT id
        FROM compose_sessions
-       WHERE account_email = ? AND from_addr = ? AND status IN ('editing', 'failed')
+       WHERE account_email = ? AND from_addr = ? AND mode = 'compose' AND status IN ('editing', 'failed')
        ORDER BY updated_at DESC
        LIMIT 1`,
     )
@@ -673,9 +817,105 @@ export async function createComposeSession(
   db.run(
     `INSERT INTO compose_sessions
       (id, account_email, from_addr, to_recipients, cc_recipients, bcc_recipients,
-       subject, body_text, status, dirty, created_at, updated_at)
-     VALUES (?, ?, ?, '[]', '[]', '[]', '', '', 'editing', 0, ?, ?)`,
+       subject, body_text, mode, fixed_recipients, reply_references, status, dirty, created_at, updated_at)
+     VALUES (?, ?, ?, '[]', '[]', '[]', '', '', 'compose', 0, '[]', 'editing', 0, ?, ?)`,
     [sessionId, from, from, now, now],
+  );
+
+  const session = await loadSessionById(db, sessionId);
+  return { success: true, session: session ?? undefined };
+}
+
+function parseRecipientEmails(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .map((entry) => {
+      const match = entry.match(/<([^>]+)>/);
+      return (match?.[1] ?? entry).trim().toLowerCase();
+    })
+    .filter(Boolean);
+}
+
+export async function createReplyForwardSession(
+  params: RadiusRPC["bun"]["requests"]["createReplyForwardSession"]["params"],
+): Promise<RadiusRPC["bun"]["requests"]["createReplyForwardSession"]["response"]> {
+  const original = await getMessageById(params.messageId);
+  if (!original) {
+    return { success: false, error: "Original message not found." };
+  }
+
+  const db = await getDb();
+  const from = sanitizeHeaderText(params.from);
+  const accessToken = await getValidAccessTokenForEmail(from);
+  const gmailMessage = await getGmailMessage(accessToken, params.messageId);
+  const headers = parseHeaders(gmailMessage.payload.headers ?? []);
+  const messageIdHeader = headers["message-id"]?.trim() ?? null;
+  const references = headers["references"]
+    ? headers["references"].split(/\s+/).map((entry) => entry.trim()).filter(Boolean)
+    : [];
+  if (messageIdHeader && !references.includes(messageIdHeader)) {
+    references.push(messageIdHeader);
+  }
+
+  const originalFrom = String(original.from ?? "");
+  const originalTo = String(original.to ?? "");
+  const normalizedFrom = from.toLowerCase();
+  const forwardCandidates = parseRecipientEmails(originalTo).filter((email) => email !== normalizedFrom);
+  const recipients =
+    params.mode === "reply"
+      ? parseRecipientEmails(originalFrom)
+      : forwardCandidates.length > 0
+        ? forwardCandidates
+        : parseRecipientEmails(originalFrom);
+
+  const sessionId = randomUUID();
+  const now = Date.now();
+  const subject = normalizeSubjectPrefix(
+    String(original.subject ?? ""),
+    params.mode === "reply" ? "Re" : "Fwd",
+  );
+  const bodyText =
+    params.mode === "reply"
+      ? buildReplyQuote({
+          from: originalFrom,
+          to: originalTo,
+          subject: String(original.subject ?? ""),
+          internalDate: Number(original.internalDate ?? Date.now()),
+          bodyText: (original.bodyText as string | null | undefined) ?? null,
+          snippet: String(original.snippet ?? ""),
+        })
+      : buildForwardBody({
+          from: originalFrom,
+          to: originalTo,
+          subject: String(original.subject ?? ""),
+          internalDate: Number(original.internalDate ?? Date.now()),
+          bodyText: (original.bodyText as string | null | undefined) ?? null,
+          snippet: String(original.snippet ?? ""),
+        });
+
+  db.run(
+    `INSERT INTO compose_sessions
+      (id, account_email, from_addr, to_recipients, cc_recipients, bcc_recipients,
+       subject, body_text, mode, fixed_recipients, thread_id, reply_to_message_id,
+       reply_references, original_message_id, status, dirty, created_at, updated_at)
+     VALUES (?, ?, ?, ?, '[]', '[]', ?, ?, ?, 1, ?, ?, ?, ?, 'editing', 1, ?, ?)`,
+    [
+      sessionId,
+      from,
+      from,
+      JSON.stringify(recipients),
+      subject,
+      bodyText,
+      params.mode,
+      String(original.threadId ?? gmailMessage.threadId),
+      messageIdHeader,
+      JSON.stringify(references),
+      params.messageId,
+      now,
+      now,
+    ],
   );
 
   const session = await loadSessionById(db, sessionId);
@@ -740,6 +980,9 @@ export async function saveDraftForSession(
       bcc: session.bcc,
       subject: session.subject,
       bodyText: appendLinksToBody(session.bodyText, session.attachments),
+      threadId: session.threadId ?? undefined,
+      inReplyTo: session.replyToMessageId ?? undefined,
+      references: session.replyReferences,
       attachments,
     };
     const draft = session.gmailDraftId

@@ -1,5 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useCallback, useEffect } from "react";
+import type { ReactNode } from "react";
 import type { Message, SyncStatus, EmailCategory } from "../hooks/useInbox";
 
 interface InboxListProps {
@@ -13,6 +14,7 @@ interface InboxListProps {
   detail?: string;
   loading?: boolean;
   emptyMessage?: string;
+  headerAction?: ReactNode;
 }
 
 function formatDateShort(timestamp: number): string {
@@ -152,6 +154,7 @@ export function InboxList({
   detail,
   loading = false,
   emptyMessage,
+  headerAction,
 }: InboxListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -200,6 +203,7 @@ export function InboxList({
           ) : null}
         </div>
         <div className="shrink-0 flex items-center gap-2">
+          {headerAction}
           {loading ? (
             <span className="inline-flex h-1.5 w-1.5 rounded-full bg-radius-accent animate-pulse" />
           ) : null}

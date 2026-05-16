@@ -17,6 +17,7 @@ import { radiusRpc } from "../lib/rpc";
 
 interface ReaderViewProps {
   message: Message | null;
+  mailbox: "inbox" | "sent" | "drafts" | "trash";
   sidebarOpen: boolean;
   onOpenSidebar: () => void;
   onPrev?: () => void;
@@ -312,6 +313,33 @@ function ActionBarWidget({
         className="hover:text-red-500 hover:bg-red-500/10" 
       />
     </div>
+  );
+}
+
+function ReplyThreadCard({ message }: { message: Message }) {
+  const author = parseAddress(message.from);
+  const preview = (message.bodyText || message.snippet || "").trim();
+
+  return (
+    <section className="rounded-[22px] border border-radius-border-subtle bg-radius-bg-secondary/55 p-5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+            Your reply
+          </div>
+          <div className="mt-1 text-[14px] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
+            {author.name || author.email || "You"}
+          </div>
+        </div>
+        <time className="text-[11px] uppercase tracking-[0.12em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+          {formatFullDate(message.internalDate)}
+        </time>
+      </div>
+      <div className="whitespace-pre-wrap text-[14px] leading-[1.7] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
+        {preview || "No preview available"}
+      </div>
+      <AttachmentList attachments={message.attachments} messageId={message.id} />
+    </section>
   );
 }
 
@@ -901,6 +929,7 @@ const EMAIL_BODY_STYLES = `
 
 export const ReaderView = memo(function ReaderView({
   message,
+  mailbox,
   sidebarOpen,
   onOpenSidebar,
   onPrev,
@@ -973,6 +1002,24 @@ export const ReaderView = memo(function ReaderView({
   }, []);
 
   const rawHtml = message?.bodyHtml ?? null;
+  const [threadMessages, setThreadMessages] = useState<Message[]>([]);
+
+  const loadThreadMessages = useCallback(async () => {
+    if (!message?.threadId || mailbox !== "inbox") {
+      setThreadMessages([]);
+      return;
+    }
+    try {
+      const result = await radiusRpc.request.getThreadMessages({
+        threadId: message.threadId,
+        limit: 16,
+      });
+      setThreadMessages(result.messages);
+    } catch (error) {
+      console.error("Failed to load thread messages:", error);
+      setThreadMessages([]);
+    }
+  }, [mailbox, message?.threadId]);
 
   const sanitizedHtml = useMemo(() => {
     if (!rawHtml) return null;
@@ -1005,6 +1052,21 @@ export const ReaderView = memo(function ReaderView({
   const [systemName, setSystemName] = useState<string>("there");
 
   useEffect(() => {
+    void loadThreadMessages();
+  }, [loadThreadMessages, message?.id]);
+
+  useEffect(() => {
+    if (!message?.threadId || mailbox !== "inbox") return;
+    const handleComposeStatus = () => {
+      void loadThreadMessages();
+    };
+    radiusRpc.addMessageListener("composeStatusChanged", handleComposeStatus);
+    return () => {
+      radiusRpc.removeMessageListener("composeStatusChanged", handleComposeStatus);
+    };
+  }, [loadThreadMessages, mailbox, message?.threadId]);
+
+  useEffect(() => {
     radiusRpc.request.getSystemFullName({}).then(res => {
       // Use just the first name if available
       const firstName = res.name.split(' ')[0];
@@ -1013,6 +1075,21 @@ export const ReaderView = memo(function ReaderView({
       console.error("Failed to fetch system name", err);
     });
   }, []);
+
+  const repliedMessages = useMemo(
+    () =>
+      !message
+        ? []
+        : threadMessages
+            .filter(
+              (threadMessage) =>
+                threadMessage.id !== message.id &&
+                Boolean(threadMessage.isSent) &&
+                threadMessage.internalDate >= message.internalDate,
+            )
+            .sort((a, b) => a.internalDate - b.internalDate),
+    [message, threadMessages],
+  );
 
   if (!message) {
     const hour = new Date().getHours();
@@ -1101,6 +1178,16 @@ export const ReaderView = memo(function ReaderView({
                 />
               </div>
               <AttachmentList attachments={message.attachments} messageId={message.id} />
+              {mailbox === "inbox" && repliedMessages.length > 0 ? (
+                <div className="mt-10 space-y-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                    Replies in this thread
+                  </div>
+                  {repliedMessages.map((reply) => (
+                    <ReplyThreadCard key={reply.id} message={reply} />
+                  ))}
+                </div>
+              ) : null}
             </div>
           </article>
         ) : (
@@ -1154,6 +1241,16 @@ export const ReaderView = memo(function ReaderView({
                 <AttachmentList attachments={message.attachments} messageId={message.id} />
               </div>
             )}
+            {mailbox === "inbox" && repliedMessages.length > 0 ? (
+              <div className="max-w-[720px] mx-auto mt-12 space-y-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                  Replies in this thread
+                </div>
+                {repliedMessages.map((reply) => (
+                  <ReplyThreadCard key={reply.id} message={reply} />
+                ))}
+              </div>
+            ) : null}
           </article>
         )}
       </div>

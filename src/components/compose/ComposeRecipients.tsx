@@ -11,6 +11,7 @@ interface ComposeRecipientsProps {
   contacts: ContactOption[];
   selectedRecipients: ContactOption[];
   setSelectedRecipients: React.Dispatch<React.SetStateAction<ContactOption[]>>;
+  locked?: boolean;
 }
 
 export function ComposeRecipients({
@@ -18,6 +19,7 @@ export function ComposeRecipients({
   contacts,
   selectedRecipients,
   setSelectedRecipients,
+  locked = false,
 }: ComposeRecipientsProps) {
   const [recipientQuery, setRecipientQuery] = useState("");
   const [isRecipientFocused, setIsRecipientFocused] = useState(false);
@@ -26,14 +28,15 @@ export function ComposeRecipients({
   const requestIdRef = useRef(0);
 
   useEffect(() => {
+    if (locked) return;
     const timer = window.setTimeout(() => {
       recipientInputRef.current?.focus();
     }, 30);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [locked]);
 
   useEffect(() => {
-    if (!isRecipientFocused) return;
+    if (locked || !isRecipientFocused) return;
     const currentRequestId = ++requestIdRef.current;
     const query = recipientQuery.trim();
     const timer = window.setTimeout(() => {
@@ -59,7 +62,7 @@ export function ComposeRecipients({
     }, query ? 120 : 0);
 
     return () => window.clearTimeout(timer);
-  }, [isRecipientFocused, recipientQuery]);
+  }, [isRecipientFocused, locked, recipientQuery]);
 
   const filteredContacts = useMemo(() => {
     const query = recipientQuery.trim().toLowerCase();
@@ -151,49 +154,70 @@ export function ComposeRecipients({
                 whileHover={{ scale: 0.97 }}
                 whileTap={{ scale: 0.94 }}
                 onClick={() => removeRecipient(recipient.email)}
-                className="group inline-flex items-center gap-1.5 rounded-full border border-radius-border-subtle bg-radius-bg-primary px-2 py-0.5 shadow-sm hover:border-radius-error/40 hover:bg-radius-error/5 origin-center transition-colors"
-                title="Remove recipient"
+                className={`group inline-flex items-center gap-1.5 rounded-full border border-radius-border-subtle bg-radius-bg-primary px-2 py-0.5 shadow-sm origin-center transition-colors ${
+                  locked
+                    ? "cursor-default"
+                    : "hover:border-radius-error/40 hover:bg-radius-error/5"
+                }`}
+                title={locked ? "Recipient is fixed for this draft" : "Remove recipient"}
+                disabled={locked}
               >
                 <div className="flex h-5 w-5 items-center justify-center rounded-full bg-radius-bg-secondary text-[9px] font-medium text-radius-text-primary group-hover:bg-radius-error/20 group-hover:text-radius-error transition-colors">
                   {(recipient.name || recipient.email).slice(0, 1).toUpperCase()}
                 </div>
-                <span className="text-[12px] text-radius-text-primary font-medium tracking-tight group-hover:text-radius-error transition-colors">{recipient.name}</span>
+                <span className={`text-[12px] font-medium tracking-tight transition-colors ${
+                  locked ? "text-radius-text-primary" : "text-radius-text-primary group-hover:text-radius-error"
+                }`}>{recipient.name}</span>
                 <div className="relative flex h-3.5 w-3.5 items-center justify-center">
-                  <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} className="absolute text-[#1d9bf0] transition-opacity duration-200 group-hover:opacity-0" />
-                  <HugeiconsIcon icon={Cancel01Icon} size={12} className="absolute text-radius-error opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                  <HugeiconsIcon
+                    icon={CheckmarkCircle01Icon}
+                    size={14}
+                    className={`absolute text-[#1d9bf0] transition-opacity duration-200 ${
+                      locked ? "" : "group-hover:opacity-0"
+                    }`}
+                  />
+                  {!locked ? (
+                    <HugeiconsIcon icon={Cancel01Icon} size={12} className="absolute text-radius-error opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                  ) : null}
                 </div>
               </motion.button>
             ))}
           </AnimatePresence>
 
-          <motion.div layout className="flex min-w-[140px] flex-1 items-center gap-1.5">
-            <HugeiconsIcon icon={UserAdd01Icon} size={14} className="text-radius-text-muted shrink-0" />
-            <input
-              ref={recipientInputRef}
-              value={recipientQuery}
-              onFocus={() => setIsRecipientFocused(true)}
-              onBlur={() => {
-                setTimeout(() => setIsRecipientFocused(false), 150);
-              }}
-              onChange={(event) => setRecipientQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === "," || event.key === "Tab") {
-                  if (recipientQuery.trim()) {
-                    event.preventDefault();
-                    commitManualRecipient();
+          {!locked ? (
+            <motion.div layout className="flex min-w-[140px] flex-1 items-center gap-1.5">
+              <HugeiconsIcon icon={UserAdd01Icon} size={14} className="text-radius-text-muted shrink-0" />
+              <input
+                ref={recipientInputRef}
+                value={recipientQuery}
+                onFocus={() => setIsRecipientFocused(true)}
+                onBlur={() => {
+                  setTimeout(() => setIsRecipientFocused(false), 150);
+                }}
+                onChange={(event) => setRecipientQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === "," || event.key === "Tab") {
+                    if (recipientQuery.trim()) {
+                      event.preventDefault();
+                      commitManualRecipient();
+                    }
+                  } else if (
+                    event.key === "Backspace" &&
+                    !recipientQuery &&
+                    selectedRecipients.length > 0
+                  ) {
+                    removeRecipient(selectedRecipients[selectedRecipients.length - 1].email);
                   }
-                } else if (
-                  event.key === "Backspace" &&
-                  !recipientQuery &&
-                  selectedRecipients.length > 0
-                ) {
-                  removeRecipient(selectedRecipients[selectedRecipients.length - 1].email);
-                }
-              }}
-              placeholder="Select person"
-              className="min-w-[100px] flex-1 bg-transparent text-[12px] text-radius-text-primary outline-none placeholder:text-radius-text-muted py-1"
-            />
-          </motion.div>
+                }}
+                placeholder="Select person"
+                className="min-w-[100px] flex-1 bg-transparent text-[12px] text-radius-text-primary outline-none placeholder:text-radius-text-muted py-1"
+              />
+            </motion.div>
+          ) : (
+            <span className="text-[11px] text-radius-text-muted py-1">
+              Recipient is fixed for this message
+            </span>
+          )}
         </div>
       </motion.div>
 

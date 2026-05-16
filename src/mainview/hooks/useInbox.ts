@@ -33,6 +33,10 @@ export interface Message {
   attachments: Attachment[];
   category: EmailCategory;
   isRead: boolean;
+  isInbox?: boolean;
+  isSent?: boolean;
+  isDraft?: boolean;
+  isTrash?: boolean;
 }
 
 export interface SyncStatus {

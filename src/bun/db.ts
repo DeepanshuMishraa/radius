@@ -145,6 +145,12 @@ export async function createSchema(): Promise<void> {
       bcc_recipients TEXT NOT NULL DEFAULT '[]',
       subject TEXT NOT NULL DEFAULT '',
       body_text TEXT NOT NULL DEFAULT '',
+      mode TEXT NOT NULL DEFAULT 'compose',
+      fixed_recipients INTEGER NOT NULL DEFAULT 0,
+      thread_id TEXT,
+      reply_to_message_id TEXT,
+      reply_references TEXT NOT NULL DEFAULT '[]',
+      original_message_id TEXT,
       gmail_draft_id TEXT,
       gmail_message_id TEXT,
       status TEXT NOT NULL DEFAULT 'editing',
@@ -190,6 +196,23 @@ export async function createSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_pending_sends_status_deadline
       ON pending_sends(status, undo_deadline_at);
 
+    CREATE TABLE IF NOT EXISTS pending_message_deletes (
+      id TEXT PRIMARY KEY,
+      message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+      account_email TEXT NOT NULL,
+      snapshot_json TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'queued',
+      undo_deadline_at INTEGER NOT NULL,
+      error TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      deleted_at INTEGER,
+      cancelled_at INTEGER
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_pending_message_deletes_status_deadline
+      ON pending_message_deletes(status, undo_deadline_at);
+
     CREATE TABLE IF NOT EXISTS compose_contacts (
       account_email TEXT NOT NULL,
       email TEXT NOT NULL,
@@ -234,6 +257,28 @@ export async function createSchema(): Promise<void> {
   }
   if (!existingMessageColumns.has("is_trash")) {
     db.exec("ALTER TABLE messages ADD COLUMN is_trash INTEGER NOT NULL DEFAULT 0");
+  }
+  const composeSessionColumns = db.query(
+    `SELECT name FROM pragma_table_info('compose_sessions')`
+  ).all() as Array<{ name: string }>;
+  const existingComposeSessionColumns = new Set(composeSessionColumns.map((column) => column.name));
+  if (!existingComposeSessionColumns.has("mode")) {
+    db.exec("ALTER TABLE compose_sessions ADD COLUMN mode TEXT NOT NULL DEFAULT 'compose'");
+  }
+  if (!existingComposeSessionColumns.has("fixed_recipients")) {
+    db.exec("ALTER TABLE compose_sessions ADD COLUMN fixed_recipients INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!existingComposeSessionColumns.has("thread_id")) {
+    db.exec("ALTER TABLE compose_sessions ADD COLUMN thread_id TEXT");
+  }
+  if (!existingComposeSessionColumns.has("reply_to_message_id")) {
+    db.exec("ALTER TABLE compose_sessions ADD COLUMN reply_to_message_id TEXT");
+  }
+  if (!existingComposeSessionColumns.has("reply_references")) {
+    db.exec("ALTER TABLE compose_sessions ADD COLUMN reply_references TEXT NOT NULL DEFAULT '[]'");
+  }
+  if (!existingComposeSessionColumns.has("original_message_id")) {
+    db.exec("ALTER TABLE compose_sessions ADD COLUMN original_message_id TEXT");
   }
 
   const existingColumns = new Set(syncStateColumns.map((column) => column.name));
@@ -467,11 +512,39 @@ export async function getMessageById(
               internal_date as internalDate, from_addr as \`from\`, to_addr as \`to\`,
               subject, snippet, body_text as bodyText, body_html as bodyHtml,
               attachments, category,
+              CAST(COALESCE(is_inbox, 0) AS INTEGER) as isInbox,
+              CAST(COALESCE(is_sent, 0) AS INTEGER) as isSent,
+              CAST(COALESCE(is_draft, 0) AS INTEGER) as isDraft,
+              CAST(COALESCE(is_trash, 0) AS INTEGER) as isTrash,
               CAST(COALESCE(is_read, 1) AS INTEGER) as isRead
        FROM messages WHERE id = ?`
     )
     .get(id) as Record<string, unknown> | null;
   return row;
+}
+
+export async function getThreadMessages(
+  threadId: string,
+  limit: number = 20,
+): Promise<Array<Record<string, unknown>>> {
+  const db = await getDb();
+  return db
+    .query(
+      `SELECT id, thread_id as threadId, history_id as historyId,
+              internal_date as internalDate, from_addr as \`from\`, to_addr as \`to\`,
+              subject, snippet, body_text as bodyText, body_html as bodyHtml,
+              attachments, category,
+              CAST(COALESCE(is_inbox, 0) AS INTEGER) as isInbox,
+              CAST(COALESCE(is_sent, 0) AS INTEGER) as isSent,
+              CAST(COALESCE(is_draft, 0) AS INTEGER) as isDraft,
+              CAST(COALESCE(is_trash, 0) AS INTEGER) as isTrash,
+              CAST(COALESCE(is_read, 1) AS INTEGER) as isRead
+       FROM messages
+       WHERE thread_id = ?
+       ORDER BY internal_date DESC
+       LIMIT ?`,
+    )
+    .all(threadId, limit) as Array<Record<string, unknown>>;
 }
 
 export async function searchInboxMessages(
@@ -811,6 +884,46 @@ export async function getMailboxMessages(
     .all(limit, offset) as Array<Record<string, unknown>>;
 
   return { messages: rows, total: totalRow.count };
+}
+
+export async function updateMessageMailboxState(
+  id: string,
+  state: {
+    isInbox: boolean;
+    isSent: boolean;
+    isDraft: boolean;
+    isTrash: boolean;
+  },
+): Promise<void> {
+  const db = await getDb();
+  db.run(
+    `UPDATE messages
+     SET is_inbox = ?, is_sent = ?, is_draft = ?, is_trash = ?
+     WHERE id = ?`,
+    [
+      state.isInbox ? 1 : 0,
+      state.isSent ? 1 : 0,
+      state.isDraft ? 1 : 0,
+      state.isTrash ? 1 : 0,
+      id,
+    ],
+  );
+}
+
+export async function removeMessages(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const db = await getDb();
+  db.exec("BEGIN TRANSACTION");
+  try {
+    for (const id of ids) {
+      db.run("DELETE FROM messages WHERE id = ?", [id]);
+      db.run("DELETE FROM messages_fts WHERE id = ?", [id]);
+    }
+    db.exec("COMMIT");
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
+  }
 }
 
 export async function updateMessageBodies(
