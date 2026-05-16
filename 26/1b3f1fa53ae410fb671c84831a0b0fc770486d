@@ -1,0 +1,89 @@
+src/mainview/App.tsx
+  s_f283ecc6739e06::t_c8aa7e70efce80 328
+  s_02f1dd11c2f7fd::t_fb0d2275c06233 765-767
+  s_f283ecc6739e06::t_ac4b9c5384ae40 19-20,307
+  s_02f1dd11c2f7fd::t_954a4ab15ee3a2 10
+  s_02f1dd11c2f7fd::t_3630ee74a878a6 896
+src/components/about.tsx
+  s_f283ecc6739e06::t_caa617ee6f4b35 23
+  s_f283ecc6739e06::t_cc1473b418a667 1-2,27
+src/components/compose/ComposeRecipients.tsx
+  s_f283ecc6739e06::t_267835b549d5a7 3-4,133,162-163,170
+src/components/accounts.tsx
+  s_f283ecc6739e06::t_1a1ef5f3714dff 2-3,37,42,56
+src/components/compose/ComposeAttachments.tsx
+  s_f283ecc6739e06::t_ae706231df4d9e 3-4,129,170-172,183,204
+src/components/themes.tsx
+  s_f283ecc6739e06::t_b4fe778cc23912 2-3,35,39
+src/components/ui/dialog.tsx
+  s_f283ecc6739e06::t_ed880b9b2db5ce 6-7,76
+src/components/ui/command.tsx
+  s_f283ecc6739e06::t_ca8a121117a269 164
+  s_f283ecc6739e06::t_f90e5c43a4b397 16-17,84
+src/components/compose/ComposeSend.tsx
+  s_f283ecc6739e06::t_6fb43e257f3a9b 3-4,81,97,103
+package.json
+  s_f283ecc6739e06::t_239826eac0d0a5 17
+  s_f283ecc6739e06::t_598cb9e930f338 18
+src/components/update-notification.tsx
+  s_f283ecc6739e06::t_4a4bd37a0580f6 1-2,29
+  s_f283ecc6739e06::t_344d758423f374 43
+src/components/compose/index.tsx
+  s_f283ecc6739e06::t_30b2ae8d86e612 335
+  s_f283ecc6739e06::t_697b70e1d805a0 3-4,324
+src/components/home.tsx
+  s_f283ecc6739e06::t_326b5408c97839 2,4-6,8-13,45,52,59,66,75,82,91,98,105
+src/components/mailboxes.tsx
+  s_f283ecc6739e06::t_31b45eee5884a0 2-3,18,25,32
+src/components/add-account.tsx
+  s_f283ecc6739e06::t_70d97ed52180fb 1-2
+  s_f283ecc6739e06::t_f4a85163d2e833 35
+src/mainview/components/ReaderView.tsx
+  s_02f1dd11c2f7fd::t_b55036fcd466fd 1110,1112-1115,1118-1124,1129-1130
+  s_f283ecc6739e06::t_1bbc9800a110fb 7
+  s_02f1dd11c2f7fd::t_53e715faa1b542 222-246,248-253
+  s_02f1dd11c2f7fd::t_3e609828352dc5 254-258,272-289,292-293,295-298,300-303,307-308,310-314
+  s_02f1dd11c2f7fd::t_fab8ad1cd9621d 908-910
+  s_02f1dd11c2f7fd::t_9c420b0624b71e 5
+  s_02f1dd11c2f7fd::t_5275e5d9177dce 24-26
+  s_02f1dd11c2f7fd::t_6d59a74f0e8e11 1064-1069
+  s_02f1dd11c2f7fd::t_fe7ac42ed77589 146,149
+  s_f283ecc6739e06::t_bfff370bdc1d96 247
+  s_02f1dd11c2f7fd::t_5dff4d27ad6f05 260-271
+  s_02f1dd11c2f7fd::t_d9beee060f795f 291
+  s_f283ecc6739e06::t_1049fffbe8c683 8-15,195,204,305-306,309
+  s_02f1dd11c2f7fd::t_1157deea995410 259
+src/components/compose/ComposeAttachmentList.tsx
+  s_f283ecc6739e06::t_96ff508875ff1b 2-3,41,43,68
+src/components/cmd.tsx
+  s_f283ecc6739e06::t_150d27cbe57f0c 9-10,156,171
+src/components/notification-prompt.tsx
+  s_f283ecc6739e06::t_07f0ff82abb87b 1-2,24
+  s_f283ecc6739e06::t_02c1fb84a2083d 43
+bun.lock
+  ai_agent 9-10,179-182
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "261b3f1fa53ae410fb671c84831a0b0fc770486d",
+  "prompts": {},
+  "sessions": {
+    "s_02f1dd11c2f7fd": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "6b4cbf2f-b010-4d1a-8df4-6d70f332a303",
+        "model": "gemini-3.1-pro-preview"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    },
+    "s_f283ecc6739e06": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1ce66c70effemMmtdb4W54LO9P",
+        "model": "gpt-5.2-codex"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
