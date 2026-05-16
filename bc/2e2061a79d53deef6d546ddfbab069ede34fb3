@@ -1,0 +1,61 @@
+src/bun/index.ts
+  s_829a617d95bb1d::t_507ac4ed0cec68 55,91
+src/components/cmd.tsx
+  s_829a617d95bb1d::t_63912b9ebf6dbf 33,50,238
+src/mainview/components/ReaderView.tsx
+  s_829a617d95bb1d::t_beabab496a562d 230,248,1154-1169,1187,1190
+  s_c2ee2ec0d8d52e::t_38a8ab2d26a6c9 1244-1258
+  s_c2ee2ec0d8d52e::t_58e12cf089854d 321-339,342-346,348-356,359,362-386,388
+  s_c2ee2ec0d8d52e::t_5af3cf5c2339ce 1316-1330
+src/bun/auth.ts
+  s_829a617d95bb1d::t_fa1704d70d8aba 8
+  s_829a617d95bb1d::t_129a3c8e536fb4 121,132-134
+src/components/home.tsx
+  s_829a617d95bb1d::t_5198fe5fce982d 100
+  s_829a617d95bb1d::t_50a016f0eb8704 25,38,96-99,101
+src/components/compose/index.tsx
+  s_829a617d95bb1d::t_e0f5d855591ac1 49-54,112-122,137,168,346
+src/components/mailboxes.tsx
+  s_829a617d95bb1d::t_b5e3b64eeca3f2 11
+src/mainview/App.tsx
+  s_829a617d95bb1d::t_1e697d064a1a48 571-584
+  s_829a617d95bb1d::t_f4707540185cb7 840-856,1010
+  s_829a617d95bb1d::t_90df88b21d52de 519,521,534
+src/mainview/components/InboxList.tsx
+  s_c2ee2ec0d8d52e::t_4d5c0add5a3a58 37-50,53-54,56-58,63-65,69,91-93,96-125,127-128,131-132,134-144
+src/shared/types.ts
+  s_829a617d95bb1d::t_96b293c9d92700 191-195
+src/bun/message-actions.ts
+  s_829a617d95bb1d::t_7b1fe454a01c15 46,169-178,278-287
+  s_829a617d95bb1d::t_c9d2d8f687c7af 3,98,192-195,204
+src/bun/compose.ts
+  s_829a617d95bb1d::t_1da71c6a384a6c 841-844,848-852,854-858,860-874,876-892,894-917,919-923,925-932,934-948
+  s_829a617d95bb1d::t_28608896a0f06b 924,933
+src/bun/sync-lifecycle.ts
+  s_829a617d95bb1d::t_85897b4b132c4d 191,222-230,285,316-351
+  s_829a617d95bb1d::t_e95ecb2fa63521 268-269,273,312-315,352
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "bc2e2061a79d53deef6d546ddfbab069ede34fb3",
+  "prompts": {},
+  "sessions": {
+    "s_829a617d95bb1d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e31a4-65fb-7a70-8020-e19a7326f634",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    },
+    "s_c2ee2ec0d8d52e": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "e38e81d2-46a6-4b75-884c-ec7fd44c62b4",
+        "model": "gemini-3.1-pro-preview"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
