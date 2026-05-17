@@ -1,0 +1,63 @@
+src/bun/compose.ts
+  s_87c456f16965fb::t_4c0294e8cdaf48 860,864,883-890,892-896
+  s_37ce55d6cef73f::t_db5a6bb6a5b0d1 891
+src/mainview/hooks/useInbox.ts
+  s_37ce55d6cef73f::t_430893ecbb06a5 72-76
+src/components/compose/index.tsx
+  s_37ce55d6cef73f::t_22d41b2504d13a 166
+src/components/compose/ComposeRecipients.tsx
+  s_37ce55d6cef73f::t_ac3ffecaa95a3e 92,104,111,229
+src/bun/gmail.ts
+  s_37ce55d6cef73f::t_ec62b6035fabcf 516
+  s_37ce55d6cef73f::t_3d6814cf773f3b 547
+src/bun/message-actions.ts
+  s_37ce55d6cef73f::t_ffa4e86edd7132 275-289
+  s_37ce55d6cef73f::t_3372343f4c6316 185
+  s_37ce55d6cef73f::t_78552e5e8d5b20 121-127,129-135
+  s_37ce55d6cef73f::t_f303117967d391 219-234,236-246
+  s_37ce55d6cef73f::t_db565a201f0401 128
+  s_37ce55d6cef73f::t_824e546b575b8d 115-117
+src/bun/db.ts
+  s_37ce55d6cef73f::t_2886ab2b23fb2e 201
+src/components/themes.tsx
+  s_37ce55d6cef73f::t_d3e2430d32857c 3,35
+src/components/mailboxes.tsx
+  s_37ce55d6cef73f::t_ec202246dba7d0 3,25
+src/components/compose/ComposeSend.tsx
+  s_37ce55d6cef73f::t_8e6e1d4830fd3c 4,103
+src/mainview/components/ReaderView.tsx
+  s_37ce55d6cef73f::t_969daee8df2c9b 2
+  s_37ce55d6cef73f::t_c9a30c2a2bee47 226-227,265-266
+  s_37ce55d6cef73f::t_77e1d871d58af3 1056,1063,1069,1072
+src/mainview/App.tsx
+  s_37ce55d6cef73f::t_2358cb6dc5f403 714,899-901,957,978,1033
+src/bun/sync-lifecycle.ts
+  s_37ce55d6cef73f::t_a068be1762a9c9 44
+  s_37ce55d6cef73f::t_83da9bcfc998cf 352,354-356
+  s_37ce55d6cef73f::t_d7a950bd8fe569 271-274,276,291-293,295,317-318
+  s_37ce55d6cef73f::t_5a92562e90a13e 323-326,332,344-351,353,357-364,366,387-388
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "986187f6a06510b828022b2633dcdd143d322946",
+  "prompts": {},
+  "sessions": {
+    "s_37ce55d6cef73f": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e3581-5a49-739a-a582-c8cb7fe36f2d",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    },
+    "s_87c456f16965fb": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1ce27ca17fferyXgyAkFWTusZh",
+        "model": "gpt-5.2-codex"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
