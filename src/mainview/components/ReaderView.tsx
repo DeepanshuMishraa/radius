@@ -1057,6 +1057,7 @@ export const ReaderView = memo(function ReaderView({
 
   const loadThreadMessages = useCallback(async () => {
     if (!message?.threadId || mailbox !== "inbox") {
+      threadRequestIdRef.current += 1;
       setThreadMessages([]);
       return;
     }

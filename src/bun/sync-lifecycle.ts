@@ -294,6 +294,7 @@ export async function handleStartOAuth(params: { syncMode: SyncMode; email?: str
               console.error("OAuth callback failed:", err);
             }
 
+            isAuthInProgress = false;
             authServer?.stop();
             authServer = null;
 
@@ -314,8 +315,6 @@ export async function handleStartOAuth(params: { syncMode: SyncMode; email?: str
   } catch (err) {
     console.error("startOAuth error:", err);
     return { success: false, error: String(err) };
-  } finally {
-    isAuthInProgress = false;
   }
 }
 
@@ -354,6 +353,7 @@ export async function handleReconnectAccount(params: { email?: string }) {
                 await setActiveAccount(targetEmail);
                 await switchDbAccount(targetEmail);
                 setAccountEmail(targetEmail);
+                isAuthInProgress = false;
                 authServer?.stop();
                 authServer = null;
                 return new Response(
@@ -365,6 +365,7 @@ export async function handleReconnectAccount(params: { email?: string }) {
               console.error("Reconnect callback failed:", err);
             }
 
+            isAuthInProgress = false;
             authServer?.stop();
             authServer = null;
 
@@ -384,8 +385,6 @@ export async function handleReconnectAccount(params: { email?: string }) {
   } catch (err) {
     console.error("reconnectAccount error:", err);
     return { success: false, error: String(err) };
-  } finally {
-    isAuthInProgress = false;
   }
 }
 
