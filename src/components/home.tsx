@@ -1,15 +1,16 @@
 import { CommandGroup, CommandItem } from "@/components/ui/command";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  SunDimIcon,
-  MagnifyingGlassIcon,
-  ArrowsClockwiseIcon,
+  Sun01Icon,
+  Search01Icon,
+  Refresh01Icon,
   UserCircleIcon,
-  InfoIcon,
-  EnvelopeSimpleIcon,
-  TrayIcon,
-  HouseIcon,
-  CloudArrowDownIcon,
-} from "@phosphor-icons/react/dist/ssr";
+  InformationCircleIcon,
+  Mail01Icon,
+  Mailbox01Icon,
+  Home01Icon,
+  CloudDownloadIcon,
+} from "@hugeicons/core-free-icons";
 
 interface HomeProps {
   onSelectTheme: () => void;
@@ -21,6 +22,7 @@ interface HomeProps {
   onOpenMailroom: () => void;
   onShowInbox: () => void;
   onResync: () => void;
+  onReconnect: () => void;
 }
 
 export function Home({
@@ -33,6 +35,7 @@ export function Home({
   onOpenMailroom,
   onShowInbox,
   onResync,
+  onReconnect,
 }: HomeProps) {
   return (
     <>
@@ -41,28 +44,28 @@ export function Home({
           value="compose-email"
           onSelect={onComposeEmail}
         >
-          <EnvelopeSimpleIcon />
+          <HugeiconsIcon icon={Mail01Icon} size={16} />
           <span>Compose Email</span>
         </CommandItem>
         <CommandItem
           value="search-emails"
           onSelect={onSearchEmails}
         >
-          <MagnifyingGlassIcon />
+          <HugeiconsIcon icon={Search01Icon} size={16} />
           <span>Search Emails</span>
         </CommandItem>
         <CommandItem
           value="mailroom"
           onSelect={onOpenMailroom}
         >
-          <TrayIcon />
+          <HugeiconsIcon icon={Mailbox01Icon} size={16} />
           <span>Mailroom</span>
         </CommandItem>
         <CommandItem
           value="show-inbox"
           onSelect={onShowInbox}
         >
-          <HouseIcon />
+          <HugeiconsIcon icon={Home01Icon} size={16} />
           <span>Show Inbox</span>
         </CommandItem>
       </CommandGroup>
@@ -71,14 +74,14 @@ export function Home({
           value="accounts"
           onSelect={onSelectAccounts}
         >
-          <UserCircleIcon />
+          <HugeiconsIcon icon={UserCircleIcon} size={16} />
           <span>Accounts</span>
         </CommandItem>
         <CommandItem
           value="toggle-theme"
           onSelect={onSelectTheme}
         >
-          <SunDimIcon />
+          <HugeiconsIcon icon={Sun01Icon} size={16} />
           <span>Toggle Theme</span>
         </CommandItem>
       </CommandGroup>
@@ -87,21 +90,28 @@ export function Home({
           value="resync-account"
           onSelect={onResync}
         >
-          <CloudArrowDownIcon />
+          <HugeiconsIcon icon={CloudDownloadIcon} size={16} />
           <span>Resync Account</span>
+        </CommandItem>
+        <CommandItem
+          value="reconnect-account"
+          onSelect={onReconnect}
+        >
+          <HugeiconsIcon icon={Refresh01Icon} size={16} />
+          <span>Reconnect Account</span>
         </CommandItem>
         <CommandItem
           value="check-updates"
           onSelect={onCheckForUpdates}
         >
-          <ArrowsClockwiseIcon />
+          <HugeiconsIcon icon={Refresh01Icon} size={16} />
           <span>Check for Updates</span>
         </CommandItem>
         <CommandItem
           value="about-radius"
           onSelect={onAbout}
         >
-          <InfoIcon />
+          <HugeiconsIcon icon={InformationCircleIcon} size={16} />
           <span>About Radius</span>
         </CommandItem>
       </CommandGroup>

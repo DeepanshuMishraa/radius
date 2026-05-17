@@ -4,12 +4,19 @@ import { getAccountEmail, getValidAccessToken } from "./auth";
 import { getMessage as getGmailMessage, extractBodies, getAttachment, modifyMessageLabels, GmailAPIError, parseHeaders, classifyMessageNature, isReadFromLabels } from "./gmail";
 import {
   createComposeSession,
+  createReplyForwardSession,
   discardComposeSession,
   queueSendForSession,
   saveDraftForSession,
   undoPendingSend,
   updateComposeSession,
 } from "./compose";
+import {
+  emptyTrash,
+  handleGetThreadMessages as getThreadMessagesForRpc,
+  queueDeleteMessage,
+  undoDeleteMessage,
+} from "./message-actions";
 
 function toRpcMessage(
   gmailMessage: Awaited<ReturnType<typeof getGmailMessage>>,
@@ -58,6 +65,10 @@ function normalizeMessageRecord(
     category:
       typeof message.category === "string" ? message.category : "regular",
     isRead: Boolean(message.isRead),
+    isInbox: Boolean(message.isInbox),
+    isSent: Boolean(message.isSent),
+    isDraft: Boolean(message.isDraft),
+    isTrash: Boolean(message.isTrash),
   };
 }
 
@@ -314,9 +325,14 @@ export async function handleDownloadAttachment(params: { messageId: string; atta
 }
 
 export const handleCreateComposeSession = createComposeSession;
+export const handleCreateReplyForwardSession = createReplyForwardSession;
 export const handleUpdateComposeSession = updateComposeSession;
 export const handleSaveDraft = saveDraftForSession;
 export const handleQueueSend = queueSendForSession;
 export const handleUndoSend = undoPendingSend;
 export const handleDiscardComposeSession = discardComposeSession;
+export const handleGetThreadMessages = getThreadMessagesForRpc;
+export const handleQueueDeleteMessage = queueDeleteMessage;
+export const handleUndoDeleteMessage = undoDeleteMessage;
+export const handleEmptyTrash = emptyTrash;
 export { handleResyncAccount } from "./sync-lifecycle";

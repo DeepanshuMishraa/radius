@@ -1,17 +1,30 @@
 import DOMPurify from "dompurify";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import { useTheme } from "@/components/theme-provider";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Message, EmailCategory } from "../hooks/useInbox";
-import { ListIcon, FileIcon, ArrowSquareOut } from "@phosphor-icons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  SidebarRight01Icon,
+  File01Icon,
+  ArrowUpRight01Icon,
+  Delete01Icon,
+  Forward02Icon,
+  MailReply01Icon,
+} from "@hugeicons/core-free-icons";
 import { radiusRpc } from "../lib/rpc";
 
 interface ReaderViewProps {
   message: Message | null;
+  mailbox: "inbox" | "sent" | "drafts" | "trash";
   sidebarOpen: boolean;
   onOpenSidebar: () => void;
   onPrev?: () => void;
   onNext?: () => void;
+  onDelete?: () => void;
+  onForward?: () => void;
+  onReply?: () => void;
 }
 
 function formatFullDate(timestamp: number): string {
@@ -131,10 +144,10 @@ function MessageStatusWidget({ message }: { message: Message }) {
   const meta = CATEGORY_META[message.category];
 
   return (
-    <div className="inline-flex items-center gap-[5px] text-[11px] font-medium font-[family-name:var(--font-family-sans)]">
+    <div className="inline-flex items-center gap-[6px] text-[11px] font-semibold uppercase tracking-[0.14em] font-[family-name:var(--font-family-sans)]">
       <span
         className="inline-block rounded-full"
-        style={{ width: 4, height: 4, backgroundColor: meta.text }}
+        style={{ width: 5, height: 5, backgroundColor: meta.text }}
       />
       <span style={{ color: meta.text }}>
         {meta.label}
@@ -180,7 +193,7 @@ function AttachmentList({ attachments, messageId }: { attachments: Array<{ filen
             className="inline-flex items-center gap-2 rounded-lg border border-radius-border-subtle bg-radius-bg-secondary px-3 py-2 text-left transition-colors hover:bg-radius-bg-tertiary"
             title={`Open ${att.filename}`}
           >
-            <FileIcon size={16} className="shrink-0 text-radius-text-muted" />
+            <HugeiconsIcon icon={File01Icon} size={16} className="shrink-0 text-radius-text-muted" />
             <div className="min-w-0">
               <div className="truncate text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)] max-w-[200px]">
                 {att.filename}
@@ -189,7 +202,7 @@ function AttachmentList({ attachments, messageId }: { attachments: Array<{ filen
                 {formatSize(att.size)}
               </div>
             </div>
-            <ArrowSquareOut size={14} className="shrink-0 text-radius-text-muted ml-1" />
+            <HugeiconsIcon icon={ArrowUpRight01Icon} size={14} className="shrink-0 text-radius-text-muted ml-1" />
           </button>
         ))}
       </div>
@@ -207,28 +220,176 @@ function InboxWidget({
   if (!visible) return null;
 
   return (
-    <button
-      onClick={onClick}
+    <Tooltip delayDuration={300}>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label="Open inbox"
+          onClick={onClick}
+          className="
+            electrobun-webkit-app-region-no-drag
+            fixed top-[46px] left-6 z-30
+            p-1.5
+            rounded-lg
+            text-radius-text-muted
+            bg-radius-bg-primary/70 backdrop-blur-md
+            border border-radius-border-subtle
+            shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]
+            hover:text-radius-text-primary
+            hover:bg-radius-bg-primary/90
+            transition-all duration-200 ease-out
+            active:scale-[0.96]
+          "
+          style={
+            {
+              appRegion: "no-drag",
+              WebkitAppRegion: "no-drag",
+            } as CSSProperties
+          }
+        >
+          <HugeiconsIcon icon={SidebarRight01Icon} size={16} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" sideOffset={6} className="bg-radius-bg-primary text-radius-text-primary border border-radius-border-subtle shadow-md">
+        Open inbox
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ActionButton({ icon, tooltip, onClick, className = "" }: { icon: React.ReactNode, tooltip: string, onClick?: () => void, className?: string }) {
+  return (
+    <Tooltip delayDuration={150}>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={tooltip}
+          onClick={onClick}
+          className={`p-1.5 rounded-md text-radius-text-muted hover:text-radius-text-primary hover:bg-radius-bg-secondary transition-colors duration-150 ease-out active:scale-[0.96] ${className}`}
+        >
+          {icon}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" sideOffset={6} className="bg-radius-bg-primary text-radius-text-primary border border-radius-border-subtle shadow-md">
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ActionBarWidget({
+  visible,
+  onReply,
+  onForward,
+  onDelete
+}: {
+  visible: boolean;
+  onReply?: () => void;
+  onForward?: () => void;
+  onDelete?: () => void;
+}) {
+  if (!visible) return null;
+
+  return (
+    <div
       className="
-        electrobun-webkit-app-region-no-drag
-        fixed top-[50px] left-4 z-30
-        p-2
+        fixed top-[46px] right-6 z-30
+        flex items-center gap-0.5
+        p-1
         rounded-lg
-        text-radius-text-muted
-        hover:text-radius-text-secondary
-        transition-colors duration-150 ease-out
-        active:scale-[0.98]
+        bg-radius-bg-primary/70 backdrop-blur-md
+        border border-radius-border-subtle
+        shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]
+        electrobun-webkit-app-region-no-drag
       "
-      style={
-        {
-          appRegion: "no-drag",
-          WebkitAppRegion: "no-drag",
-        } as CSSProperties
-      }
-      title="Open inbox"
+      style={{
+        appRegion: "no-drag",
+        WebkitAppRegion: "no-drag",
+      } as CSSProperties}
     >
-      <ListIcon size={16} />
-    </button>
+      <ActionButton icon={<HugeiconsIcon icon={MailReply01Icon} size={16} />} tooltip="Reply" onClick={onReply} />
+      <ActionButton icon={<HugeiconsIcon icon={Forward02Icon} size={16} />} tooltip="Forward" onClick={onForward} />
+      <div className="w-[1px] h-3.5 bg-radius-border-subtle mx-1" />
+      <ActionButton 
+        icon={<HugeiconsIcon icon={Delete01Icon} size={16} />} 
+        tooltip="Delete" 
+        onClick={onDelete} 
+        className="hover:text-red-500 hover:bg-red-500/10" 
+      />
+    </div>
+  );
+}
+
+function ReplyThreadCard({ message }: { message: Message }) {
+  const author = parseAddress(message.from);
+  const bodyText = (message.bodyText || message.snippet || "").trim();
+  
+  let replyText = bodyText;
+  let quotedText = "";
+  
+  const quoteRegex = /(?:\n|^)(?:On\s.*?wrote:.*|>\s.*|From:\s.*|--- Original Message ---.*)/is;
+  const match = bodyText.match(quoteRegex);
+  
+  if (match && match.index !== undefined) {
+    replyText = bodyText.substring(0, match.index).trim();
+    quotedText = bodyText.substring(match.index).trim();
+  }
+
+  if (!replyText && quotedText) {
+    replyText = quotedText;
+    quotedText = "";
+  }
+
+  const avatarLetter = (author.name || author.email || "?").charAt(0).toUpperCase();
+
+  return (
+    <article className="group flex flex-col gap-1 py-6 border-t border-radius-border-subtle/20 first:border-0 transition-colors">
+      <header className="flex items-center justify-between gap-4 mb-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-radius-bg-secondary/80 border border-radius-border-subtle/50 text-[11px] font-medium text-radius-text-primary shadow-sm">
+            {avatarLetter}
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[14px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+              {author.name || author.email || "Unknown"}
+            </span>
+            {author.name && author.email && author.email !== author.name && (
+              <span className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                {author.email}
+              </span>
+            )}
+          </div>
+        </div>
+        <time className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)] tracking-wide">
+          {formatFullDate(message.internalDate)}
+        </time>
+      </header>
+      
+      <div className="pl-10">
+        <div className="whitespace-pre-wrap text-[14.5px] leading-[1.65] text-radius-text-secondary font-[family-name:var(--font-family-sans)]">
+          {replyText || "No content"}
+        </div>
+        
+        {quotedText && (
+          <details className="mt-3 group/quote">
+            <summary className="cursor-pointer text-radius-text-muted hover:text-radius-text-primary select-none flex h-6 w-8 items-center justify-center rounded bg-radius-bg-secondary/30 hover:bg-radius-bg-secondary/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-radius-border-strong">
+              <span className="text-[14px] leading-none tracking-widest translate-x-[1px]">•••</span>
+            </summary>
+            <div className="mt-4 border-l-2 border-radius-border-subtle/40 pl-4 py-0.5">
+              <div className="whitespace-pre-wrap text-[13px] leading-[1.6] text-radius-text-muted font-[family-name:var(--font-family-sans)] opacity-60">
+                {quotedText}
+              </div>
+            </div>
+          </details>
+        )}
+        
+        {message.attachments && message.attachments.length > 0 && (
+          <div className="mt-4">
+            <AttachmentList attachments={message.attachments} messageId={message.id} />
+          </div>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -818,10 +979,14 @@ const EMAIL_BODY_STYLES = `
 
 export const ReaderView = memo(function ReaderView({
   message,
+  mailbox,
   sidebarOpen,
   onOpenSidebar,
   onPrev,
   onNext,
+  onReply,
+  onForward,
+  onDelete,
 }: ReaderViewProps) {
   const { theme, appearance, resolvedTheme } = useTheme();
   const newsletterThemeConfig = useMemo(() => {
@@ -887,6 +1052,29 @@ export const ReaderView = memo(function ReaderView({
   }, []);
 
   const rawHtml = message?.bodyHtml ?? null;
+  const [threadMessages, setThreadMessages] = useState<Message[]>([]);
+  const threadRequestIdRef = useRef(0);
+
+  const loadThreadMessages = useCallback(async () => {
+    if (!message?.threadId || mailbox !== "inbox") {
+      threadRequestIdRef.current += 1;
+      setThreadMessages([]);
+      return;
+    }
+    const requestId = ++threadRequestIdRef.current;
+    try {
+      const result = await radiusRpc.request.getThreadMessages({
+        threadId: message.threadId,
+        limit: 16,
+      });
+      if (threadRequestIdRef.current !== requestId) return;
+      setThreadMessages(result.messages);
+    } catch (error) {
+      if (threadRequestIdRef.current !== requestId) return;
+      console.error("Failed to load thread messages:", error);
+      setThreadMessages([]);
+    }
+  }, [mailbox, message?.threadId]);
 
   const sanitizedHtml = useMemo(() => {
     if (!rawHtml) return null;
@@ -919,6 +1107,21 @@ export const ReaderView = memo(function ReaderView({
   const [systemName, setSystemName] = useState<string>("there");
 
   useEffect(() => {
+    void loadThreadMessages();
+  }, [loadThreadMessages, message?.id]);
+
+  useEffect(() => {
+    if (!message?.threadId || mailbox !== "inbox") return;
+    const handleComposeStatus = () => {
+      void loadThreadMessages();
+    };
+    radiusRpc.addMessageListener("composeStatusChanged", handleComposeStatus);
+    return () => {
+      radiusRpc.removeMessageListener("composeStatusChanged", handleComposeStatus);
+    };
+  }, [loadThreadMessages, mailbox, message?.threadId]);
+
+  useEffect(() => {
     radiusRpc.request.getSystemFullName({}).then(res => {
       // Use just the first name if available
       const firstName = res.name.split(' ')[0];
@@ -927,6 +1130,21 @@ export const ReaderView = memo(function ReaderView({
       console.error("Failed to fetch system name", err);
     });
   }, []);
+
+  const repliedMessages = useMemo(
+    () =>
+      !message
+        ? []
+        : threadMessages
+            .filter(
+              (threadMessage) =>
+                threadMessage.id !== message.id &&
+                Boolean(threadMessage.isSent) &&
+                threadMessage.internalDate >= message.internalDate,
+            )
+            .sort((a, b) => a.internalDate - b.internalDate),
+    [message, threadMessages],
+  );
 
   if (!message) {
     const hour = new Date().getHours();
@@ -942,6 +1160,22 @@ export const ReaderView = memo(function ReaderView({
     }
 
     const greeting = `Good ${timeGreeting}, ${systemName}.`;
+    const mailboxTitle =
+      mailbox === "sent"
+        ? "Welcome to Sent mail."
+        : mailbox === "drafts"
+          ? "Welcome to Drafts."
+          : mailbox === "trash"
+            ? "Welcome to Trash."
+            : greeting;
+    const mailboxSubtext =
+      mailbox === "sent"
+        ? "Pick a sent message from the left to review what you shipped."
+        : mailbox === "drafts"
+          ? "Your saved drafts are waiting on the left."
+          : mailbox === "trash"
+            ? "Recently deleted mail lives here until you empty trash."
+            : subtext;
 
     return (
       <div className="flex flex-col items-center justify-center h-full bg-radius-bg-primary relative w-full overflow-hidden">
@@ -959,10 +1193,10 @@ export const ReaderView = memo(function ReaderView({
         
         <div className="relative z-10 flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] fill-mode-both">
           <h1 className="text-[32px] md:text-[42px] font-medium tracking-[-0.03em] text-radius-text-primary font-[family-name:var(--font-family-serif)] mb-3 text-center leading-[1.1]">
-            {greeting}
+            {mailboxTitle}
           </h1>
           <p className="text-[15px] text-radius-text-secondary font-[family-name:var(--font-family-sans)] tracking-[-0.01em]">
-            {subtext}
+            {mailboxSubtext}
           </p>
         </div>
       </div>
@@ -975,6 +1209,12 @@ export const ReaderView = memo(function ReaderView({
   return (
     <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-11">
       <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
+      <ActionBarWidget 
+        visible={true} 
+        onReply={onReply}
+        onForward={onForward}
+        onDelete={onDelete}
+      />
 
       <div className="flex-1 email-enter relative" key={message.id}>
         {isPureNewsletter ? (
@@ -1009,38 +1249,55 @@ export const ReaderView = memo(function ReaderView({
                 />
               </div>
               <AttachmentList attachments={message.attachments} messageId={message.id} />
+              {mailbox === "inbox" && repliedMessages.length > 0 ? (
+                <div className="mt-16">
+                  <div className="relative mb-8">
+                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                      <div className="w-full border-t border-radius-border-subtle/30" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-radius-bg-primary px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-radius-text-muted/70 font-[family-name:var(--font-family-sans)]">
+                        Replies
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col">
+                    {repliedMessages.map((reply) => (
+                      <ReplyThreadCard key={reply.id} message={reply} />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </article>
         ) : (
           /* ═════ READING MODE — Text emails ═════ */
           <article className="w-full px-6 pt-8 pb-24">
             <header className="max-w-[720px] mx-auto">
-              <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] font-semibold text-radius-text-primary leading-[1.1] tracking-wide mb-4">
+              <div className="mb-5 flex flex-wrap items-center gap-3">
+                <MessageStatusWidget message={message} />
+                <div className="w-1 h-1 rounded-full bg-radius-border-subtle" />
+                <time className="text-[12px] tracking-wide text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                  {formatFullDate(message.internalDate)}
+                </time>
+              </div>
+
+              <h1 className="font-[family-name:var(--font-family-serif)] text-[32px] md:text-[36px] font-medium text-radius-text-primary leading-[1.1] tracking-tight mb-8">
                 {message.subject}
               </h1>
 
-              <div className="mb-8">
-                <MessageStatusWidget message={message} />
-              </div>
-
-              <div className="mb-10 pb-8 border-b border-radius-border-subtle space-y-2">
-                <div className="flex items-start gap-6">
-                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
+              <div className="mb-10 pb-8 border-b border-radius-border-subtle/50 flex flex-col gap-1.5">
+                <div className="flex items-center gap-4">
+                  <span className="text-[12px] uppercase tracking-widest text-radius-text-muted w-10 shrink-0 font-[family-name:var(--font-family-sans)]">
                     From
                   </span>
                   <AddressReveal name={sender.name} email={sender.email} />
                 </div>
-                <div className="flex items-start gap-6">
-                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]">
+                <div className="flex items-center gap-4">
+                  <span className="text-[12px] uppercase tracking-widest text-radius-text-muted w-10 shrink-0 font-[family-name:var(--font-family-sans)]">
                     To
                   </span>
                   <AddressReveal name={recipient.name} email={recipient.email} />
-                </div>
-                <div className="flex items-baseline gap-6 pt-1">
-                  <span className="text-[13px] text-radius-text-muted w-8 shrink-0 font-[family-name:var(--font-family-serif)]"></span>
-                  <time className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-serif)]">
-                    {formatFullDate(message.internalDate)}
-                  </time>
                 </div>
               </div>
             </header>
@@ -1064,6 +1321,25 @@ export const ReaderView = memo(function ReaderView({
                 <AttachmentList attachments={message.attachments} messageId={message.id} />
               </div>
             )}
+            {mailbox === "inbox" && repliedMessages.length > 0 ? (
+              <div className="max-w-[720px] mx-auto mt-16">
+                <div className="relative mb-8">
+                  <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div className="w-full border-t border-radius-border-subtle/30" />
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="bg-radius-bg-primary px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-radius-text-muted/70 font-[family-name:var(--font-family-sans)]">
+                      Replies
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-col">
+                  {repliedMessages.map((reply) => (
+                    <ReplyThreadCard key={reply.id} message={reply} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </article>
         )}
       </div>

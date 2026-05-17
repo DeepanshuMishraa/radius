@@ -56,6 +56,12 @@ export interface ComposeSession {
   subject: string;
   bodyText: string;
   attachments: ComposeAttachmentInput[];
+  mode: "compose" | "reply" | "forward";
+  fixedRecipients: boolean;
+  threadId: string | null;
+  replyToMessageId: string | null;
+  replyReferences: string[];
+  originalMessageId: string | null;
   gmailDraftId: string | null;
   gmailMessageId: string | null;
   status: "editing" | "queued" | "sent" | "failed" | "discarded";
@@ -99,6 +105,18 @@ export interface Message {
   attachments: Attachment[];
   category: EmailCategory;
   isRead: boolean;
+  isInbox?: boolean;
+  isSent?: boolean;
+  isDraft?: boolean;
+  isTrash?: boolean;
+}
+
+export interface PendingDeleteStatusMessage {
+  operationId: string;
+  messageId: string;
+  status: "delete_queued" | "delete_committed" | "delete_undone" | "delete_failed";
+  undoDeadlineAt?: number;
+  error?: string;
 }
 
 export interface SyncStatus {
@@ -170,7 +188,11 @@ export type RadiusRPC = {
         response: { success: boolean; error?: string };
       };
       startOAuth: {
-        params: { syncMode: SyncMode };
+        params: { syncMode: SyncMode; email?: string };
+        response: { success: boolean; error?: string };
+      };
+      reconnectAccount: {
+        params: { email?: string };
         response: { success: boolean; error?: string };
       };
       startSync: {
@@ -188,6 +210,18 @@ export type RadiusRPC = {
       };
       createComposeSession: {
         params: { from: string };
+        response: {
+          success: boolean;
+          session?: ComposeSession;
+          error?: string;
+        };
+      };
+      createReplyForwardSession: {
+        params: {
+          from: string;
+          messageId: string;
+          mode: "reply" | "forward";
+        };
         response: {
           success: boolean;
           session?: ComposeSession;
@@ -255,6 +289,43 @@ export type RadiusRPC = {
         };
         response: {
           success: boolean;
+          error?: string;
+        };
+      };
+      getThreadMessages: {
+        params: {
+          threadId: string;
+          limit?: number;
+        };
+        response: {
+          messages: Message[];
+        };
+      };
+      queueDeleteMessage: {
+        params: {
+          messageId: string;
+        };
+        response: {
+          success: boolean;
+          operationId?: string;
+          undoDeadlineAt?: number;
+          error?: string;
+        };
+      };
+      undoDeleteMessage: {
+        params: {
+          operationId: string;
+        };
+        response: {
+          success: boolean;
+          error?: string;
+        };
+      };
+      emptyTrash: {
+        params: {};
+        response: {
+          success: boolean;
+          deletedCount?: number;
           error?: string;
         };
       };
@@ -331,6 +402,7 @@ export type RadiusRPC = {
       newMail: Message;
       updateStatus: UpdateInfo;
       composeStatusChanged: ComposeStatusMessage;
+      pendingDeleteStatusChanged: PendingDeleteStatusMessage;
     };
   };
 };

@@ -18,6 +18,10 @@ import {
   resumePendingSends,
 } from "./compose";
 import {
+  resumePendingDeletes,
+  setEmitPendingDeleteStatus,
+} from "./message-actions";
+import {
   handleGetInbox,
   handleGetMailboxMessages,
   handleSearchInbox,
@@ -27,11 +31,16 @@ import {
   handleDownloadAttachment,
   handleGetComposeSuggestions,
   handleCreateComposeSession,
+  handleCreateReplyForwardSession,
   handleUpdateComposeSession,
   handleSaveDraft,
   handleQueueSend,
   handleUndoSend,
   handleDiscardComposeSession,
+  handleGetThreadMessages,
+  handleQueueDeleteMessage,
+  handleUndoDeleteMessage,
+  handleEmptyTrash,
   handleResyncAccount,
 } from "./rpc-handlers";
 import {
@@ -43,6 +52,7 @@ import {
 } from "./ui";
 import {
   handleStartOAuth,
+  handleReconnectAccount,
   handleStartSync,
   startExistingUserSync,
   tryResumeSyncFromRefreshToken,
@@ -78,14 +88,20 @@ async function createMainWindow() {
         getSyncStatus: handleGetSyncStatus,
         openExternalUrl: handleOpenExternalUrl,
         startOAuth: handleStartOAuth,
+        reconnectAccount: handleReconnectAccount,
         startSync: handleStartSync,
         markMessageRead: handleMarkMessageRead,
         createComposeSession: handleCreateComposeSession,
+        createReplyForwardSession: handleCreateReplyForwardSession,
         updateComposeSession: handleUpdateComposeSession,
         saveDraft: handleSaveDraft,
         queueSend: handleQueueSend,
         undoSend: handleUndoSend,
         discardComposeSession: handleDiscardComposeSession,
+        getThreadMessages: handleGetThreadMessages,
+        queueDeleteMessage: handleQueueDeleteMessage,
+        undoDeleteMessage: handleUndoDeleteMessage,
+        emptyTrash: handleEmptyTrash,
         requestNotificationPermission: handleRequestNotificationPermission,
         openNotificationSettings: handleOpenNotificationSettings,
         applyUpdate: handleApplyUpdate,
@@ -125,6 +141,9 @@ async function createMainWindow() {
   });
   setEmitComposeStatus((message) => {
     rpc.send.composeStatusChanged(message);
+  });
+  setEmitPendingDeleteStatus((message) => {
+    rpc.send.pendingDeleteStatusChanged(message);
   });
 
   const { x, y, width, height } = Screen.getPrimaryDisplay().workArea;
@@ -224,6 +243,7 @@ async function init() {
 
   await createMainWindow();
   await resumePendingSends();
+  await resumePendingDeletes();
 
   const state = await getSyncState();
 

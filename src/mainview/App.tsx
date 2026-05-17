@@ -7,23 +7,23 @@ import type { Message } from "./hooks/useInbox";
 import { CommandK } from "@/components/cmd";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ThemeProvider, useTheme } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { EmailSearchSpotlight } from "@/components/search-spotlight";
 import { DragRegion } from "@/components/drag-region";
-import { ComposeEmailDialog, type ContactOption } from "@/components/compose";
+import { ComposeEmailDialog, type ComposeIntent, type ContactOption } from "@/components/compose";
 import { NotificationPermissionPrompt } from "@/components/notification-prompt";
 import { UpdateNotification } from "@/components/update-notification";
 import { SyncPill } from "@/components/sync-pill";
 import { AboutDialog } from "@/components/about";
 import { AddAccountDialog } from "@/components/add-account";
-import {
-  X,
-  EnvelopeSimple,
-} from "@phosphor-icons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Cancel01Icon, Mail01Icon } from "@hugeicons/core-free-icons";
 import { Toaster, toast } from "sonner";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { radiusRpc } from "./lib/rpc";
 import type {
   ComposeContactSuggestion,
+  PendingDeleteStatusMessage,
   ComposeStatusMessage,
   LocalReleaseInfo,
   SyncMode,
@@ -126,7 +126,7 @@ function App() {
   const [addAccountMode, setAddAccountMode] = useState<SyncMode | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [aboutInfo, setAboutInfo] = useState<LocalReleaseInfo | null>(null);
-  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeIntent, setComposeIntent] = useState<ComposeIntent | null>(null);
   const composeToastTimersRef = useRef<number[]>([]);
   const activeMailboxRef = useRef<Exclude<MailboxKind, "inbox"> | null>(null);
   const [mailboxView, setMailboxView] = useState<MailboxKind>("inbox");
@@ -156,7 +156,7 @@ function App() {
     { ignoreInputs: true }
   );
 
-  const { messages, total } = useInbox(
+  const { messages, total, refresh: refreshInbox } = useInbox(
     inboxLimit,
     0,
     syncStatus.status === "syncing" ? 2000 : 8000
@@ -305,7 +305,7 @@ function App() {
             >
               <div className="flex items-start gap-2.5 p-3">
                 <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-radius-accent-subtle">
-                  <EnvelopeSimple weight="fill" size={12} className="text-radius-accent" />
+                  <HugeiconsIcon icon={Mail01Icon} size={12} className="text-radius-accent" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-radius-accent font-[family-name:var(--font-family-sans)]">
@@ -326,7 +326,7 @@ function App() {
               className="absolute top-2.5 right-2.5 inline-flex h-5 w-5 items-center justify-center rounded-md text-radius-text-muted opacity-0 transition-all duration-150 hover:bg-radius-bg-secondary hover:text-radius-text-primary group-hover:opacity-100"
               aria-label="Dismiss"
             >
-              <X size={11} weight="bold" />
+              <HugeiconsIcon icon={Cancel01Icon} size={11} className="text-radius-text-muted" />
             </button>
           </div>
         ),
@@ -337,33 +337,6 @@ function App() {
     radiusRpc.addMessageListener("newMail", handleNewMail);
     return () => {
       radiusRpc.removeMessageListener("newMail", handleNewMail);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleComposeStatus = (message: ComposeStatusMessage) => {
-      if (message.status === "send_sent") {
-        const timer = window.setTimeout(() => {
-          toast.success("Message sent", {
-            description: "Your email has been successfully sent.",
-          });
-          composeToastTimersRef.current = composeToastTimersRef.current.filter(
-            (id) => id !== timer,
-          );
-        }, 250);
-        composeToastTimersRef.current.push(timer);
-      } else if (message.status === "send_failed") {
-        toast.error(message.error ?? "Send failed");
-      }
-    };
-
-    radiusRpc.addMessageListener("composeStatusChanged", handleComposeStatus);
-    return () => {
-      for (const timer of composeToastTimersRef.current) {
-        window.clearTimeout(timer);
-      }
-      composeToastTimersRef.current = [];
-      radiusRpc.removeMessageListener("composeStatusChanged", handleComposeStatus);
     };
   }, []);
 
@@ -522,8 +495,20 @@ function App() {
 
   const handleOpenCompose = useCallback(() => {
     setCmdOpen(false);
-    setComposeOpen(true);
+    setComposeIntent({ kind: "compose" });
   }, []);
+
+  const refreshMailbox = useCallback(
+    async (mailbox: Exclude<MailboxKind, "inbox">) => {
+      const result = await radiusRpc.request.getMailboxMessages({ mailbox, limit: 100 });
+      setMailboxMessages((current) => ({
+        ...current,
+        [mailbox]: result.messages,
+      }));
+      return result.messages;
+    },
+    [],
+  );
 
   const handleOpenMailbox = useCallback(async (mailbox: Exclude<MailboxKind, "inbox">) => {
     activeMailboxRef.current = mailbox;
@@ -531,29 +516,189 @@ function App() {
     setSearchOpen(false);
     setSidebarOpen(true);
     setMailboxView(mailbox);
+    setSelectedMessageId(null);
     try {
-      const result = await radiusRpc.request.getMailboxMessages({ mailbox, limit: 100 });
+      await refreshMailbox(mailbox);
       if (activeMailboxRef.current !== mailbox) return;
-      setMailboxMessages((current) => ({
-        ...current,
-        [mailbox]: result.messages,
-      }));
-      if (result.messages[0]) {
-        setSelectedMessageId(result.messages[0].id);
-        setSidebarOpen(false);
-      }
     } catch (error) {
       console.error(`Failed to load ${mailbox}:`, error);
       toast.error(`Failed to load ${mailbox}`);
     }
-  }, []);
+  }, [refreshMailbox]);
 
   const handleShowInbox = useCallback(() => {
     setCmdOpen(false);
     setSearchOpen(false);
     setMailboxView("inbox");
     setSidebarOpen(true);
+    setSelectedMessageId(null);
   }, []);
+
+  const refreshVisibleMailboxData = useCallback(async () => {
+    await refreshInbox();
+    if (mailboxView !== "inbox") {
+      await refreshMailbox(mailboxView);
+    }
+    if (mailboxView !== "trash") {
+      await refreshMailbox("trash");
+    }
+    if (mailboxView !== "sent") {
+      await refreshMailbox("sent");
+    }
+  }, [mailboxView, refreshInbox, refreshMailbox]);
+
+  const handleReply = useCallback(() => {
+    if (!selectedMessage) return;
+    setComposeIntent({ kind: "reply", messageId: selectedMessage.id });
+  }, [selectedMessage]);
+
+  const handleForward = useCallback(() => {
+    if (!selectedMessage) return;
+    setComposeIntent({ kind: "forward", messageId: selectedMessage.id });
+  }, [selectedMessage]);
+
+  const handleDelete = useCallback(async () => {
+    if (!selectedMessage) return;
+    const currentIndex = visibleMessages.findIndex((message) => message.id === selectedMessage.id);
+    const fallbackMessage =
+      visibleMessages[currentIndex + 1] ?? visibleMessages[currentIndex - 1] ?? null;
+    try {
+      const result = await radiusRpc.request.queueDeleteMessage({ messageId: selectedMessage.id });
+      if (!result.success) {
+        toast.error(result.error ?? "Delete failed");
+        return;
+      }
+      setMailboxMessages((current) => ({
+        sent: current.sent.filter((message) => message.id !== selectedMessage.id),
+        drafts: current.drafts.filter((message) => message.id !== selectedMessage.id),
+        trash: [
+          {
+            ...selectedMessage,
+            isInbox: false,
+            isSent: false,
+            isDraft: false,
+            isTrash: true,
+          },
+          ...current.trash.filter((message) => message.id !== selectedMessage.id),
+        ],
+      }));
+      setSelectedMessageId(fallbackMessage?.id ?? null);
+      await refreshVisibleMailboxData();
+      if (result.operationId && result.undoDeadlineAt) {
+        const duration = Math.max(0, result.undoDeadlineAt - Date.now());
+        toast.custom(
+          (t) => (
+            <div className="toast pointer-events-auto w-[320px] rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl overflow-hidden">
+              <div className="flex items-center justify-between gap-3 px-4 py-3">
+                <div>
+                  <div className="text-[12px] font-semibold text-radius-text-primary">
+                    Moved to trash
+                  </div>
+                  <div className="text-[11px] text-radius-text-muted">
+                    Undo within 10 seconds.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-md bg-radius-text-primary px-2.5 py-1 text-[11px] font-medium text-radius-bg-primary"
+                  onClick={async () => {
+                    const undo = await radiusRpc.request.undoDeleteMessage({
+                      operationId: result.operationId!,
+                    });
+                    if (!undo.success) {
+                      toast.error(undo.error ?? "Undo failed");
+                      return;
+                    }
+                    toast.dismiss(t);
+                    await refreshVisibleMailboxData();
+                    toast.success("Message restored");
+                  }}
+                >
+                  Undo
+                </button>
+              </div>
+              <div
+                className="toast-progress h-[2px] bg-radius-accent"
+                style={{ animationDuration: `${duration}ms` }}
+              />
+            </div>
+          ),
+          { duration: Math.max(duration, 1000) },
+        );
+      } else {
+        toast.success(mailboxView === "trash" ? "Message deleted permanently" : "Message moved to trash");
+      }
+    } catch (error) {
+      console.error("Delete message failed:", error);
+      toast.error("Delete failed");
+    }
+  }, [mailboxView, refreshVisibleMailboxData, selectedMessage, visibleMessages]);
+
+  const handleEmptyTrash = useCallback(async () => {
+    try {
+      const result = await radiusRpc.request.emptyTrash({});
+      if (!result.success) {
+        toast.error(result.error ?? "Failed to empty trash");
+        return;
+      }
+      await refreshVisibleMailboxData();
+      if (mailboxView === "trash") {
+        setSelectedMessageId(null);
+      }
+      toast.success(
+        result.deletedCount && result.deletedCount > 0
+          ? `Deleted ${result.deletedCount} message${result.deletedCount === 1 ? "" : "s"}`
+          : "Trash is already empty",
+      );
+    } catch (error) {
+      console.error("Empty trash failed:", error);
+      toast.error("Failed to empty trash");
+    }
+  }, [mailboxView, refreshVisibleMailboxData]);
+
+  useEffect(() => {
+    const handleComposeStatus = (message: ComposeStatusMessage) => {
+      if (message.status === "send_sent") {
+        void refreshVisibleMailboxData();
+        const timer = window.setTimeout(() => {
+          toast.success("Message sent", {
+            description: "Your email has been successfully sent.",
+          });
+          composeToastTimersRef.current = composeToastTimersRef.current.filter(
+            (id) => id !== timer,
+          );
+        }, 250);
+        composeToastTimersRef.current.push(timer);
+      } else if (message.status === "send_failed") {
+        toast.error(message.error ?? "Send failed");
+      }
+    };
+
+    radiusRpc.addMessageListener("composeStatusChanged", handleComposeStatus);
+    return () => {
+      for (const timer of composeToastTimersRef.current) {
+        window.clearTimeout(timer);
+      }
+      composeToastTimersRef.current = [];
+      radiusRpc.removeMessageListener("composeStatusChanged", handleComposeStatus);
+    };
+  }, [refreshVisibleMailboxData]);
+
+  useEffect(() => {
+    const handlePendingDeleteStatus = (message: PendingDeleteStatusMessage) => {
+      if (message.status === "delete_failed") {
+        toast.error(message.error ?? "Delete failed");
+        void refreshVisibleMailboxData();
+      } else if (message.status === "delete_committed" || message.status === "delete_undone") {
+        void refreshVisibleMailboxData();
+      }
+    };
+
+    radiusRpc.addMessageListener("pendingDeleteStatusChanged", handlePendingDeleteStatus);
+    return () => {
+      radiusRpc.removeMessageListener("pendingDeleteStatusChanged", handlePendingDeleteStatus);
+    };
+  }, [refreshVisibleMailboxData]);
 
   const handleCheckForUpdates = useCallback(async () => {
     setCmdOpen(false);
@@ -566,7 +711,7 @@ function App() {
       }
 
       if (result.updateAvailable && !result.updateReady) {
-        console.log(`⬇️  Update v${result.version} available — downloading...`);
+        console.log(`⬇️  Update v${result.version} available - downloading...`);
         setIsDownloading(true);
         try {
           const downloadResult = await radiusRpc.request.downloadUpdate({});
@@ -692,6 +837,23 @@ function App() {
     }
   }, []);
 
+  const handleReconnect = useCallback(async () => {
+    setCmdOpen(false);
+    if (!activeAccount) {
+      toast.error("No active account to reconnect");
+      return;
+    }
+    try {
+      const result = await radiusRpc.request.reconnectAccount({ email: activeAccount });
+      if (!result.success) {
+        toast.error(result.error ?? "Reconnect failed");
+      }
+    } catch (err) {
+      console.error("Reconnect error:", err);
+      toast.error("Reconnect failed");
+    }
+  }, [activeAccount]);
+
   const handleConnectNewAccount = useCallback(
     async (syncMode: SyncMode) => {
       setAddAccountMode(syncMode);
@@ -734,9 +896,9 @@ function App() {
     const trimmedQuery = deferredSearchQuery.trim();
     if (!searchOpen) return null;
     if (!trimmedQuery) return "Search sender, subject, snippet, or body text";
-    if (searchLoading) return `Searching for “${trimmedQuery}”`;
-    if (searchedTotal === 0) return `No emails match “${trimmedQuery}”`;
-    return `${searchedTotal.toLocaleString()} result${searchedTotal === 1 ? "" : "s"} for “${trimmedQuery}”`;
+    if (searchLoading) return `Searching for "${trimmedQuery}"`;
+    if (searchedTotal === 0) return `No emails match "${trimmedQuery}"`;
+    return `${searchedTotal.toLocaleString()} result${searchedTotal === 1 ? "" : "s"} for "${trimmedQuery}"`;
   }, [deferredSearchQuery, searchLoading, searchOpen, searchedTotal]);
 
   if (isAuthenticated === null && !hasAuthSignal) {
@@ -763,8 +925,9 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-    <div className="relative flex h-full bg-radius-bg-primary overflow-hidden">
-      <DragRegion />
+      <TooltipProvider>
+      <div className="relative flex h-full bg-radius-bg-primary overflow-hidden">
+        <DragRegion />
       <aside
         className="sidebar-panel h-full border-r border-radius-border-subtle bg-radius-bg-primary will-change-transform"
         data-open={sidebarOpen}
@@ -791,20 +954,35 @@ function App() {
           onReachEnd={searchActive || mailboxView !== "inbox" ? undefined : handleLoadMoreInbox}
           emptyMessage={
             searchActive
-              ? `No emails match “${deferredSearchQuery.trim()}”`
+              ? `No emails match "${deferredSearchQuery.trim()}"`
               : mailboxView === "inbox"
                 ? undefined
                 : `No ${mailboxView} emails`
+          }
+          headerAction={
+            mailboxView === "trash" ? (
+              <button
+                type="button"
+                onClick={() => void handleEmptyTrash()}
+                className="rounded-full border border-radius-border-subtle px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-radius-text-muted transition-colors hover:border-radius-border hover:text-radius-text-primary"
+              >
+                Empty Trash
+              </button>
+            ) : undefined
           }
         />
       </aside>
       <main className="flex-1 min-w-0 h-full">
         <ReaderView
           message={selectedMessage}
+          mailbox={searchActive ? "inbox" : mailboxView}
           sidebarOpen={sidebarOpen}
           onOpenSidebar={handleOpenSidebar}
           onPrev={handlePrevMessage}
           onNext={handleNextMessage}
+          onReply={handleReply}
+          onForward={handleForward}
+          onDelete={handleDelete}
         />
       </main>
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen} modal={false}>
@@ -829,6 +1007,7 @@ function App() {
             onShowInbox={handleShowInbox}
             onClose={() => setCmdOpen(false)}
             onResync={handleResync}
+            onReconnect={handleReconnect}
             accounts={accounts}
             activeAccount={activeAccount}
           />
@@ -844,13 +1023,14 @@ function App() {
         onSubmit={handleSubmitSearch}
       />
       <ComposeEmailDialog
-        open={composeOpen}
-        onClose={() => setComposeOpen(false)}
+        open={composeIntent !== null}
+        onClose={() => setComposeIntent(null)}
         fromAccount={activeAccountRecord}
         contacts={composeContacts}
+        intent={composeIntent ?? { kind: "compose" }}
       />
 
-      {/* Minimal sync indicator — bottom left, never blocks */}
+      {/* Minimal sync indicator - bottom left, never blocks */}
       <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
         <UpdateNotification
           updateInfo={updateInfo}
@@ -893,6 +1073,7 @@ function App() {
         info={aboutInfo}
       />
       </div>
+      </TooltipProvider>
     </ThemeProvider>
   );
 }

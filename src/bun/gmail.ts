@@ -422,6 +422,9 @@ export function buildRawEmail(payload: {
   bcc?: string[];
   subject: string;
   bodyText: string;
+  threadId?: string;
+  inReplyTo?: string;
+  references?: string[];
   attachments?: GmailOutgoingAttachment[];
 }): string {
   const from = escapeHeaderValue(payload.from);
@@ -438,6 +441,12 @@ export function buildRawEmail(payload: {
   ];
   if (cc) headers.push(`Cc: ${cc}`);
   if (bcc) headers.push(`Bcc: ${bcc}`);
+  if (payload.inReplyTo) headers.push(`In-Reply-To: ${escapeHeaderValue(payload.inReplyTo)}`);
+  if (payload.references && payload.references.length > 0) {
+    headers.push(
+      `References: ${payload.references.map((entry) => escapeHeaderValue(entry)).join(" ")}`,
+    );
+  }
 
   const alternativeBoundary = `radius-alt-${crypto.randomUUID()}`;
   const textPart = [
@@ -492,6 +501,9 @@ export async function createDraft(
     bcc?: string[];
     subject: string;
     bodyText: string;
+    threadId?: string;
+    inReplyTo?: string;
+    references?: string[];
     attachments?: GmailOutgoingAttachment[];
   }
 ): Promise<{ id: string; message: { id: string } }> {
@@ -501,6 +513,7 @@ export async function createDraft(
     body: JSON.stringify({
       message: {
         raw: buildRawEmail(payload),
+        ...(payload.threadId ? { threadId: payload.threadId } : {}),
       },
     }),
   });
@@ -518,6 +531,9 @@ export async function updateDraft(
     bcc?: string[];
     subject: string;
     bodyText: string;
+    threadId?: string;
+    inReplyTo?: string;
+    references?: string[];
     attachments?: GmailOutgoingAttachment[];
   }
 ): Promise<{ id: string; message: { id: string } }> {
@@ -528,6 +544,7 @@ export async function updateDraft(
       id: draftId,
       message: {
         raw: buildRawEmail(payload),
+        ...(payload.threadId ? { threadId: payload.threadId } : {}),
       },
     }),
   });
@@ -544,22 +561,40 @@ export async function sendMessage(
     bcc?: string[];
     subject: string;
     bodyText: string;
+    threadId?: string;
+    inReplyTo?: string;
+    references?: string[];
     attachments?: GmailOutgoingAttachment[];
   }
-): Promise<{ id: string }> {
+): Promise<{ id: string; threadId?: string }> {
   const res = await fetchWithRetry(`${GMAIL_API_BASE}/messages/send`, {
     method: "POST",
     headers: getAuthHeaders(accessToken),
     body: JSON.stringify({
       raw: buildRawEmail(payload),
+      threadId: payload.threadId,
     }),
   });
 
-  return (await res.json()) as { id: string };
+  return (await res.json()) as { id: string; threadId?: string };
 }
 
 export async function deleteDraft(accessToken: string, draftId: string): Promise<void> {
   await fetchWithRetry(`${GMAIL_API_BASE}/drafts/${draftId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(accessToken),
+  });
+}
+
+export async function trashMessage(accessToken: string, messageId: string): Promise<void> {
+  await fetchWithRetry(`${GMAIL_API_BASE}/messages/${messageId}/trash`, {
+    method: "POST",
+    headers: getAuthHeaders(accessToken),
+  });
+}
+
+export async function deleteMessage(accessToken: string, messageId: string): Promise<void> {
+  await fetchWithRetry(`${GMAIL_API_BASE}/messages/${messageId}`, {
     method: "DELETE",
     headers: getAuthHeaders(accessToken),
   });

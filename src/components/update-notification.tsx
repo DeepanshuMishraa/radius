@@ -1,4 +1,5 @@
-import { X, ArrowCircleUp } from "@phosphor-icons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Cancel01Icon, CircleArrowUp02Icon } from "@hugeicons/core-free-icons";
 import type { UpdateInfo } from "@/shared/types";
 
 interface UpdateNotificationProps {
@@ -25,11 +26,7 @@ export function UpdateNotification({
   return (
     <div className="toast pointer-events-auto w-[300px] rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl overflow-hidden">
       <div className="flex items-start gap-3 p-3.5">
-        <ArrowCircleUp
-          weight="fill"
-          size={18}
-          className="mt-0.5 shrink-0 text-radius-accent"
-        />
+        <HugeiconsIcon icon={CircleArrowUp02Icon} size={18} className="mt-0.5 shrink-0 text-radius-accent" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <p className="text-[12px] font-medium text-radius-text-primary leading-snug font-[family-name:var(--font-family-sans)]">
@@ -43,7 +40,7 @@ export function UpdateNotification({
               className="mt-[-2px] inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
               aria-label="Dismiss"
             >
-              <X size={12} weight="bold" />
+              <HugeiconsIcon icon={Cancel01Icon} size={12} className="text-radius-text-muted" />
             </button>
           </div>
           <p className="mt-1 text-[11px] leading-[1.5] text-radius-text-muted font-[family-name:var(--font-family-sans)]">

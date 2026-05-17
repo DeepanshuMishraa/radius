@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { CaretDown, PaperPlaneRight, Archive } from "@phosphor-icons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowDown01Icon, MailSend01Icon, PencilEdit01Icon } from "@hugeicons/core-free-icons";
 
 export type SendActionType = "send" | "draft";
 
@@ -77,7 +78,7 @@ export function ComposeSend({ canSubmit, pendingAction, onAction }: ComposeSendP
           aria-expanded={open}
         >
           <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}>
-            <CaretDown size={12} weight="bold" />
+            <HugeiconsIcon icon={ArrowDown01Icon} size={12} />
           </motion.div>
         </button>
       </motion.div>
@@ -93,13 +94,13 @@ export function ComposeSend({ canSubmit, pendingAction, onAction }: ComposeSendP
           >
             <div className="flex flex-col">
               <SendOption 
-                icon={<PaperPlaneRight size={14} />} 
+                icon={<HugeiconsIcon icon={MailSend01Icon} size={14} />} 
                 label="Send now" 
                 selected={defaultAction === "send"} 
                 onClick={() => handleSelectDefault("send")} 
               />
               <SendOption 
-                icon={<Archive size={14} />} 
+                icon={<HugeiconsIcon icon={PencilEdit01Icon} size={14} />} 
                 label="Save as draft" 
                 selected={defaultAction === "draft"} 
                 onClick={() => handleSelectDefault("draft")} 
