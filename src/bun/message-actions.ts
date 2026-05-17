@@ -133,6 +133,7 @@ async function cancelPendingDelete(messageId: string): Promise<void> {
       deleteTimers.delete(row.id);
     }
     await markPendingDeleteStatus(row.id, "cancelled", { cancelledAt: Date.now() });
+    db.run("DELETE FROM pending_message_deletes WHERE id = ?", [row.id]);
   }
 }
 
