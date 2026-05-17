@@ -69,7 +69,11 @@ function areMessagesEqual(next: Message[], prev: Message[]) {
       nextMessage.subject !== prevMessage.subject ||
       nextMessage.snippet !== prevMessage.snippet ||
       nextMessage.category !== prevMessage.category ||
-      nextMessage.isRead !== prevMessage.isRead
+      nextMessage.isRead !== prevMessage.isRead ||
+      Boolean(nextMessage.isInbox) !== Boolean(prevMessage.isInbox) ||
+      Boolean(nextMessage.isSent) !== Boolean(prevMessage.isSent) ||
+      Boolean(nextMessage.isDraft) !== Boolean(prevMessage.isDraft) ||
+      Boolean(nextMessage.isTrash) !== Boolean(prevMessage.isTrash)
     ) {
       return false;
     }

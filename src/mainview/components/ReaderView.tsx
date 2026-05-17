@@ -1,5 +1,5 @@
 import DOMPurify from "dompurify";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import { useTheme } from "@/components/theme-provider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -223,6 +223,8 @@ function InboxWidget({
     <Tooltip delayDuration={300}>
       <TooltipTrigger asChild>
         <button
+          type="button"
+          aria-label="Open inbox"
           onClick={onClick}
           className="
             electrobun-webkit-app-region-no-drag
@@ -260,6 +262,8 @@ function ActionButton({ icon, tooltip, onClick, className = "" }: { icon: React.
     <Tooltip delayDuration={150}>
       <TooltipTrigger asChild>
         <button
+          type="button"
+          aria-label={tooltip}
           onClick={onClick}
           className={`p-1.5 rounded-md text-radius-text-muted hover:text-radius-text-primary hover:bg-radius-bg-secondary transition-colors duration-150 ease-out active:scale-[0.96] ${className}`}
         >
@@ -1049,19 +1053,23 @@ export const ReaderView = memo(function ReaderView({
 
   const rawHtml = message?.bodyHtml ?? null;
   const [threadMessages, setThreadMessages] = useState<Message[]>([]);
+  const threadRequestIdRef = useRef(0);
 
   const loadThreadMessages = useCallback(async () => {
     if (!message?.threadId || mailbox !== "inbox") {
       setThreadMessages([]);
       return;
     }
+    const requestId = ++threadRequestIdRef.current;
     try {
       const result = await radiusRpc.request.getThreadMessages({
         threadId: message.threadId,
         limit: 16,
       });
+      if (threadRequestIdRef.current !== requestId) return;
       setThreadMessages(result.messages);
     } catch (error) {
+      if (threadRequestIdRef.current !== requestId) return;
       console.error("Failed to load thread messages:", error);
       setThreadMessages([]);
     }

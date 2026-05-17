@@ -857,10 +857,11 @@ export async function createReplyForwardSession(
     let references: string[] = [];
     let threadId = String(original.threadId ?? "");
 
+    let headers: Record<string, string> | null = null;
     try {
       const accessToken = await getValidAccessTokenForEmail(from);
       const gmailMessage = await getGmailMessage(accessToken, params.messageId);
-      const headers = parseHeaders(gmailMessage.payload.headers ?? []);
+      headers = parseHeaders(gmailMessage.payload.headers ?? []);
       messageIdHeader = headers["message-id"]?.trim() ?? null;
       references = headers["references"]
         ? headers["references"].split(/\s+/).map((entry) => entry.trim()).filter(Boolean)
@@ -879,7 +880,20 @@ export async function createReplyForwardSession(
     const forwardCandidates = parseRecipientEmails(originalTo).filter(
       (email) => email !== normalizedFrom && isLikelyEmail(email),
     );
-    const replyCandidates = parseRecipientEmails(originalFrom).filter(isLikelyEmail);
+    const replyToHeader = headers?.["reply-to"]?.trim();
+    const replyToCandidates = replyToHeader
+      ? parseRecipientEmails(replyToHeader).filter(isLikelyEmail)
+      : [];
+    let replyCandidates =
+      replyToCandidates.length > 0
+        ? replyToCandidates
+        : parseRecipientEmails(originalFrom).filter(isLikelyEmail);
+    if (replyCandidates[0]?.toLowerCase() === normalizedFrom) {
+      const sentReplyCandidates = parseRecipientEmails(originalTo).filter(isLikelyEmail);
+      if (sentReplyCandidates.length > 0) {
+        replyCandidates = sentReplyCandidates;
+      }
+    }
     const recipients =
       params.mode === "reply"
         ? replyCandidates

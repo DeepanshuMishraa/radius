@@ -513,6 +513,7 @@ export async function createDraft(
     body: JSON.stringify({
       message: {
         raw: buildRawEmail(payload),
+        ...(payload.threadId ? { threadId: payload.threadId } : {}),
       },
     }),
   });
@@ -543,6 +544,7 @@ export async function updateDraft(
       id: draftId,
       message: {
         raw: buildRawEmail(payload),
+        ...(payload.threadId ? { threadId: payload.threadId } : {}),
       },
     }),
   });

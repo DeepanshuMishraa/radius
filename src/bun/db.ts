@@ -198,7 +198,7 @@ export async function createSchema(): Promise<void> {
 
     CREATE TABLE IF NOT EXISTS pending_message_deletes (
       id TEXT PRIMARY KEY,
-      message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+      message_id TEXT NOT NULL REFERENCES messages(id),
       account_email TEXT NOT NULL,
       snapshot_json TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'queued',

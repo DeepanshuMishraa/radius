@@ -41,6 +41,7 @@ import {
 
 let codeVerifier: string | null = null;
 let authServer: ReturnType<typeof Bun.serve> | null = null;
+let isAuthInProgress = false;
 let stopPolling: (() => void) | null = null;
 let stopDeferredFullSync: (() => void) | null = null;
 let emitNewMailToRenderer: (
@@ -267,7 +268,12 @@ async function handleOAuthCallback(
 
 export async function handleStartOAuth(params: { syncMode: SyncMode; email?: string }) {
   const { syncMode, email } = params;
+  if (isAuthInProgress) {
+    console.warn("OAuth already in progress, skipping duplicate trigger");
+    return { success: false, error: "Authentication already in progress." };
+  }
   try {
+    isAuthInProgress = true;
     codeVerifier = generateCodeVerifier();
     const codeChallenge = await sha256(codeVerifier);
     const authURL = buildAuthURL(codeChallenge, email);
@@ -282,9 +288,11 @@ export async function handleStartOAuth(params: { syncMode: SyncMode; email?: str
         ) {
           const code = url.searchParams.get("code");
           if (code) {
-            handleOAuthCallback(code, syncMode, { startSync: true }).catch((err) => {
+            try {
+              await handleOAuthCallback(code, syncMode, { startSync: true });
+            } catch (err) {
               console.error("OAuth callback failed:", err);
-            });
+            }
 
             authServer?.stop();
             authServer = null;
@@ -306,15 +314,22 @@ export async function handleStartOAuth(params: { syncMode: SyncMode; email?: str
   } catch (err) {
     console.error("startOAuth error:", err);
     return { success: false, error: String(err) };
+  } finally {
+    isAuthInProgress = false;
   }
 }
 
 export async function handleReconnectAccount(params: { email?: string }) {
+  if (isAuthInProgress) {
+    console.warn("OAuth already in progress, skipping duplicate reconnect");
+    return { success: false, error: "Authentication already in progress." };
+  }
   const targetEmail = params.email ?? (await getActiveAccount()) ?? undefined;
   if (!targetEmail) {
     return { success: false, error: "No active account to reconnect." };
   }
   try {
+    isAuthInProgress = true;
     codeVerifier = generateCodeVerifier();
     const codeChallenge = await sha256(codeVerifier);
     const authURL = buildAuthURL(codeChallenge, targetEmail);
@@ -326,9 +341,29 @@ export async function handleReconnectAccount(params: { email?: string }) {
         if (url.pathname === "/" || url.pathname === "/oauth/callback") {
           const code = url.searchParams.get("code");
           if (code) {
-            handleOAuthCallback(code, "recent", { startSync: false }).catch((err) => {
+            try {
+              await handleOAuthCallback(code, "recent", { startSync: false });
+              
+              const activeEmail = await getActiveAccount();
+              const normalizedTarget = targetEmail.toLowerCase().trim();
+              const normalizedActive = (activeEmail ?? "").toLowerCase().trim();
+              if (normalizedActive !== normalizedTarget) {
+                console.warn(
+                  `Reconnect email mismatch: target=${targetEmail}, got=${activeEmail} — restoring original active account`
+                );
+                await setActiveAccount(targetEmail);
+                await switchDbAccount(targetEmail);
+                setAccountEmail(targetEmail);
+                authServer?.stop();
+                authServer = null;
+                return new Response(
+                  "<html><body style='font-family: system-ui; text-align: center; padding-top: 40px;'><h2>❌ Account mismatch</h2><p>Reconnected as " + (activeEmail ?? "unknown") + " instead of " + targetEmail + ". Please try again with the correct account.</p></body></html>",
+                  { status: 400, headers: { "Content-Type": "text/html" } },
+                );
+              }
+            } catch (err) {
               console.error("Reconnect callback failed:", err);
-            });
+            }
 
             authServer?.stop();
             authServer = null;
@@ -349,6 +384,8 @@ export async function handleReconnectAccount(params: { email?: string }) {
   } catch (err) {
     console.error("reconnectAccount error:", err);
     return { success: false, error: String(err) };
+  } finally {
+    isAuthInProgress = false;
   }
 }
 

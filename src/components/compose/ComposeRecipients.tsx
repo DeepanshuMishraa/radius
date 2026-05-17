@@ -89,6 +89,7 @@ export function ComposeRecipients({
   }, [contacts, recipientQuery, remoteSuggestions, selectedRecipients]);
 
   const addRecipient = (contact: ContactOption) => {
+    if (locked) return;
     setSelectedRecipients((current) => {
       if (current.some((item) => item.email.toLowerCase() === contact.email.toLowerCase())) {
         return current;
@@ -100,12 +101,14 @@ export function ComposeRecipients({
   };
 
   const removeRecipient = (email: string) => {
+    if (locked) return;
     setSelectedRecipients((current) =>
       current.filter((item) => item.email.toLowerCase() !== email.toLowerCase())
     );
   };
 
   const commitManualRecipient = () => {
+    if (locked) return;
     const value = recipientQuery.trim().replace(/,$/, "");
     if (!value) return;
     if (!isValidEmail(value)) {
@@ -223,7 +226,7 @@ export function ComposeRecipients({
 
       {/* Collapsible Suggested */}
       <AnimatePresence>
-        {isRecipientFocused && filteredContacts.length > 0 && (
+        {!locked && isRecipientFocused && filteredContacts.length > 0 && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}

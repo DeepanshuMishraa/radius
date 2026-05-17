@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowDown01Icon, MailSend01Icon, Archive01Icon } from "@hugeicons/core-free-icons";
+import { ArrowDown01Icon, MailSend01Icon, PencilEdit01Icon } from "@hugeicons/core-free-icons";
 
 export type SendActionType = "send" | "draft";
 
@@ -100,7 +100,7 @@ export function ComposeSend({ canSubmit, pendingAction, onAction }: ComposeSendP
                 onClick={() => handleSelectDefault("send")} 
               />
               <SendOption 
-                icon={<HugeiconsIcon icon={Archive01Icon} size={14} />} 
+                icon={<HugeiconsIcon icon={PencilEdit01Icon} size={14} />} 
                 label="Save as draft" 
                 selected={defaultAction === "draft"} 
                 onClick={() => handleSelectDefault("draft")} 

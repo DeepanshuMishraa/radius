@@ -112,6 +112,27 @@ async function commitPendingDelete(operationId: string) {
       status: "delete_failed",
       error,
     });
+  } finally {
+    const cleanupDb = await getDb();
+    cleanupDb.run("DELETE FROM pending_message_deletes WHERE id = ?", [operationId]);
+  }
+}
+
+async function cancelPendingDelete(messageId: string): Promise<void> {
+  const db = await getDb();
+  const pending = db
+    .query(
+      `SELECT id FROM pending_message_deletes
+       WHERE message_id = ? AND status = 'queued'`,
+    )
+    .all(messageId) as Array<{ id: string }>;
+  for (const row of pending) {
+    const timer = deleteTimers.get(row.id);
+    if (timer) {
+      clearTimeout(timer);
+      deleteTimers.delete(row.id);
+    }
+    await markPendingDeleteStatus(row.id, "cancelled", { cancelledAt: Date.now() });
   }
 }
 
@@ -161,6 +182,7 @@ export async function queueDeleteMessage(
 
   if (Boolean(message.isTrash)) {
     try {
+      await cancelPendingDelete(params.messageId);
       const accessToken = await getValidAccessToken();
       await deleteMessage(accessToken, params.messageId);
       await removeMessages([params.messageId]);
@@ -194,27 +216,34 @@ export async function queueDeleteMessage(
     return { success: false, error: "No active Gmail account found." };
   }
   const db = await getDb();
-  db.run(
-    `INSERT INTO pending_message_deletes
-      (id, message_id, account_email, snapshot_json, status, undo_deadline_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'queued', ?, ?, ?)`,
-    [
-      operationId,
-      params.messageId,
-      accountEmail,
-      JSON.stringify(snapshot),
-      undoDeadlineAt,
-      Date.now(),
-      Date.now(),
-    ],
-  );
+  db.exec("BEGIN TRANSACTION");
+  try {
+    db.run(
+      `INSERT INTO pending_message_deletes
+        (id, message_id, account_email, snapshot_json, status, undo_deadline_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'queued', ?, ?, ?)`,
+      [
+        operationId,
+        params.messageId,
+        accountEmail,
+        JSON.stringify(snapshot),
+        undoDeadlineAt,
+        Date.now(),
+        Date.now(),
+      ],
+    );
 
-  await updateMessageMailboxState(params.messageId, {
-    isInbox: false,
-    isSent: false,
-    isDraft: false,
-    isTrash: true,
-  });
+    await updateMessageMailboxState(params.messageId, {
+      isInbox: false,
+      isSent: false,
+      isDraft: false,
+      isTrash: true,
+    });
+    db.exec("COMMIT");
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
+  }
   schedulePendingDelete(operationId, undoDeadlineAt);
   emitPendingDeleteStatus({
     operationId,
@@ -243,13 +272,21 @@ export async function undoDeleteMessage(
   }
 
   const snapshot = JSON.parse(pending.snapshot_json) as PendingDeleteSnapshot;
-  await updateMessageMailboxState(pending.message_id, {
-    isInbox: snapshot.isInbox,
-    isSent: snapshot.isSent,
-    isDraft: snapshot.isDraft,
-    isTrash: snapshot.isTrash,
-  });
-  await markPendingDeleteStatus(params.operationId, "cancelled", { cancelledAt: Date.now() });
+  const db = await getDb();
+  db.exec("BEGIN TRANSACTION");
+  try {
+    await updateMessageMailboxState(pending.message_id, {
+      isInbox: snapshot.isInbox,
+      isSent: snapshot.isSent,
+      isDraft: snapshot.isDraft,
+      isTrash: snapshot.isTrash,
+    });
+    await markPendingDeleteStatus(params.operationId, "cancelled", { cancelledAt: Date.now() });
+    db.exec("COMMIT");
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
+  }
   emitPendingDeleteStatus({
     operationId: params.operationId,
     messageId: pending.message_id,
@@ -260,6 +297,7 @@ export async function undoDeleteMessage(
 
 export async function emptyTrash(): Promise<RadiusRPC["bun"]["requests"]["emptyTrash"]["response"]> {
   const db = await getDb();
+  const accountEmail = getAccountEmail();
   const rows = db
     .query(`SELECT id FROM messages WHERE is_trash = 1`)
     .all() as Array<{ id: string }>;
@@ -268,8 +306,12 @@ export async function emptyTrash(): Promise<RadiusRPC["bun"]["requests"]["emptyT
   }
 
   try {
-    const accessToken = await getValidAccessToken();
+    if (!accountEmail) {
+      return { success: false, error: "No active account found." };
+    }
+    const accessToken = await getValidAccessTokenForEmail(accountEmail);
     for (const row of rows) {
+      await cancelPendingDelete(row.id);
       await deleteMessage(accessToken, row.id);
     }
     await removeMessages(rows.map((row) => row.id));

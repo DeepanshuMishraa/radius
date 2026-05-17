@@ -163,6 +163,7 @@ export function ComposeEmailDialog({
         });
       })
       .catch((error) => {
+        if (cancelled) return;
         console.error("Failed to create compose session:", error);
         toast.error("Failed to load composer");
         onClose();

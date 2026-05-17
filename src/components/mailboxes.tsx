@@ -1,6 +1,6 @@
 import { CommandGroup, CommandItem } from "@/components/ui/command";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Archive01Icon, MailSend01Icon, Delete01Icon } from "@hugeicons/core-free-icons";
+import { PencilEdit01Icon, MailSend01Icon, Delete01Icon } from "@hugeicons/core-free-icons";
 
 type Mailbox = "sent" | "drafts" | "trash";
 
@@ -22,7 +22,7 @@ export function Mailboxes({ onSelectMailbox }: MailboxesProps) {
         value="drafts"
         onSelect={() => onSelectMailbox("drafts")}
       >
-          <HugeiconsIcon icon={Archive01Icon} size={16} />
+          <HugeiconsIcon icon={PencilEdit01Icon} size={16} />
         <span>Drafts</span>
       </CommandItem>
       <CommandItem

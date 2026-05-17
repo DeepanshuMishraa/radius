@@ -711,7 +711,7 @@ function App() {
       }
 
       if (result.updateAvailable && !result.updateReady) {
-        console.log(`⬇️  Update v${result.version} available — downloading...`);
+        console.log(`⬇️  Update v${result.version} available - downloading...`);
         setIsDownloading(true);
         try {
           const downloadResult = await radiusRpc.request.downloadUpdate({});
@@ -896,9 +896,9 @@ function App() {
     const trimmedQuery = deferredSearchQuery.trim();
     if (!searchOpen) return null;
     if (!trimmedQuery) return "Search sender, subject, snippet, or body text";
-    if (searchLoading) return `Searching for “${trimmedQuery}”`;
-    if (searchedTotal === 0) return `No emails match “${trimmedQuery}”`;
-    return `${searchedTotal.toLocaleString()} result${searchedTotal === 1 ? "" : "s"} for “${trimmedQuery}”`;
+    if (searchLoading) return `Searching for "${trimmedQuery}"`;
+    if (searchedTotal === 0) return `No emails match "${trimmedQuery}"`;
+    return `${searchedTotal.toLocaleString()} result${searchedTotal === 1 ? "" : "s"} for "${trimmedQuery}"`;
   }, [deferredSearchQuery, searchLoading, searchOpen, searchedTotal]);
 
   if (isAuthenticated === null && !hasAuthSignal) {
@@ -954,7 +954,7 @@ function App() {
           onReachEnd={searchActive || mailboxView !== "inbox" ? undefined : handleLoadMoreInbox}
           emptyMessage={
             searchActive
-              ? `No emails match “${deferredSearchQuery.trim()}”`
+              ? `No emails match "${deferredSearchQuery.trim()}"`
               : mailboxView === "inbox"
                 ? undefined
                 : `No ${mailboxView} emails`
@@ -975,7 +975,7 @@ function App() {
       <main className="flex-1 min-w-0 h-full">
         <ReaderView
           message={selectedMessage}
-          mailbox={mailboxView}
+          mailbox={searchActive ? "inbox" : mailboxView}
           sidebarOpen={sidebarOpen}
           onOpenSidebar={handleOpenSidebar}
           onPrev={handlePrevMessage}
@@ -1030,7 +1030,7 @@ function App() {
         intent={composeIntent ?? { kind: "compose" }}
       />
 
-      {/* Minimal sync indicator — bottom left, never blocks */}
+      {/* Minimal sync indicator - bottom left, never blocks */}
       <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
         <UpdateNotification
           updateInfo={updateInfo}
