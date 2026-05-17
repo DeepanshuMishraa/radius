@@ -1,0 +1,21 @@
+src/bun/sync-lifecycle.ts
+  ai_agent 297,356,368
+src/mainview/components/ReaderView.tsx
+  s_37ce55d6cef73f::t_c98c3c08903323 1060
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "fce35754fed8c333d04af339531e2239ab46f25d",
+  "prompts": {},
+  "sessions": {
+    "s_37ce55d6cef73f": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e3581-5a49-739a-a582-c8cb7fe36f2d",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
