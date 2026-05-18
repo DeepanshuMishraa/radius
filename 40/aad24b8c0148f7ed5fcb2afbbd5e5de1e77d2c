@@ -1,0 +1,99 @@
+src/mainview/App.tsx
+  s_b898aa4cdd00a0::t_6d872224a8844c 365,370-392
+  s_b4f1a089ea9c76::t_3ed280136d857f 1207-1230,1247-1270
+  s_b898aa4cdd00a0::t_08e8d14336d4fc 1773-1783
+  s_b4f1a089ea9c76::t_4d1415675b4496 1709,1745
+  s_b898aa4cdd00a0::t_d5487a05cd5b48 596-604
+  s_b898aa4cdd00a0::t_3c89f83cdaaafd 17
+  s_b4f1a089ea9c76::t_ea0e85ef0167b1 791-818,831-884
+  s_b898aa4cdd00a0::t_15506a703d6b69 677-682
+  s_b898aa4cdd00a0::t_0de5fd42b4707b 453-455
+  s_b898aa4cdd00a0::t_4c0143a1feac34 683-690
+  s_b898aa4cdd00a0::t_85d6e1224e2c51 1508-1513
+  s_b898aa4cdd00a0::t_1d07d78025482b 39,47-50
+  s_b898aa4cdd00a0::t_c5020d63f758ab 1319-1322
+  s_b898aa4cdd00a0::t_957d55139d5d58 1486-1487,1490
+  s_b898aa4cdd00a0::t_8adcff111f442b 1628-1634,1644-1663
+  s_b898aa4cdd00a0::t_54c20a0e2cbac2 303-308
+src/mainview/components/InboxList.tsx
+  s_b898aa4cdd00a0::t_0eef83a26d8887 20,212,270
+src/bun/sync-lifecycle.ts
+  s_b898aa4cdd00a0::t_6c168271bfa000 4,197-201,230-234,253-260,273-277,287-291,424-431,442-446,625-629,639-643,655-659
+src/components/search-spotlight.tsx
+  s_b898aa4cdd00a0::t_e0903c20568dfe 1-6,16-23,26-35,44-51,67-72,95,99-101,111-116,118-159
+src/mainview/components/ReaderView.tsx
+  s_b4f1a089ea9c76::t_9b9bfbeb67c2ad 30,290,293,300,303,332-336,1018,1245,1248
+src/bun/compose.ts
+  s_b4f1a089ea9c76::t_8c82eb343b0a99 796
+  s_b898aa4cdd00a0::t_2827957583ac1e 1168-1171,1183,1202,1207-1208,1215-1216
+  s_b4f1a089ea9c76::t_a262f30387e735 484-488
+  s_b4f1a089ea9c76::t_11542a76b0ba53 45,269-320,680,736,785,1084
+docs/agents/ux-review.md
+  s_b898aa4cdd00a0::t_f87ce36823e9b4 14,16,18,89,93,95,99-101,103,107-109,111,115-117,124-127,130-133,136-139,149,153,164
+  s_b898aa4cdd00a0::t_ca4b173bc26024 80,86-87,123,147,151,155,162,165-168
+  s_b4f1a089ea9c76::t_6cc99e92b30776 46,66-69,73-77,134-135
+  s_b4f1a089ea9c76::t_8ecc41ec3d57e3 1-13,15,17,19-45,47-65,70-72,78-79,81-85,88,90-92,94,96-98,102,104-106,110,112-114,118-122,128-129,140-146,148,150,152,154,156-161,163
+src/bun/db.ts
+  s_b4f1a089ea9c76::t_39629604173739 272-274,403,412-413,428,453,466-467,482,512-513,534,557,606-607,792,807-808,819,835,859-866,911-912
+  s_b898aa4cdd00a0::t_1baead878093c5 199-209,1002-1048
+src/bun/index.ts
+  s_b898aa4cdd00a0::t_0b0a3847f7467a 30,92
+  s_b4f1a089ea9c76::t_49596e952fdd63 29,34,91,101
+src/components/compose/index.tsx
+  s_b4f1a089ea9c76::t_864043676830c3 598-608,610-621,641,652-672,739-748,750-752,754-774,780,788-790,800-803
+  s_b4f1a089ea9c76::t_b54825f65a2aee 408,453,567
+  s_b4f1a089ea9c76::t_0683834626a8af 4-12,23-24,30,35-61
+  s_b4f1a089ea9c76::t_cc3a1c634879b2 79,92-95,98,108-111
+  s_b4f1a089ea9c76::t_5f4853fdf67745 158,162,170,182-183,198-199,210-211,230,233,254-257,282,285,304
+  s_b4f1a089ea9c76::t_e7d38e3592f80f 749,753
+  s_b4f1a089ea9c76::t_fe87675ad40709 474-557
+  s_b898aa4cdd00a0::t_e59eb49cdc7e42 19,85,362-363,370,373,386-389,393,407,417,420,432-435,440-444,447-448,646-650,702,716
+src/mainview/hooks/useInbox.ts
+  s_b4f1a089ea9c76::t_571d7b95e82ed6 36,74
+src/shared/types.ts
+  s_b4f1a089ea9c76::t_be67503a79ca39 109,188-195,271,413-420
+  s_b898aa4cdd00a0::t_a3fc518eb2d999 84,139-146,204-206,297,304
+src/components/compose/ComposeRecipients.tsx
+  s_b898aa4cdd00a0::t_fa628a9c9e005c 19,32,37,61,73-76,81,277-281
+src/bun/gmail.ts
+  s_b4f1a089ea9c76::t_9815bc9a9b6784 412-420,434,462,465-471,519,550,581
+src/components/compose/ComposeSend.tsx
+  s_b898aa4cdd00a0::t_10819df62dd117 6,131
+  s_b898aa4cdd00a0::t_158b4f75d81cac 4-5,7-9,11-14,18-35,57-60,64,66-67,73-74,76,87-90,98,117,120-126,128-130,132-145,155,162,164-165
+  s_b898aa4cdd00a0::t_d25bf8bfeb0d8d 56
+src/components/sync-pill.tsx
+  s_b898aa4cdd00a0::t_5181ec1f088cab 8,27,95,115-121
+src/components/sync-details.tsx
+  s_b898aa4cdd00a0::t_34859b21dc4218 1-117
+src/bun/sync.ts
+  s_b898aa4cdd00a0::t_53b85817934ebe 3,400-404,428-432,435-439,521-525,530-534,544-548,673-677,698-702,794-798,801-805
+  s_b4f1a089ea9c76::t_0dcfe258ba012e 158
+src/bun/rpc-handlers.ts
+  s_b898aa4cdd00a0::t_cc5fd32e288782 283-288
+  s_b898aa4cdd00a0::t_567c804ba99b7f 2,279-282
+  s_b4f1a089ea9c76::t_02deb99a1c3bfe 68,162-177,387-421
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "40aad24b8c0148f7ed5fcb2afbbd5e5de1e77d2c",
+  "prompts": {},
+  "sessions": {
+    "s_b4f1a089ea9c76": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3be0-24d5-7652-a2d0-6f182f4becfd",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    },
+    "s_b898aa4cdd00a0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3bf7-c013-7930-8781-19a888e374e6",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
