@@ -1,0 +1,112 @@
+src/mainview/components/InboxList.tsx
+  s_b4f1a089ea9c76::t_e312cc9b9e88ac 44,46-47,55,57-58,66-75,79,86-92,114,116,118,122,145-146,217
+  s_91d0d4d0c24e84::t_da1852e1792d01 99,101,105-107,117,121,123-141
+  s_91d0d4d0c24e84::t_1f3c531f2d9fe1 156-157,176
+  s_91d0d4d0c24e84::t_5f9ef2f8473a10 201,203,223-224
+  s_17a7abb5dbeb1d::t_ce1450285a4915 148
+  s_91d0d4d0c24e84::t_a7aafb40aec1e2 315-317
+  s_91d0d4d0c24e84::t_279110f6a71558 10-12
+src/mainview/components/ReaderView.tsx
+  s_0f1681b73e28f4::t_5018160d68f088 287,289,297,327
+  s_b4f1a089ea9c76::t_646cfa004362fe 1007
+  s_b4f1a089ea9c76::t_c60cb25641341e 1153,1159,1168,1172,1175,1189,1233,1235
+  s_91d0d4d0c24e84::t_67c740ae197cfc 30
+  s_b4f1a089ea9c76::t_d411ec6c0582f1 768-769
+  s_91d0d4d0c24e84::t_b34af9033d6d1a 1234
+  s_b4f1a089ea9c76::t_d741474f27d7dd 1271,1279,1284,1343,1351,1356
+  s_b4f1a089ea9c76::t_fbc023173b6851 29,288,290,296,298,322-326
+  s_0f1681b73e28f4::t_616493c2bd50df 1008
+  s_91d0d4d0c24e84::t_0bff57bd7988f8 15
+  s_91d0d4d0c24e84::t_b017faf1245cf1 328
+src/bun/index.ts
+  s_91d0d4d0c24e84::t_179b0f39b30c37 95
+  s_91d0d4d0c24e84::t_ee54752169eda1 31
+src/components/accounts.tsx
+  s_b4f1a089ea9c76::t_e52f32cd59d320 36-42,44-45
+  s_17a7abb5dbeb1d::t_ac678f828fd496 43,46-47
+  s_17a7abb5dbeb1d::t_12cbe05f53d455 3
+src/components/compose/index.tsx
+  s_b4f1a089ea9c76::t_3678021fca428d 1-2,28-29,43,50-51,53-56,75,79,85,89,115-116,121,131-132,177-178,186,192,243,245,255-281,290-291,302,409,411,413-414,417,433,437,439-445,451,473-516,522-524,526,537-539,541,567-569
+  s_17a7abb5dbeb1d::t_f1c52bbcfba801 187-191,193-197
+  s_17a7abb5dbeb1d::t_4fdc8afd3022e5 76-78,80-84,86-88,90-94
+src/components/notification-prompt.tsx
+  s_b4f1a089ea9c76::t_31bee463d5310c 33,63-69
+src/bun/rpc-handlers.ts
+  s_91d0d4d0c24e84::t_2ea4a9d68c7b43 310-357
+src/components/home.tsx
+  s_b4f1a089ea9c76::t_f2161aeb934015 60
+  s_17a7abb5dbeb1d::t_72dc03382a4e63 1,49,57,64,72
+src/shared/types.ts
+  s_91d0d4d0c24e84::t_4a51a5e74dc433 211-219
+src/mainview/App.tsx
+  s_b4f1a089ea9c76::t_a0a861b309ea6c 296,511-513,792-819
+  s_91d0d4d0c24e84::t_6bb6af8bf3a5bf 728-729,733-734,741,765-776
+  s_b4f1a089ea9c76::t_e33221416b55f1 1402-1414,1449-1462,1466-1473,1558-1563
+  s_b4f1a089ea9c76::t_b2cd3f431b3bb9 1484-1491
+  s_b4f1a089ea9c76::t_00b73b5132b4db 687-727,730-732,735-740,742-764
+  s_b4f1a089ea9c76::t_612d44b90c682d 1191-1194
+  s_91d0d4d0c24e84::t_5d2411da2eff6f 854
+  s_91d0d4d0c24e84::t_786aafb4d5533c 585-627
+  s_b4f1a089ea9c76::t_e5c14b675353fe 20-29,46-60,125-248
+  s_b4f1a089ea9c76::t_301e39b012131d 285-288
+  s_b4f1a089ea9c76::t_c7217c43eeb919 1008-1036
+  s_b4f1a089ea9c76::t_9db599ce7d7781 1177-1180,1304,1308-1313
+  s_b4f1a089ea9c76::t_04fb2865be8c1a 857-907
+  s_b4f1a089ea9c76::t_4ddea2296ca4c9 1195-1201,1204,1208
+  s_b4f1a089ea9c76::t_7f5bb2a08dbadc 1324-1374
+  s_91d0d4d0c24e84::t_1245d281b6f209 1423,1425
+  s_91d0d4d0c24e84::t_dae1ee1bd27483 254-255
+  s_91d0d4d0c24e84::t_cc6e635a8c7613 1492
+src/components/cmd.tsx
+  s_b4f1a089ea9c76::t_2a102394fd4324 164,216
+src/components/compose/ComposeRecipients.tsx
+  s_b4f1a089ea9c76::t_cc2343d4a50564 15-18,27-30,39,44,138,151,154-155,225-226
+src/components/search-spotlight.tsx
+  s_b4f1a089ea9c76::t_d7543e963cb00e 38-41,47,66,83-88
+src/mainview/components/Onboarding.tsx
+  s_b4f1a089ea9c76::t_11e7f350d4ad82 63-64,82-86,89-91,108,111,136,139,206-238
+src/components/sync-pill.tsx
+  s_b4f1a089ea9c76::t_6c3ff13de7e347 6-7,10-26,39,89-115
+src/components/mailboxes.tsx
+  s_b4f1a089ea9c76::t_070a1204749bb9 1,13,20,28,36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "67ae192ca4eebb1516a6b84215de301a9b16b8cd",
+  "prompts": {},
+  "sessions": {
+    "s_0f1681b73e28f4": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1c4324387ffeqNzGi2WB8SyFCd",
+        "model": "gpt-5.2-codex"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    },
+    "s_17a7abb5dbeb1d": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "c07696d1-5e7d-46e1-91e8-68d76d51a84e",
+        "model": "gemini-3-flash-preview"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    },
+    "s_91d0d4d0c24e84": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "9ce3959a-8028-4497-88ca-af24c50277b7",
+        "model": "gemini-3.1-pro-preview"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    },
+    "s_b4f1a089ea9c76": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3be0-24d5-7652-a2d0-6f182f4becfd",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
