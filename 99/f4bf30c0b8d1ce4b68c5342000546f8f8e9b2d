@@ -1,0 +1,84 @@
+src/components/accounts.tsx
+  s_b898aa4cdd00a0::t_1a18c50f229f27 12,21,26,52-77
+src/components/home.tsx
+  s_b898aa4cdd00a0::t_6219ac5066ccd5 13,27,41,91-98
+src/bun/sync-lifecycle.ts
+  s_b898aa4cdd00a0::t_d02c4af0c359ef 41,545-551
+src/components/themes.tsx
+  s_b898aa4cdd00a0::t_d1f1429e42192c 8-9,38-57
+src/components/compose/index.tsx
+  s_b898aa4cdd00a0::t_9a1e0743870eeb 96,185,442,448-450,627-637
+src/mainview/components/ReaderView.tsx
+  s_b898aa4cdd00a0::t_02c460bd878973 1354-1364
+  s_b898aa4cdd00a0::t_0718c7c5734869 32
+  s_b898aa4cdd00a0::t_ae5941ab88f997 1281-1292
+  s_b898aa4cdd00a0::t_e389e6aab55cf8 1024,1143
+  s_b898aa4cdd00a0::t_b5303fa1010e64 1170-1173
+  s_b898aa4cdd00a0::t_e74f8fcee8e10e 293,304,341
+  s_b898aa4cdd00a0::t_46d9fc279dcf0a 1263
+  s_b898aa4cdd00a0::t_911757dbe9db3c 1257
+src/shared/types.ts
+  s_b898aa4cdd00a0::t_e8da688be477b8 147-154,409-412,442-443
+src/bun/ui.ts
+  s_b898aa4cdd00a0::t_cdc97c450a47fc 44
+  s_b898aa4cdd00a0::t_1dee0d24693b05 9-25,27-39,55-65,137
+  s_b898aa4cdd00a0::t_74079afabea26d 26
+src/mainview/App.tsx
+  s_b898aa4cdd00a0::t_46e43eae1b6d23 387-398
+  s_b898aa4cdd00a0::t_ef76cf2e85ffbd 1026
+  s_b898aa4cdd00a0::t_9578a6c67b8045 182,189,220-230
+  s_b898aa4cdd00a0::t_162f7fbb953bd4 1787,1807-1808
+  s_b898aa4cdd00a0::t_bd7700be570815 1044-1049,1059
+  s_b898aa4cdd00a0::t_adacafc7dc8511 367-375
+  s_b898aa4cdd00a0::t_7bffc85075df76 1278-1292
+  s_b898aa4cdd00a0::t_e7030f5855a25e 1605,1636
+  s_b898aa4cdd00a0::t_de04770dff91db 1025
+  s_b898aa4cdd00a0::t_212778850dc81f 564-566,615
+  s_b898aa4cdd00a0::t_1cb3b02f557d8f 472,833-840
+  s_b898aa4cdd00a0::t_147817ca733382 1577-1604,1606-1635,1637
+  s_b898aa4cdd00a0::t_e49cd1b26eede3 1015-1019,1079,1087,1094,1096
+  s_b898aa4cdd00a0::t_f4f6a1968af90e 625-627,632
+  s_b898aa4cdd00a0::t_fd68444e35741b 161-162
+  s_b898aa4cdd00a0::t_3396a1bb7fe602 15,41,48,55-61
+  s_b898aa4cdd00a0::t_8c9ed9bf85f489 110-141
+  s_b898aa4cdd00a0::t_ac6acaf3ba179e 1801-1806,1903,1929,1932,1981-1988
+src/mainview/components/Onboarding.tsx
+  s_c1e7378feb8609::t_153f1cc7a90635 11-43,57-58,64,66-67,73,92,94,96-97,101,106,109-110,113,116-117,120-123,126-127,130-133,136-137,140-142,145,149-150,153,155,157,162,166-168,170-173,175,178-181,183,187-188,190,193-194,196-199,201-203,205,208-211,213,217-218,220,223-224,226-230,232-242,244,246-247,250-255,258-263,265-270,273-275,277-279,281-283,286-299,301-302
+src/bun/accounts.ts
+  s_b898aa4cdd00a0::t_e7ec2a02ddab71 70-80
+src/components/cmd.tsx
+  s_b898aa4cdd00a0::t_841de74ddbb373 34,37,53,56,243,252
+src/bun/index.ts
+  s_b898aa4cdd00a0::t_7969695c480b58 55,71,127,133
+src/mainview/components/InboxList.tsx
+  s_b898aa4cdd00a0::t_a1a8f32eef17a1 23-24,101-139,146-147,154-155,161-166,207-210,214-215,226-229,233-234,237-240,244-245,268-269,388-389
+  s_b898aa4cdd00a0::t_1859830760fd25 21-22,266-267,303-308,356-360
+src/components/notification-preferences.tsx
+  s_b898aa4cdd00a0::t_6f02d462d44424 1-182
+docs/agents/ux-review.md
+  s_b898aa4cdd00a0::t_edaab893a6ea65 4,13-14,16,18,22,24-29,31-34,36-39,41-46,48-50,56-67,73-80,82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "99f4bf30c0b8d1ce4b68c5342000546f8f8e9b2d",
+  "prompts": {},
+  "sessions": {
+    "s_b898aa4cdd00a0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3bf7-c013-7930-8781-19a888e374e6",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    },
+    "s_c1e7378feb8609": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "25d650b4-e778-4ac4-b118-4b679cd60223",
+        "model": "gemini-3.1-pro-preview"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
