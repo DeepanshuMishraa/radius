@@ -29,6 +29,7 @@ interface ReaderViewProps {
   onToggleRead?: () => void;
   onToggleImportant?: () => void;
   onOpenInGmail?: () => void;
+  onPrint?: () => void;
 }
 
 function formatFullDate(timestamp: number): string {
@@ -289,6 +290,7 @@ function ActionBarWidget({
   onToggleRead,
   onToggleImportant,
   onOpenInGmail,
+  onPrint,
   messageIsRead,
   messageIsImportant,
 }: {
@@ -299,6 +301,7 @@ function ActionBarWidget({
   onToggleRead?: () => void;
   onToggleImportant?: () => void;
   onOpenInGmail?: () => void;
+  onPrint?: () => void;
   messageIsRead?: boolean;
   messageIsImportant?: boolean;
 }) {
@@ -335,6 +338,7 @@ function ActionBarWidget({
         onClick={onToggleImportant}
       />
       <ActionButton icon={<HugeiconsIcon icon={ArrowUpRight01Icon} size={16} />} tooltip="Open in Gmail" onClick={onOpenInGmail} />
+      <ActionButton icon={<span className="text-[11px] font-semibold">P</span>} tooltip="Print" onClick={onPrint} />
       <div className="w-[1px] h-3.5 bg-radius-border-subtle mx-1" />
       <ActionButton 
         icon={<HugeiconsIcon icon={Delete01Icon} size={16} />} 
@@ -1017,6 +1021,7 @@ export const ReaderView = memo(function ReaderView({
   onToggleRead,
   onToggleImportant,
   onOpenInGmail,
+  onPrint,
 }: ReaderViewProps) {
   const { theme, appearance, resolvedTheme } = useTheme();
   const newsletterThemeConfig = useMemo(() => {
@@ -1135,6 +1140,7 @@ export const ReaderView = memo(function ReaderView({
   const isPureNewsletter = htmlRender.hasRichSections && !htmlRender.hasSimpleSections;
 
   const [systemName, setSystemName] = useState<string>("there");
+  const [showPlainVersion, setShowPlainVersion] = useState(false);
 
   useEffect(() => {
     void loadThreadMessages();
@@ -1160,6 +1166,10 @@ export const ReaderView = memo(function ReaderView({
       console.error("Failed to fetch system name", err);
     });
   }, []);
+
+  useEffect(() => {
+    setShowPlainVersion(false);
+  }, [message?.id]);
 
   const threadConversation = useMemo(
     () =>
@@ -1244,12 +1254,13 @@ export const ReaderView = memo(function ReaderView({
         onToggleRead={onToggleRead}
         onToggleImportant={onToggleImportant}
         onOpenInGmail={onOpenInGmail}
+        onPrint={onPrint}
         messageIsRead={message.isRead}
         messageIsImportant={message.isImportant}
       />
 
       <div className="flex-1 email-enter relative" key={message.id}>
-        {isPureNewsletter ? (
+        {isPureNewsletter && !showPlainVersion ? (
           /* ═════ DOCUMENT MODE — Newsletters ═════ */
           <article className="w-full px-6 pt-6 pb-24">
             <div className="mx-auto max-w-[920px]">
@@ -1267,9 +1278,18 @@ export const ReaderView = memo(function ReaderView({
                   <h1 className="min-w-0 max-w-[42rem] text-[28px] leading-[1.08] tracking-[-0.02em] text-radius-text-primary font-[family-name:var(--font-family-serif)]">
                     {message.subject || "Newsletter"}
                   </h1>
-                  <time className="shrink-0 text-[12px] uppercase tracking-[0.16em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-                    {formatFullDate(message.internalDate)}
-                  </time>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowPlainVersion(true)}
+                      className="rounded-full border border-radius-border-subtle px-3 py-1.5 text-[11px] font-medium text-radius-text-primary"
+                    >
+                      Show plain version
+                    </button>
+                    <time className="shrink-0 text-[12px] uppercase tracking-[0.16em] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                      {formatFullDate(message.internalDate)}
+                    </time>
+                  </div>
                 </div>
               </header>
 
@@ -1331,6 +1351,17 @@ export const ReaderView = memo(function ReaderView({
                   </span>
                   <AddressReveal name={recipient.name} email={recipient.email} />
                 </div>
+                {isPureNewsletter ? (
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowPlainVersion(false)}
+                      className="rounded-full border border-radius-border-subtle px-3 py-1.5 text-[11px] font-medium text-radius-text-primary"
+                    >
+                      Show designed version
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </header>
 

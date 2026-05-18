@@ -9,6 +9,7 @@ interface AccountsProps {
   deleteTarget: string | null;
   onSwitchAccount: (email: string) => void;
   onAddAccount: () => void;
+  onMoveAccount: (email: string, direction: "up" | "down") => void;
 }
 
 export function Accounts({
@@ -17,11 +18,12 @@ export function Accounts({
   deleteTarget,
   onSwitchAccount,
   onAddAccount,
+  onMoveAccount,
 }: AccountsProps) {
   return (
     <>
       <CommandGroup heading="Your accounts">
-        {accounts.map((account) => (
+        {accounts.map((account, index) => (
           <CommandItem
             key={account.email}
             value={account.email}
@@ -47,6 +49,32 @@ export function Accounts({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  aria-label={`Move ${account.email} up`}
+                  disabled={index === 0 || !!deleteTarget}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onMoveAccount(account.email, "up");
+                  }}
+                  className="inline-flex h-5 w-5 items-center justify-center rounded border border-radius-border-subtle text-[10px] text-radius-text-muted disabled:opacity-30"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Move ${account.email} down`}
+                  disabled={index === accounts.length - 1 || !!deleteTarget}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onMoveAccount(account.email, "down");
+                  }}
+                  className="inline-flex h-5 w-5 items-center justify-center rounded border border-radius-border-subtle text-[10px] text-radius-text-muted disabled:opacity-30"
+                >
+                  ↓
+                </button>
+              </div>
               {account.email === activeAccount && (
                 <HugeiconsIcon icon={Tick01Icon} size={14} className="text-radius-accent" />
               )}

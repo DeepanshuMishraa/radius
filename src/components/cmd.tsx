@@ -31,8 +31,10 @@ interface CommandKProps {
   onClose: () => void;
   onResync: () => void;
   onReconnect: () => void;
+  onNotificationPreferences: () => void;
   accounts: Account[];
   activeAccount: string | null;
+  onReorderAccount: (email: string, direction: "up" | "down") => void;
 }
 
 export function CommandK({
@@ -48,8 +50,10 @@ export function CommandK({
   onClose,
   onResync,
   onReconnect,
+  onNotificationPreferences,
   accounts,
   activeAccount,
+  onReorderAccount,
 }: CommandKProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const { setTheme, theme, themes } = useTheme();
@@ -236,6 +240,7 @@ export function CommandK({
                   onShowInbox={onShowInbox}
                   onResync={onResync}
                   onReconnect={onReconnect}
+                  onNotificationPreferences={onNotificationPreferences}
                 />
               ) : page === "accounts" ? (
                 <Accounts
@@ -244,6 +249,7 @@ export function CommandK({
                   deleteTarget={deleteTarget}
                   onSwitchAccount={onSwitchAccount}
                   onAddAccount={onAddAccount}
+                  onMoveAccount={onReorderAccount}
                 />
               ) : page === "mailboxes" ? (
                 <Mailboxes

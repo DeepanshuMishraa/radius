@@ -144,6 +144,14 @@ export interface SyncHistoryEntry {
   createdAt: number;
 }
 
+export interface NotificationPreferences {
+  enabled: boolean;
+  scope: "all" | "important" | "category";
+  category: EmailCategory | "all";
+  mutedSenders: string[];
+  mutedThreads: string[];
+}
+
 // RPC schema for typed communication between main and renderer
 export const urlSchema = z.string().refine(
   (val) => {
@@ -398,6 +406,10 @@ export type RadiusRPC = {
           activeAccount: string | null;
         };
       };
+      reorderAccounts: {
+        params: { emails: string[] };
+        response: { success: boolean; error?: string };
+      };
       switchAccount: {
         params: { email: string | null };
         response: { success: boolean; error?: string };
@@ -425,6 +437,10 @@ export type RadiusRPC = {
       };
       previewAttachment: {
         params: { messageId: string; attachmentId: string; filename: string };
+        response: { success: boolean; error?: string };
+      };
+      setNotificationPreferences: {
+        params: NotificationPreferences;
         response: { success: boolean; error?: string };
       };
     };

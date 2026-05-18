@@ -93,6 +93,7 @@ export function ComposeEmailDialog({
   const [selectedFromEmail, setSelectedFromEmail] = useState<string | null>(fromAccount?.email ?? null);
   const [signatureMap, setSignatureMap] = useState<Record<string, string>>(() => readSignatureMap());
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [sendConfirmation, setSendConfirmation] = useState<string | null>(null);
   const draftSaveTimerRef = useRef<number | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -181,6 +182,7 @@ export function ComposeEmailDialog({
       setShowBcc(false);
       setSignatureOpen(false);
       setSelectedFromEmail(fromAccount?.email ?? null);
+      setSendConfirmation(null);
       setComposeState((current) => {
         for (const att of current.attachments) {
           if (att.url) URL.revokeObjectURL(att.url);
@@ -437,12 +439,15 @@ export function ComposeEmailDialog({
           toast.error(result.error ?? "Send failed");
           return;
         }
+        setSendConfirmation(action.kind === "schedule" ? `Scheduled for ${action.label}` : "Sending now");
         showUndoToast(
           result.sendId,
           result.undoDeadlineAt,
           action.kind === "schedule" ? action.label : undefined,
         );
-        onClose();
+        window.setTimeout(() => {
+          onClose();
+        }, 700);
       } catch (error) {
         console.error(`Compose ${action.kind} failed:`, error);
         toast.error(action.kind === "draft" ? "Draft save failed" : "Send failed");
@@ -615,6 +620,21 @@ export function ComposeEmailDialog({
                   </p>
                   <p className="mt-1 text-[11px] text-radius-text-muted">
                     Images and documents will be added to this draft.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+            {sendConfirmation ? (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-radius-bg-primary/92 backdrop-blur-sm">
+                <div className="rounded-2xl border border-radius-border-subtle bg-radius-bg-primary px-6 py-5 text-center shadow-xl">
+                  <p className="text-[12px] uppercase tracking-[0.16em] text-radius-text-muted">
+                    Composer confirmed
+                  </p>
+                  <p className="mt-2 text-[18px] font-medium text-radius-text-primary">
+                    {sendConfirmation}
+                  </p>
+                  <p className="mt-1 text-[12px] text-radius-text-secondary">
+                    Radius will keep you in control if you want to undo.
                   </p>
                 </div>
               </div>

@@ -52,6 +52,7 @@ import {
   handleRequestNotificationPermission,
   handleOpenNotificationSettings,
   handlePreviewAttachment,
+  handleSetNotificationPreferences,
   showNewMailNotification,
 } from "./ui";
 import {
@@ -67,6 +68,7 @@ import {
   handleGetAccounts,
   handleSwitchAccount,
   handleRemoveAccount,
+  handleReorderAccounts,
 } from "./sync-lifecycle";
 import {
   handleApplyUpdate,
@@ -122,11 +124,13 @@ async function createMainWindow() {
           }
         },
         getAccounts: handleGetAccounts,
+        reorderAccounts: handleReorderAccounts,
         switchAccount: handleSwitchAccount,
         removeAccount: handleRemoveAccount,
         resyncAccount: handleResyncAccount,
         downloadAttachment: handleDownloadAttachment,
         previewAttachment: handlePreviewAttachment,
+        setNotificationPreferences: handleSetNotificationPreferences,
 
         // Update handlers need rpc to send status — kept inline to avoid circular type
         async checkForUpdate() {

@@ -18,6 +18,10 @@ interface InboxListProps {
   emptyMessage?: string;
   headerAction?: ReactNode;
   toolbar?: ReactNode;
+  scrollTop?: number;
+  onScrollChange?: (scrollTop: number) => void;
+  highlightQuery?: string;
+  onDragMessageToTrash?: (id: string) => void;
 }
 
 function formatDateShort(timestamp: number): string {
@@ -94,23 +98,72 @@ function SenderAvatar({ senderName }: { senderName: string }) {
   );
 }
 
+function renderHighlightedText(text: string, query: string | undefined, className: string) {
+  const trimmed = query?.trim();
+  if (!trimmed) {
+    return <span className={className}>{text}</span>;
+  }
+
+  const normalizedText = text.toLowerCase();
+  const normalizedQuery = trimmed.toLowerCase();
+  const segments: Array<{ value: string; match: boolean }> = [];
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const index = normalizedText.indexOf(normalizedQuery, cursor);
+    if (index === -1) {
+      segments.push({ value: text.slice(cursor), match: false });
+      break;
+    }
+    if (index > cursor) {
+      segments.push({ value: text.slice(cursor, index), match: false });
+    }
+    segments.push({ value: text.slice(index, index + trimmed.length), match: true });
+    cursor = index + trimmed.length;
+  }
+
+  return (
+    <span className={className}>
+      {segments.map((segment, index) =>
+        segment.match ? (
+          <mark key={index} className="rounded-sm bg-radius-accent-subtle px-[1px] text-inherit">
+            {segment.value}
+          </mark>
+        ) : (
+          <span key={index}>{segment.value}</span>
+        ),
+      )}
+    </span>
+  );
+}
+
 function EmailRow({
   message,
   isSelected,
   isMultiSelected,
   onClick,
   onToggleSelect,
+  highlightQuery,
+  onDragToTrash,
 }: {
   message: Message;
   isSelected: boolean;
   isMultiSelected?: boolean;
   onClick: (e: React.MouseEvent) => void;
   onToggleSelect?: (e: React.MouseEvent) => void;
+  highlightQuery?: string;
+  onDragToTrash?: (id: string) => void;
 }) {
   const senderName = message.from?.split("<")[0].trim() || message.from || "";
 
   return (
     <div
+      draggable={Boolean(onDragToTrash)}
+      onDragStart={(event) => {
+        if (!onDragToTrash) return;
+        event.dataTransfer.setData("text/radius-message-id", message.id);
+        event.dataTransfer.effectAllowed = "move";
+      }}
       onClick={onClick}
       aria-label={`${message.isRead ? "Read" : "Unread"} message from ${senderName}: ${message.subject}`}
       className={`
@@ -151,15 +204,15 @@ function EmailRow({
         {/* Top line: sender + badges + date pill */}
         <div className="flex items-center justify-between gap-3 mb-0.5">
           <div className="min-w-0 flex items-center gap-2">
-            <span
-              className={`truncate text-[13.5px] font-[family-name:var(--font-family-sans)] ${
+            {renderHighlightedText(
+              senderName,
+              highlightQuery,
+              `truncate text-[13.5px] font-[family-name:var(--font-family-sans)] ${
                 message.isRead
                   ? "font-normal text-radius-text-primary/70"
                   : "font-bold text-radius-text-primary"
-              }`}
-            >
-              {senderName}
-            </span>
+              }`,
+            )}
             <CategoryBadge category={message.category} />
           </div>
           <span className={`shrink-0 text-[11px] font-[family-name:var(--font-family-sans)] ${
@@ -170,26 +223,26 @@ function EmailRow({
         </div>
 
         {/* Subject */}
-        <p
-          className={`text-[13px] truncate font-[family-name:var(--font-family-sans)] leading-snug ${
+        {renderHighlightedText(
+          message.subject,
+          highlightQuery,
+          `text-[13px] truncate font-[family-name:var(--font-family-sans)] leading-snug ${
             message.isRead
               ? "text-radius-text-primary/70 font-normal"
               : "text-radius-text-primary font-bold"
-          }`}
-        >
-          {message.subject}
-        </p>
+          }`,
+        )}
 
         {/* Snippet */}
-        <p
-          className={`text-[12.5px] truncate font-[family-name:var(--font-family-sans)] leading-relaxed mt-0.5 ${
+        {renderHighlightedText(
+          message.snippet,
+          highlightQuery,
+          `text-[12.5px] truncate font-[family-name:var(--font-family-sans)] leading-relaxed mt-0.5 ${
             message.isRead
               ? "text-radius-text-muted/60"
               : "text-radius-text-secondary/80"
-          }`}
-        >
-          {message.snippet}
-        </p>
+          }`,
+        )}
       </div>
     </div>
   );
@@ -210,6 +263,10 @@ export function InboxList({
   emptyMessage,
   headerAction,
   toolbar,
+  scrollTop,
+  onScrollChange,
+  highlightQuery,
+  onDragMessageToTrash,
 }: InboxListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -242,6 +299,12 @@ export function InboxList({
       onReachEnd();
     }
   }, [lastVirtualItem?.index, loading, messages.length, onReachEnd, total]);
+
+  useEffect(() => {
+    if (!parentRef.current || scrollTop === undefined) return;
+    if (Math.abs(parentRef.current.scrollTop - scrollTop) < 4) return;
+    parentRef.current.scrollTop = scrollTop;
+  }, [scrollTop, messages.length]);
 
   return (
     <div className="flex flex-col h-full bg-radius-bg-primary pt-11">
@@ -290,7 +353,11 @@ export function InboxList({
           </p>
         </div>
       ) : (
-        <div ref={parentRef} className="flex-1 overflow-auto">
+        <div
+          ref={parentRef}
+          className="flex-1 overflow-auto"
+          onScroll={() => onScrollChange?.(parentRef.current?.scrollTop ?? 0)}
+        >
           <div
             style={{
               height: `${virtualizer.getTotalSize()}px`,
@@ -318,6 +385,8 @@ export function InboxList({
                     isMultiSelected={selectedIds?.has(message.id)}
                     onClick={(e) => handleMessageClick(message.id, e)}
                     onToggleSelect={onToggleSelect ? () => onToggleSelect(message.id) : undefined}
+                    highlightQuery={highlightQuery}
+                    onDragToTrash={onDragMessageToTrash}
                   />
                 </div>
               );

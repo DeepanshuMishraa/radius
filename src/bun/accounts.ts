@@ -67,3 +67,14 @@ export async function removeAccount(email: string): Promise<void> {
   }
   await writeAccounts(data);
 }
+
+export async function reorderAccounts(emails: string[]): Promise<void> {
+  const data = await readAccounts();
+  const byEmail = new Map(data.accounts.map((account) => [account.email, account]));
+  const ordered = emails
+    .map((email) => byEmail.get(email))
+    .filter((account): account is Account => Boolean(account));
+  const leftovers = data.accounts.filter((account) => !emails.includes(account.email));
+  data.accounts = [...ordered, ...leftovers];
+  await writeAccounts(data);
+}

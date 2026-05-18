@@ -6,11 +6,42 @@ import { Utils } from "electrobun/bun";
 import type { RadiusRPC } from "../shared/types";
 import { getAttachment } from "./gmail";
 import { getValidAccessToken } from "./auth";
+import type { NotificationPreferences } from "../shared/types";
+
+let notificationPreferences: NotificationPreferences = {
+  enabled: true,
+  scope: "all",
+  category: "all",
+  mutedSenders: [],
+  mutedThreads: [],
+};
+
+function normalizeSender(sender: string | null | undefined) {
+  return (sender ?? "").trim().toLowerCase();
+}
+
+function shouldDeliverNotification(
+  message: RadiusRPC["bun"]["requests"]["getMessage"]["response"],
+) {
+  if (!message || !notificationPreferences.enabled || message.isRead) return false;
+  if (notificationPreferences.mutedThreads.includes(message.threadId)) return false;
+  const sender = normalizeSender(message.from);
+  if (sender && notificationPreferences.mutedSenders.includes(sender)) return false;
+  if (notificationPreferences.scope === "important") {
+    return Boolean(message.isImportant) || message.category === "important";
+  }
+  if (notificationPreferences.scope === "category") {
+    return notificationPreferences.category === "all"
+      ? true
+      : message.category === notificationPreferences.category;
+  }
+  return true;
+}
 
 export function showNewMailNotification(
   message: RadiusRPC["bun"]["requests"]["getMessage"]["response"],
 ) {
-  if (!message || message.isRead) return;
+  if (!message || !shouldDeliverNotification(message)) return;
 
   const sender = message.from?.split("<")[0].trim() || message.from || "Radius";
   Utils.showNotification({
@@ -19,6 +50,17 @@ export function showNewMailNotification(
     body: message.subject || message.snippet || "You received a new email",
     silent: false,
   });
+}
+
+export function handleSetNotificationPreferences(
+  prefs: NotificationPreferences,
+) {
+  notificationPreferences = {
+    ...prefs,
+    mutedSenders: prefs.mutedSenders.map((sender) => sender.trim().toLowerCase()).filter(Boolean),
+    mutedThreads: prefs.mutedThreads.filter(Boolean),
+  };
+  return { success: true };
 }
 
 export function handleOpenExternalUrl({ url }: { url: string }) {

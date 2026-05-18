@@ -12,6 +12,7 @@ import { EmailSearchSpotlight } from "@/components/search-spotlight";
 import { DragRegion } from "@/components/drag-region";
 import { ComposeEmailDialog, type ComposeIntent, type ContactOption } from "@/components/compose";
 import { NotificationPermissionPrompt } from "@/components/notification-prompt";
+import { NotificationPreferencesDialog } from "@/components/notification-preferences";
 import { UpdateNotification } from "@/components/update-notification";
 import { SyncPill } from "@/components/sync-pill";
 import { SyncDetailsDialog } from "@/components/sync-details";
@@ -37,17 +38,27 @@ import type {
   ComposeStatusMessage,
   LocalReleaseInfo,
   SyncHistoryEntry,
+  NotificationPreferences,
   SyncMode,
   UpdateInfo,
 } from "../shared/types";
 
 const INBOX_PAGE_STEP = 500;
 const INITIAL_INBOX_LIMIT = 3000;
+const NOTIFICATION_PREFS_KEY = "radius.notification-preferences";
 type MailboxKind = "inbox" | "sent" | "drafts" | "trash";
 type MessageSort = "newest" | "oldest" | "sender" | "subject";
 type ReadFilter = "all" | "unread" | "read";
 type AttachmentFilter = "all" | "attachments";
 type CategoryFilter = "all" | "important" | "promotional" | "social" | "updates" | "forums" | "spam";
+
+const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  enabled: true,
+  scope: "all",
+  category: "all",
+  mutedSenders: [],
+  mutedThreads: [],
+};
 
 const MAILBOX_SHORTCUTS: Record<MailboxKind, string> = {
   inbox: "G I",
@@ -96,6 +107,38 @@ function parseContactOption(
   };
 }
 
+function readNotificationPreferences() {
+  if (typeof window === "undefined") return DEFAULT_NOTIFICATION_PREFERENCES;
+  try {
+    const raw = window.localStorage.getItem(NOTIFICATION_PREFS_KEY);
+    if (!raw) return DEFAULT_NOTIFICATION_PREFERENCES;
+    return {
+      ...DEFAULT_NOTIFICATION_PREFERENCES,
+      ...(JSON.parse(raw) as Partial<NotificationPreferences>),
+    };
+  } catch {
+    return DEFAULT_NOTIFICATION_PREFERENCES;
+  }
+}
+
+function normalizeNotificationSender(value: string | null | undefined) {
+  return (parseAddressLabel(value).email || value || "").trim().toLowerCase();
+}
+
+function shouldNotifyForMessage(message: Message, preferences: NotificationPreferences) {
+  if (!preferences.enabled) return false;
+  if (preferences.mutedThreads.includes(message.threadId)) return false;
+  const sender = normalizeNotificationSender(message.from);
+  if (sender && preferences.mutedSenders.includes(sender)) return false;
+  if (preferences.scope === "important") {
+    return Boolean(message.isImportant) || message.category === "important";
+  }
+  if (preferences.scope === "category") {
+    return preferences.category === "all" ? true : message.category === preferences.category;
+  }
+  return true;
+}
+
 function useDebouncedValue<T>(value: T, delayMs: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -115,6 +158,8 @@ function ThemedToaster() {
   return (
     <Toaster
       position="bottom-right"
+      visibleToasts={3}
+      expand={false}
       theme={appearance}
       toastOptions={{
         style: {
@@ -134,12 +179,14 @@ function MailboxRail({
   onShowInbox,
   onShowMailbox,
   onOpenSearch,
+  onDropToTrash,
 }: {
   activeMailbox: MailboxKind;
   searchActive: boolean;
   onShowInbox: () => void;
   onShowMailbox: (mailbox: Exclude<MailboxKind, "inbox">) => void;
   onOpenSearch: () => void;
+  onDropToTrash: (messageId: string) => void;
 }) {
   const items: Array<{
     mailbox: MailboxKind;
@@ -170,6 +217,17 @@ function MailboxRail({
             key={item.mailbox}
             type="button"
             onClick={onClick}
+            onDragOver={(event) => {
+              if (item.mailbox === "trash") {
+                event.preventDefault();
+              }
+            }}
+            onDrop={(event) => {
+              if (item.mailbox !== "trash") return;
+              event.preventDefault();
+              const messageId = event.dataTransfer.getData("text/radius-message-id");
+              if (messageId) onDropToTrash(messageId);
+            }}
             aria-current={isActive ? "page" : undefined}
             className={`group flex w-full flex-col items-center gap-1.5 rounded-2xl px-2 py-3 text-[10px] font-medium tracking-[0.08em] transition-colors ${
               isActive
@@ -306,6 +364,15 @@ function App() {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [syncDetailsOpen, setSyncDetailsOpen] = useState(false);
   const [syncHistory, setSyncHistory] = useState<SyncHistoryEntry[]>([]);
+  const [notificationPreferencesOpen, setNotificationPreferencesOpen] = useState(false);
+  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(() => readNotificationPreferences());
+  const [mailboxSelections, setMailboxSelections] = useState<Record<MailboxKind, string | null>>({
+    inbox: null,
+    sent: null,
+    drafts: null,
+    trash: null,
+  });
+  const [scrollMemory, setScrollMemory] = useState<Record<string, number>>({});
 
   const { isAuthenticated, startOAuth } = useAuth();
   const { accounts, activeAccount, refresh: refreshAccounts, removeAccount } = useAccounts();
@@ -316,6 +383,18 @@ function App() {
       void refreshAccounts();
     }
   }, [cmdOpen, refreshAccounts]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(
+        NOTIFICATION_PREFS_KEY,
+        JSON.stringify(notificationPreferences),
+      );
+    }
+    void radiusRpc.request.setNotificationPreferences(notificationPreferences).catch((error) => {
+      console.error("Failed to sync notification preferences:", error);
+    });
+  }, [notificationPreferences]);
 
   useHotkey(
     "Mod+B",
@@ -390,6 +469,7 @@ function App() {
     return sorted;
   }, [attachmentFilter, baseVisibleMessages, categoryFilter, readFilter, sortOrder]);
   const visibleTotal = visibleMessages.length;
+  const listContextKey = searchActive ? `search:${deferredSearchQuery.trim()}` : `mailbox:${mailboxView}`;
   const messagesById = useMemo(() => {
     return new Map(visibleMessages.map((message) => [message.id, message]));
   }, [visibleMessages]);
@@ -481,6 +561,9 @@ function App() {
 
   useEffect(() => {
     const handleNewMail = (incomingMessage: Message) => {
+      if (!shouldNotifyForMessage(incomingMessage, notificationPreferences)) {
+        return;
+      }
       const sender = parseAddressLabel(incomingMessage.from);
       toast.custom(
         (t) => (
@@ -529,7 +612,7 @@ function App() {
     return () => {
       radiusRpc.removeMessageListener("newMail", handleNewMail);
     };
-  }, []);
+  }, [notificationPreferences]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -539,12 +622,14 @@ function App() {
     const browserPermission =
       "Notification" in window ? window.Notification.permission : "default";
     setNotificationPromptVisible(
-      !nativeNotificationsEnabled && browserPermission !== "granted"
+      notificationPreferences.enabled &&
+        !nativeNotificationsEnabled &&
+        browserPermission !== "granted"
     );
     setWelcomeGuideDismissed(
       window.localStorage.getItem("radius.first-run-guide.dismissed") === "true"
     );
-  }, []);
+  }, [notificationPreferences.enabled]);
 
   const openNotificationSettings = useCallback(async () => {
     try {
@@ -745,6 +830,15 @@ function App() {
     [selectedMessageIds, visibleMessages]
   );
 
+  useEffect(() => {
+    if (searchActive) return;
+    setMailboxSelections((current) =>
+      current[mailboxView] === selectedMessageId
+        ? current
+        : { ...current, [mailboxView]: selectedMessageId }
+    );
+  }, [mailboxView, searchActive, selectedMessageId]);
+
   const updateMessagesReadState = useCallback(
     async (messageIds: string[], read: boolean) => {
       if (messageIds.length === 0) return;
@@ -918,10 +1012,17 @@ function App() {
     setSidebarOpen(true);
   }, []);
 
+  const handleOpenNotificationPreferences = useCallback(() => {
+    setCmdOpen(false);
+    setNotificationPreferencesOpen(true);
+  }, []);
+
   const handleOpenCompose = useCallback(() => {
     setCmdOpen(false);
     setComposeIntent({ kind: "compose" });
   }, []);
+
+
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -940,6 +1041,12 @@ function App() {
         return;
       }
 
+      if ((e.metaKey || e.ctrlKey) && key === "p" && selectedMessage) {
+        e.preventDefault();
+        handlePrintMessage();
+        return;
+      }
+
       if (key === "c" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         handleOpenCompose();
@@ -949,7 +1056,7 @@ function App() {
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handleOpenCompose, handleOpenSearch]);
+  }, [handleOpenCompose, handleOpenSearch, handlePrintMessage, selectedMessage]);
 
   const refreshMailbox = useCallback(
     async (mailbox: Exclude<MailboxKind, "inbox">) => {
@@ -969,7 +1076,7 @@ function App() {
     setSearchOpen(false);
     setSidebarOpen(true);
     setMailboxView(mailbox);
-    setSelectedMessageId(null);
+    setSelectedMessageId(mailboxSelections[mailbox] ?? null);
     try {
       await refreshMailbox(mailbox);
       if (activeMailboxRef.current !== mailbox) return;
@@ -977,16 +1084,16 @@ function App() {
       console.error(`Failed to load ${mailbox}:`, error);
       toast.error(`Failed to load ${mailbox}`);
     }
-  }, [refreshMailbox]);
+  }, [mailboxSelections, refreshMailbox]);
 
   const handleShowInbox = useCallback(() => {
     setCmdOpen(false);
     setSearchOpen(false);
     setMailboxView("inbox");
     setSidebarOpen(true);
-    setSelectedMessageId(null);
+    setSelectedMessageId(mailboxSelections.inbox ?? null);
     setSelectedMessageIds(new Set());
-  }, []);
+  }, [mailboxSelections.inbox]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -1167,6 +1274,21 @@ function App() {
       deleted === 1 ? "Message moved to trash" : `${deleted} messages moved to trash`
     );
   }, [refreshVisibleMailboxData, selectedMessages]);
+
+  const handleDropMessageToTrash = useCallback(async (messageId: string) => {
+    try {
+      const result = await radiusRpc.request.queueDeleteMessage({ messageId });
+      if (!result.success) {
+        toast.error(result.error ?? "Could not move message to trash");
+        return;
+      }
+      await refreshVisibleMailboxData();
+      toast.success("Message moved to trash");
+    } catch (error) {
+      console.error("Drag to trash failed:", error);
+      toast.error("Could not move message to trash");
+    }
+  }, [refreshVisibleMailboxData]);
 
   const handleEmptyTrash = useCallback(async () => {
     try {
@@ -1452,6 +1574,67 @@ function App() {
     }
   }, [activeAccount]);
 
+  const handleReorderAccount = useCallback(async (email: string, direction: "up" | "down") => {
+    const index = accounts.findIndex((account) => account.email === email);
+    if (index === -1) return;
+    const nextIndex = direction === "up" ? index - 1 : index + 1;
+    if (nextIndex < 0 || nextIndex >= accounts.length) return;
+
+    const nextAccounts = [...accounts];
+    const [moved] = nextAccounts.splice(index, 1);
+    nextAccounts.splice(nextIndex, 0, moved);
+    try {
+      const result = await radiusRpc.request.reorderAccounts({
+        emails: nextAccounts.map((account) => account.email),
+      });
+      if (!result.success) {
+        toast.error(result.error ?? "Could not reorder accounts");
+        return;
+      }
+      await refreshAccounts();
+    } catch (error) {
+      console.error("Failed to reorder accounts:", error);
+      toast.error("Could not reorder accounts");
+    }
+  }, [accounts, refreshAccounts]);
+
+  const handleNotificationPreferencesChange = useCallback((next: NotificationPreferences) => {
+    setNotificationPreferences(next);
+  }, []);
+
+  function handlePrintMessage() {
+    if (!selectedMessage) return;
+    const printWindow = window.open("", "_blank", "noopener,noreferrer,width=980,height=720");
+    if (!printWindow) {
+      toast.error("Could not open print preview");
+      return;
+    }
+    const title = selectedMessage.subject || "Message";
+    const body =
+      selectedMessage.bodyHtml ??
+      `<pre style="white-space:pre-wrap;font-family:ui-monospace,monospace;">${(selectedMessage.bodyText || selectedMessage.snippet || "").replace(/[&<>]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[char] as string))}</pre>`;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            body { font-family: ui-sans-serif, system-ui, sans-serif; max-width: 760px; margin: 40px auto; color: #222; }
+            .meta { margin-bottom: 24px; font-size: 12px; color: #666; }
+            img { max-width: 100%; height: auto; }
+          </style>
+        </head>
+        <body>
+          <h1>${title}</h1>
+          <div class="meta">From: ${selectedMessage.from}<br/>To: ${selectedMessage.to}<br/>${new Date(selectedMessage.internalDate).toLocaleString()}</div>
+          ${body}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  }
+
   const handleConnectNewAccount = useCallback(
     async (syncMode: SyncMode) => {
       setAddAccountMode(syncMode);
@@ -1601,6 +1784,7 @@ function App() {
         onShowInbox={handleShowInbox}
         onShowMailbox={handleOpenMailbox}
         onOpenSearch={handleOpenSearch}
+        onDropToTrash={(messageId) => void handleDropMessageToTrash(messageId)}
       />
       <aside
         className="sidebar-panel h-full border-r border-radius-border-subtle bg-radius-bg-primary will-change-transform"
@@ -1614,6 +1798,14 @@ function App() {
           onSelect={handleSelectMessage}
           onToggleSelect={handleToggleSelectMessage}
           syncStatus={syncStatus}
+          scrollTop={scrollMemory[listContextKey] ?? 0}
+          onScrollChange={(top) =>
+            setScrollMemory((current) =>
+              current[listContextKey] === top ? current : { ...current, [listContextKey]: top }
+            )
+          }
+          highlightQuery={searchActive ? deferredSearchQuery.trim() : undefined}
+          onDragMessageToTrash={mailboxView === "trash" ? undefined : handleDropMessageToTrash}
           heading={
             searchActive
               ? "Search Results"
@@ -1708,6 +1900,7 @@ function App() {
           }
           onToggleImportant={handleToggleImportant}
           onOpenInGmail={handleOpenInGmail}
+          onPrint={handlePrintMessage}
         />
       </main>
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen} modal={false}>
@@ -1733,8 +1926,10 @@ function App() {
             onClose={() => setCmdOpen(false)}
             onResync={handleResync}
             onReconnect={handleReconnect}
+            onNotificationPreferences={handleOpenNotificationPreferences}
             accounts={accounts}
             activeAccount={activeAccount}
+            onReorderAccount={handleReorderAccount}
           />
         </DialogContent>
       </Dialog>
@@ -1783,6 +1978,14 @@ function App() {
         onReconnect={() => void handleReconnect()}
       />
       <ThemedToaster />
+      <NotificationPreferencesDialog
+        open={notificationPreferencesOpen}
+        onOpenChange={setNotificationPreferencesOpen}
+        preferences={notificationPreferences}
+        onChange={handleNotificationPreferencesChange}
+        currentSender={selectedMessage?.from ?? null}
+        currentThreadId={selectedMessage?.threadId ?? null}
+      />
       {accountSwitching && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-radius-bg-primary animate-in fade-in duration-200">
           <div className="text-center">

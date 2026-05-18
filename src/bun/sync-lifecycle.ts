@@ -38,6 +38,7 @@ import {
   setActiveAccount,
   addAccount,
   removeAccount,
+  reorderAccounts,
 } from "./accounts";
 
 let codeVerifier: string | null = null;
@@ -537,6 +538,17 @@ export async function handleRemoveAccount(params: { email: string }) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("❌ Remove account failed:", message);
+    return { success: false, error: message };
+  }
+}
+
+export async function handleReorderAccounts(params: { emails: string[] }) {
+  try {
+    await reorderAccounts(params.emails);
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("❌ Reorder accounts failed:", message);
     return { success: false, error: message };
   }
 }
