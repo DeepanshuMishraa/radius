@@ -1,5 +1,6 @@
 import { getValidAccessToken } from "./auth";
 import {
+  addSyncEvent,
   insertMessages,
   updateSyncState,
   getSyncState,
@@ -154,6 +155,7 @@ function getMailboxFlags(labelIds: string[] | undefined) {
     isSent: labels.has("SENT"),
     isDraft: labels.has("DRAFT"),
     isTrash: labels.has("TRASH"),
+    isImportant: labels.has("IMPORTANT"),
   };
 }
 
@@ -395,6 +397,11 @@ async function runInitialAndBackgroundSyncUnlocked(
         phase: null,
       });
       console.log(`Initial sync complete: ${initialResult.processed} messages`);
+      await addSyncEvent({
+        level: "success",
+        title: "Initial sync complete",
+        detail: `${initialResult.processed.toLocaleString()} messages are ready offline.`,
+      });
       return;
     }
 
@@ -418,8 +425,18 @@ async function runInitialAndBackgroundSyncUnlocked(
     console.log(
       `Initial sync complete: ${initialResult.processed} messages. Deferred full sync is queued.`
     );
+    await addSyncEvent({
+      level: "success",
+      title: "Inbox ready",
+      detail: `${initialResult.processed.toLocaleString()} messages are ready now. Full archive sync will continue in the background.`,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    await addSyncEvent({
+      level: "error",
+      title: "Initial sync failed",
+      detail: message,
+    });
     await updateSyncState({
       status: "error",
       phase: null,
@@ -501,10 +518,20 @@ export async function continueDeferredFullSyncIfDue(): Promise<DeferredFullSyncR
 
       if (completed) {
         console.log(`Full sync complete: ${backgroundResult.processed} messages`);
+        await addSyncEvent({
+          level: "success",
+          title: "Full archive sync complete",
+          detail: `${backgroundResult.processed.toLocaleString()} messages are available locally.`,
+        });
       } else {
         console.log(
           `Deferred full sync advanced to ${backgroundResult.processed}/${backgroundResult.totalEstimate}`
         );
+        await addSyncEvent({
+          level: "info",
+          title: "Archive sync progressed",
+          detail: `${backgroundResult.processed.toLocaleString()} of ${backgroundResult.totalEstimate.toLocaleString()} messages downloaded.`,
+        });
       }
 
       return {
@@ -514,6 +541,11 @@ export async function continueDeferredFullSyncIfDue(): Promise<DeferredFullSyncR
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      await addSyncEvent({
+        level: "error",
+        title: "Archive sync failed",
+        detail: message,
+      });
       await updateSyncState({ status: "error", phase: null, error: message });
       throw err;
     }
@@ -638,6 +670,11 @@ export async function doIncrementalSync(): Promise<{
           console.log("History gap detected — scheduling full re-sync");
           hadGap = true;
           needsFullResync = true;
+          await addSyncEvent({
+            level: "warning",
+            title: "Mailbox history gap detected",
+            detail: "Radius needs a fresh mailbox resync to catch up safely.",
+          });
           await updateSyncState({
             status: "idle",
             phase: null,
@@ -658,6 +695,11 @@ export async function doIncrementalSync(): Promise<{
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      await addSyncEvent({
+        level: "error",
+        title: "Background sync failed",
+        detail: message,
+      });
       await updateSyncState({ status: "error", phase: null, error: message });
       throw err;
     }
@@ -749,8 +791,18 @@ export async function runMessageMetadataBackfillIfNeeded(): Promise<void> {
         progressTotal: null,
         error: null,
       });
+      await addSyncEvent({
+        level: "success",
+        title: "Mailbox metadata refreshed",
+        detail: `${totalMessages.toLocaleString()} messages were reclassified and updated.`,
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      await addSyncEvent({
+        level: "error",
+        title: "Mailbox metadata refresh failed",
+        detail: message,
+      });
       await updateSyncState({ status: "error", phase: null, error: message });
       throw err;
     }

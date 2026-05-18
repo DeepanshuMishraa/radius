@@ -33,6 +33,7 @@ export interface Message {
   attachments: Attachment[];
   category: EmailCategory;
   isRead: boolean;
+  isImportant?: boolean;
   isInbox?: boolean;
   isSent?: boolean;
   isDraft?: boolean;
@@ -70,6 +71,7 @@ function areMessagesEqual(next: Message[], prev: Message[]) {
       nextMessage.snippet !== prevMessage.snippet ||
       nextMessage.category !== prevMessage.category ||
       nextMessage.isRead !== prevMessage.isRead ||
+      Boolean(nextMessage.isImportant) !== Boolean(prevMessage.isImportant) ||
       Boolean(nextMessage.isInbox) !== Boolean(prevMessage.isInbox) ||
       Boolean(nextMessage.isSent) !== Boolean(prevMessage.isSent) ||
       Boolean(nextMessage.isDraft) !== Boolean(prevMessage.isDraft) ||

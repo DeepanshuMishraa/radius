@@ -42,6 +42,7 @@ type PendingSendSnapshot = {
   bcc: string[];
   subject: string;
   bodyText: string;
+  bodyHtml: string | null;
   threadId: string | null;
   replyToMessageId: string | null;
   replyReferences: string[];
@@ -265,6 +266,58 @@ function appendLinksToBody(bodyText: string, attachments: ComposeAttachmentInput
   return `${bodyText}${suffix}`.trim();
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function renderRichBodyHtml(bodyText: string): string | null {
+  const normalized = bodyText.replace(/\r\n/g, "\n");
+  if (!normalized.trim()) return null;
+
+  const html: string[] = [];
+  let inList = false;
+
+  const flushList = () => {
+    if (inList) {
+      html.push("</ul>");
+      inList = false;
+    }
+  };
+
+  const formatInline = (input: string) =>
+    escapeHtml(input)
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[\s(])\*(.+?)\*(?=[\s).,!?:;]|$)/g, "$1<em>$2</em>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>");
+
+  for (const line of normalized.split("\n")) {
+    const trimmedLine = line.trim();
+    if (!trimmedLine) {
+      flushList();
+      html.push("<p><br/></p>");
+      continue;
+    }
+
+    if (/^[-*]\s+/.test(trimmedLine)) {
+      if (!inList) {
+        html.push("<ul>");
+        inList = true;
+      }
+      html.push(`<li>${formatInline(trimmedLine.replace(/^[-*]\s+/, ""))}</li>`);
+      continue;
+    }
+
+    flushList();
+    html.push(`<p>${formatInline(trimmedLine)}</p>`);
+  }
+
+  flushList();
+  return html.join("");
+}
+
 function hasMeaningfulContent(session: ComposeSession): boolean {
   return Boolean(
     session.to.length > 0 &&
@@ -426,6 +479,11 @@ async function loadSessionById(db: Database, sessionId: string): Promise<Compose
     updatedAt: row.updated_at,
     lastSavedAt: row.last_saved_at,
   };
+}
+
+export async function getComposeSessionById(sessionId: string): Promise<ComposeSession | null> {
+  const db = await getDb();
+  return loadSessionById(db, sessionId);
 }
 
 async function persistAttachments(
@@ -619,6 +677,7 @@ async function buildSendSnapshot(session: ComposeSession, db: Database): Promise
     bcc: session.bcc,
     subject: session.subject,
     bodyText: appendLinksToBody(session.bodyText, session.attachments),
+    bodyHtml: renderRichBodyHtml(appendLinksToBody(session.bodyText, session.attachments)),
     threadId: session.threadId,
     replyToMessageId: session.replyToMessageId,
     replyReferences: session.replyReferences,
@@ -674,6 +733,7 @@ async function sendPendingSnapshot(sendId: string) {
       bcc: snapshot.bcc,
       subject: snapshot.subject,
       bodyText: snapshot.bodyText,
+      bodyHtml: snapshot.bodyHtml ?? undefined,
       threadId: snapshot.threadId ?? undefined,
       inReplyTo: snapshot.replyToMessageId ?? undefined,
       references: snapshot.replyReferences,
@@ -722,7 +782,7 @@ async function sendPendingSnapshot(sendId: string) {
       subject: snapshot.subject,
       snippet: stripQuotedText(snapshot.bodyText).slice(0, 180),
       bodyText: snapshot.bodyText,
-      bodyHtml: null,
+      bodyHtml: snapshot.bodyHtml,
       attachments: snapshot.attachments
         .filter((attachment) => attachment.type !== "link")
         .map((attachment) => ({
@@ -733,6 +793,7 @@ async function sendPendingSnapshot(sendId: string) {
         })),
       category: "regular",
       isRead: true,
+      isImportant: false,
       isInbox: false,
       isSent: true,
       isDraft: false,
@@ -1020,6 +1081,7 @@ export async function saveDraftForSession(
       bcc: session.bcc,
       subject: session.subject,
       bodyText: appendLinksToBody(session.bodyText, session.attachments),
+      bodyHtml: renderRichBodyHtml(appendLinksToBody(session.bodyText, session.attachments)) ?? undefined,
       threadId: session.threadId ?? undefined,
       inReplyTo: session.replyToMessageId ?? undefined,
       references: session.replyReferences,
@@ -1103,7 +1165,10 @@ export async function queueSendForSession(
   }
 
   const sendId = randomUUID();
-  const undoDeadlineAt = Date.now() + UNDO_SEND_MS;
+  const scheduledForAt = Math.max(
+    params.sendAt ?? Date.now() + UNDO_SEND_MS,
+    Date.now() + 2_000,
+  );
   const snapshot = await buildSendSnapshot(session, db);
 
   db.run(
@@ -1115,7 +1180,7 @@ export async function queueSendForSession(
       session.id,
       session.from,
       JSON.stringify(snapshot),
-      undoDeadlineAt,
+      scheduledForAt,
       Date.now(),
       Date.now(),
     ],
@@ -1134,19 +1199,21 @@ export async function queueSendForSession(
     dirty: false,
   });
 
-  schedulePendingSend(sendId, undoDeadlineAt);
+  schedulePendingSend(sendId, scheduledForAt);
   emitComposeStatus({
     sessionId: session.id,
     sendId,
     status: "send_queued",
-    undoDeadlineAt,
+    undoDeadlineAt: scheduledForAt,
+    scheduledForAt,
   });
 
   return {
     success: true,
     sessionId: session.id,
     sendId,
-    undoDeadlineAt,
+    undoDeadlineAt: scheduledForAt,
+    scheduledForAt,
   };
 }
 

@@ -14,6 +14,7 @@ import { ComposeEmailDialog, type ComposeIntent, type ContactOption } from "@/co
 import { NotificationPermissionPrompt } from "@/components/notification-prompt";
 import { UpdateNotification } from "@/components/update-notification";
 import { SyncPill } from "@/components/sync-pill";
+import { SyncDetailsDialog } from "@/components/sync-details";
 import { AboutDialog } from "@/components/about";
 import { AddAccountDialog } from "@/components/add-account";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -35,6 +36,7 @@ import type {
   PendingDeleteStatusMessage,
   ComposeStatusMessage,
   LocalReleaseInfo,
+  SyncHistoryEntry,
   SyncMode,
   UpdateInfo,
 } from "../shared/types";
@@ -42,6 +44,10 @@ import type {
 const INBOX_PAGE_STEP = 500;
 const INITIAL_INBOX_LIMIT = 3000;
 type MailboxKind = "inbox" | "sent" | "drafts" | "trash";
+type MessageSort = "newest" | "oldest" | "sender" | "subject";
+type ReadFilter = "all" | "unread" | "read";
+type AttachmentFilter = "all" | "attachments";
+type CategoryFilter = "all" | "important" | "promotional" | "social" | "updates" | "forums" | "spam";
 
 const MAILBOX_SHORTCUTS: Record<MailboxKind, string> = {
   inbox: "G I",
@@ -294,6 +300,12 @@ function App() {
   });
   const [composeSuggestions, setComposeSuggestions] = useState<ComposeContactSuggestion[]>([]);
   const [welcomeGuideDismissed, setWelcomeGuideDismissed] = useState(false);
+  const [sortOrder, setSortOrder] = useState<MessageSort>("newest");
+  const [readFilter, setReadFilter] = useState<ReadFilter>("all");
+  const [attachmentFilter, setAttachmentFilter] = useState<AttachmentFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [syncDetailsOpen, setSyncDetailsOpen] = useState(false);
+  const [syncHistory, setSyncHistory] = useState<SyncHistoryEntry[]>([]);
 
   const { isAuthenticated, startOAuth } = useAuth();
   const { accounts, activeAccount, refresh: refreshAccounts, removeAccount } = useAccounts();
@@ -350,16 +362,34 @@ function App() {
     [accounts, activeAccount]
   );
   const hasAuthSignal = isAuthenticated === true || Boolean(syncStatus.lastSyncAt);
-  const visibleMessages = searchActive
+  const baseVisibleMessages = searchActive
     ? mergedSearchMessages
     : mailboxView === "inbox"
       ? mergedInboxMessages
       : mailboxMessages[mailboxView];
-  const visibleTotal = searchActive
-    ? searchedTotal
-    : mailboxView === "inbox"
-      ? total
-      : mailboxMessages[mailboxView].length;
+  const visibleMessages = useMemo(() => {
+    const filtered = baseVisibleMessages.filter((message) => {
+      if (readFilter === "read" && !message.isRead) return false;
+      if (readFilter === "unread" && message.isRead) return false;
+      if (attachmentFilter === "attachments" && message.attachments.length === 0) return false;
+      if (categoryFilter !== "all" && message.category !== categoryFilter) return false;
+      return true;
+    });
+
+    const sorted = [...filtered];
+    sorted.sort((left, right) => {
+      if (sortOrder === "oldest") return left.internalDate - right.internalDate;
+      if (sortOrder === "sender") {
+        return (left.from || "").localeCompare(right.from || "", undefined, { sensitivity: "base" });
+      }
+      if (sortOrder === "subject") {
+        return (left.subject || "").localeCompare(right.subject || "", undefined, { sensitivity: "base" });
+      }
+      return right.internalDate - left.internalDate;
+    });
+    return sorted;
+  }, [attachmentFilter, baseVisibleMessages, categoryFilter, readFilter, sortOrder]);
+  const visibleTotal = visibleMessages.length;
   const messagesById = useMemo(() => {
     return new Map(visibleMessages.map((message) => [message.id, message]));
   }, [visibleMessages]);
@@ -420,6 +450,9 @@ function App() {
       })
       .catch((error) => {
         console.error("Failed to load compose suggestions:", error);
+        toast.error("Contact suggestions unavailable", {
+          description: "Radius can still send mail, but recent recipients could not be loaded.",
+        });
       });
   }, [activeAccount]);
 
@@ -560,6 +593,15 @@ function App() {
     setNotificationPromptVisible(false);
   }, []);
 
+  useEffect(() => {
+    if (!syncDetailsOpen) return;
+    void radiusRpc.request.getSyncHistory({ limit: 12 }).then((result) => {
+      setSyncHistory(result.events);
+    }).catch((error) => {
+      console.error("Failed to load sync history:", error);
+    });
+  }, [syncDetailsOpen, syncStatus.lastSyncAt, syncStatus.status]);
+
   const handleConnect = useCallback(
     async (syncMode: SyncMode) => {
       setSelectedSyncMode(syncMode);
@@ -631,6 +673,20 @@ function App() {
     if (!selectedMessageId) return -1;
     return visibleMessages.findIndex((m) => m.id === selectedMessageId);
   }, [visibleMessages, selectedMessageId]);
+
+  useEffect(() => {
+    if (!selectedMessageId) return;
+    if (visibleMessages.some((message) => message.id === selectedMessageId)) return;
+    setSelectedMessageId(visibleMessages[0]?.id ?? null);
+  }, [selectedMessageId, visibleMessages]);
+
+  useEffect(() => {
+    setSelectedMessageIds((current) => {
+      const visibleSet = new Set(visibleMessages.map((message) => message.id));
+      const next = new Set(Array.from(current).filter((id) => visibleSet.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [visibleMessages]);
 
   const handlePrevMessage = useCallback(() => {
     if (currentMessageIndex <= 0) return;
@@ -732,11 +788,34 @@ function App() {
           }
           return next;
         });
-        toast.error(
-          failures.length === 1
-            ? `Could not mark the message as ${read ? "read" : "unread"}`
-            : `Could not update ${failures.length} messages`
-        );
+        if (failures.length === 1) {
+          toast.custom((t) => (
+            <div className="toast pointer-events-auto w-[340px] rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[12px] font-semibold text-radius-text-primary">
+                    Could not mark message as {read ? "read" : "unread"}
+                  </div>
+                  <div className="text-[11px] text-radius-text-muted">
+                    Gmail did not confirm the change.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-md bg-radius-text-primary px-2.5 py-1 text-[11px] font-medium text-radius-bg-primary"
+                  onClick={() => {
+                    toast.dismiss(t);
+                    void updateMessagesReadState([failures[0]], read);
+                  }}
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          ));
+        } else {
+          toast.error(`Could not update ${failures.length} messages`);
+        }
         return;
       }
 
@@ -748,6 +827,61 @@ function App() {
     },
     []
   );
+
+  const handleToggleImportant = useCallback(async () => {
+    if (!selectedMessage) return;
+    const nextImportant = !selectedMessage.isImportant;
+
+    setMessageOverrides((prev) => ({
+      ...prev,
+      [selectedMessage.id]: {
+        ...(prev[selectedMessage.id] ?? {}),
+        isImportant: nextImportant,
+      },
+    }));
+
+    try {
+      const result = await radiusRpc.request.toggleMessageImportant({
+        id: selectedMessage.id,
+        important: nextImportant,
+      });
+      if (!result.success) {
+        throw new Error(result.error ?? "Failed to update importance");
+      }
+      toast.success(nextImportant ? "Pinned as important" : "Removed from important");
+    } catch (error) {
+      console.error("Toggle important failed:", error);
+      setMessageOverrides((prev) => {
+        const next = { ...prev };
+        delete next[selectedMessage.id];
+        return next;
+      });
+      toast.custom((t) => (
+        <div className="toast pointer-events-auto w-[340px] rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[12px] font-semibold text-radius-text-primary">
+                Could not update importance
+              </div>
+              <div className="text-[11px] text-radius-text-muted">
+                Try again or reconnect Gmail if permissions changed.
+              </div>
+            </div>
+            <button
+              type="button"
+              className="rounded-md bg-radius-text-primary px-2.5 py-1 text-[11px] font-medium text-radius-bg-primary"
+              onClick={() => {
+                toast.dismiss(t);
+                void handleToggleImportant();
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      ));
+    }
+  }, [selectedMessage]);
 
   const handleMarkSelectedRead = useCallback(async () => {
     await updateMessagesReadState(
@@ -1070,7 +1204,30 @@ function App() {
         }, 250);
         composeToastTimersRef.current.push(timer);
       } else if (message.status === "send_failed") {
-        toast.error(message.error ?? "Send failed");
+        toast.custom((t) => (
+          <div className="toast pointer-events-auto w-[360px] rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[12px] font-semibold text-radius-text-primary">
+                  Message could not be sent
+                </div>
+                <div className="text-[11px] text-radius-text-muted">
+                  {message.error ?? "Radius kept your draft so you can fix and retry."}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="rounded-md bg-radius-text-primary px-2.5 py-1 text-[11px] font-medium text-radius-bg-primary"
+                onClick={() => {
+                  toast.dismiss(t);
+                  setComposeIntent({ kind: "session", sessionId: message.sessionId });
+                }}
+              >
+                Resume draft
+              </button>
+            </div>
+          </div>
+        ));
       }
     };
 
@@ -1087,7 +1244,30 @@ function App() {
   useEffect(() => {
     const handlePendingDeleteStatus = (message: PendingDeleteStatusMessage) => {
       if (message.status === "delete_failed") {
-        toast.error(message.error ?? "Delete failed");
+        toast.custom((t) => (
+          <div className="toast pointer-events-auto w-[340px] rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[12px] font-semibold text-radius-text-primary">
+                  Delete failed
+                </div>
+                <div className="text-[11px] text-radius-text-muted">
+                  {message.error ?? "Radius could not move this message to trash."}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="rounded-md bg-radius-text-primary px-2.5 py-1 text-[11px] font-medium text-radius-bg-primary"
+                onClick={() => {
+                  toast.dismiss(t);
+                  void radiusRpc.request.queueDeleteMessage({ messageId: message.messageId });
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        ));
         void refreshVisibleMailboxData();
       } else if (message.status === "delete_committed" || message.status === "delete_undone") {
         void refreshVisibleMailboxData();
@@ -1136,6 +1316,10 @@ function App() {
   const handleCloseSearch = useCallback(() => {
     setSearchOpen(false);
     setSearchDraft("");
+    setSortOrder("newest");
+    setReadFilter("all");
+    setAttachmentFilter("all");
+    setCategoryFilter("all");
   }, []);
 
   const handleDownloadUpdate = useCallback(async () => {
@@ -1299,11 +1483,11 @@ function App() {
   }, []);
 
   const handleSubmitSearch = useCallback(() => {
-    if (searchedMessages.length > 0) {
-      setSelectedMessageId(searchedMessages[0].id);
+    if (visibleMessages.length > 0) {
+      setSelectedMessageId(visibleMessages[0].id);
       setSidebarOpen(true);
     }
-  }, [searchedMessages]);
+  }, [visibleMessages]);
 
   const dismissWelcomeGuide = useCallback(() => {
     setWelcomeGuideDismissed(true);
@@ -1320,6 +1504,12 @@ function App() {
     if (searchedTotal === 0) return `No emails match "${trimmedQuery}"`;
     return `${searchedTotal.toLocaleString()} result${searchedTotal === 1 ? "" : "s"} for "${trimmedQuery}"`;
   }, [deferredSearchQuery, searchLoading, searchOpen, searchedTotal]);
+
+  const hasActiveFilters =
+    sortOrder !== "newest" ||
+    readFilter !== "all" ||
+    attachmentFilter !== "all" ||
+    categoryFilter !== "all";
 
   const welcomeGuideVisible =
     !welcomeGuideDismissed &&
@@ -1435,7 +1625,13 @@ function App() {
                     ? "Drafts"
                     : "Trash"
           }
-          detail={searchMeta ?? undefined}
+          detail={
+            searchOpen
+              ? searchMeta ?? undefined
+              : hasActiveFilters
+                ? `${visibleTotal.toLocaleString()} refined result${visibleTotal === 1 ? "" : "s"}`
+                : undefined
+          }
           loading={searchLoading}
           onReachEnd={searchActive || mailboxView !== "inbox" ? undefined : handleLoadMoreInbox}
           emptyMessage={
@@ -1444,6 +1640,27 @@ function App() {
               : mailboxView === "inbox"
                 ? undefined
                 : `No ${mailboxView} emails`
+          }
+          toolbar={
+            searchOpen || hasActiveFilters ? (
+              <EmailSearchSpotlight
+                open={searchOpen || hasActiveFilters}
+                query={searchDraft}
+                resultCount={searchActive ? searchedTotal : visibleTotal}
+                loading={searchLoading}
+                onChangeQuery={setSearchDraft}
+                onClose={handleCloseSearch}
+                onSubmit={handleSubmitSearch}
+                sortOrder={sortOrder}
+                readFilter={readFilter}
+                attachmentFilter={attachmentFilter}
+                categoryFilter={categoryFilter}
+                onChangeSortOrder={setSortOrder}
+                onChangeReadFilter={setReadFilter}
+                onChangeAttachmentFilter={setAttachmentFilter}
+                onChangeCategoryFilter={setCategoryFilter}
+              />
+            ) : null
           }
           headerAction={
             mailboxView === "trash" && selectedMessages.length === 0 ? (
@@ -1489,6 +1706,7 @@ function App() {
               Boolean(selectedMessage?.isRead ? false : true)
             )
           }
+          onToggleImportant={handleToggleImportant}
           onOpenInGmail={handleOpenInGmail}
         />
       </main>
@@ -1520,19 +1738,11 @@ function App() {
           />
         </DialogContent>
       </Dialog>
-      <EmailSearchSpotlight
-        open={searchOpen}
-        query={searchDraft}
-        resultCount={searchedTotal}
-        loading={searchLoading}
-        onChangeQuery={setSearchDraft}
-        onClose={handleCloseSearch}
-        onSubmit={handleSubmitSearch}
-      />
       <ComposeEmailDialog
         open={composeIntent !== null}
         onClose={() => setComposeIntent(null)}
         fromAccount={activeAccountRecord}
+        accounts={accounts}
         contacts={composeContacts}
         intent={composeIntent ?? { kind: "compose" }}
       />
@@ -1560,6 +1770,17 @@ function App() {
         notice={gmailSyncNotice}
         onDismissNotice={gmailSyncNotice ? dismissGmailSyncNotice : undefined}
         onRefresh={() => void refreshVisibleMailboxData()}
+        onOpenDetails={() => setSyncDetailsOpen(true)}
+      />
+      <SyncDetailsDialog
+        open={syncDetailsOpen}
+        onOpenChange={setSyncDetailsOpen}
+        syncMode={syncStatus.syncMode}
+        syncError={gmailSyncNotice ?? syncStatus.error}
+        events={syncHistory}
+        onRefresh={() => void refreshVisibleMailboxData()}
+        onResync={() => void handleResync()}
+        onReconnect={() => void handleReconnect()}
       />
       <ThemedToaster />
       {accountSwitching && (

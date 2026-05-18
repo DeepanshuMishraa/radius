@@ -27,6 +27,7 @@ interface ReaderViewProps {
   onForward?: () => void;
   onReply?: () => void;
   onToggleRead?: () => void;
+  onToggleImportant?: () => void;
   onOpenInGmail?: () => void;
 }
 
@@ -286,16 +287,20 @@ function ActionBarWidget({
   onForward,
   onDelete,
   onToggleRead,
+  onToggleImportant,
   onOpenInGmail,
   messageIsRead,
+  messageIsImportant,
 }: {
   visible: boolean;
   onReply?: () => void;
   onForward?: () => void;
   onDelete?: () => void;
   onToggleRead?: () => void;
+  onToggleImportant?: () => void;
   onOpenInGmail?: () => void;
   messageIsRead?: boolean;
+  messageIsImportant?: boolean;
 }) {
   if (!visible) return null;
 
@@ -323,6 +328,11 @@ function ActionBarWidget({
         icon={<HugeiconsIcon icon={Mail01Icon} size={16} />}
         tooltip={messageIsRead ? "Mark as unread" : "Mark as read"}
         onClick={onToggleRead}
+      />
+      <ActionButton
+        icon={<span className="text-[13px] leading-none">{messageIsImportant ? "!" : "!"}</span>}
+        tooltip={messageIsImportant ? "Remove important" : "Mark important"}
+        onClick={onToggleImportant}
       />
       <ActionButton icon={<HugeiconsIcon icon={ArrowUpRight01Icon} size={16} />} tooltip="Open in Gmail" onClick={onOpenInGmail} />
       <div className="w-[1px] h-3.5 bg-radius-border-subtle mx-1" />
@@ -1005,6 +1015,7 @@ export const ReaderView = memo(function ReaderView({
   onForward,
   onDelete,
   onToggleRead,
+  onToggleImportant,
   onOpenInGmail,
 }: ReaderViewProps) {
   const { theme, appearance, resolvedTheme } = useTheme();
@@ -1231,8 +1242,10 @@ export const ReaderView = memo(function ReaderView({
         onForward={onForward}
         onDelete={onDelete}
         onToggleRead={onToggleRead}
+        onToggleImportant={onToggleImportant}
         onOpenInGmail={onOpenInGmail}
         messageIsRead={message.isRead}
+        messageIsImportant={message.isImportant}
       />
 
       <div className="flex-1 email-enter relative" key={message.id}>

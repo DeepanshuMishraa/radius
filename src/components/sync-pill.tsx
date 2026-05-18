@@ -5,6 +5,7 @@ interface SyncPillProps {
   notice: string | null;
   onDismissNotice?: () => void;
   onRefresh?: () => void;
+  onOpenDetails?: () => void;
 }
 
 function formatLastSynced(timestamp?: number) {
@@ -23,7 +24,7 @@ function formatLastSynced(timestamp?: number) {
   })}`;
 }
 
-export function SyncPill({ syncStatus, notice, onDismissNotice, onRefresh }: SyncPillProps) {
+export function SyncPill({ syncStatus, notice, onDismissNotice, onRefresh, onOpenDetails }: SyncPillProps) {
   const isInitialSync =
     syncStatus.status === "syncing" &&
     (syncStatus.phase === "initial" || !syncStatus.initialSyncCompletedAt);
@@ -91,7 +92,7 @@ export function SyncPill({ syncStatus, notice, onDismissNotice, onRefresh }: Syn
               {lastSynced}
             </p>
           ) : null}
-          {(onRefresh || onDismissNotice) && (
+          {(onRefresh || onDismissNotice || onOpenDetails) && (
             <div className="mt-3 flex items-center gap-2">
               {onRefresh ? (
                 <button
@@ -109,6 +110,15 @@ export function SyncPill({ syncStatus, notice, onDismissNotice, onRefresh }: Syn
                   className="inline-flex items-center rounded-lg border border-radius-border-subtle px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-radius-text-muted transition-colors hover:border-radius-border hover:text-radius-text-primary"
                 >
                   Dismiss
+                </button>
+              ) : null}
+              {onOpenDetails ? (
+                <button
+                  type="button"
+                  onClick={onOpenDetails}
+                  className="inline-flex items-center rounded-lg border border-radius-border-subtle px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-radius-text-muted transition-colors hover:border-radius-border hover:text-radius-text-primary"
+                >
+                  Details
                 </button>
               ) : null}
             </div>

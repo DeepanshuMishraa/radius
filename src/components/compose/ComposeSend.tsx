@@ -1,19 +1,42 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowDown01Icon, MailSend01Icon, PencilEdit01Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowDown01Icon,
+  Mail01Icon,
+  MailSend01Icon,
+  PencilEdit01Icon,
+} from "@hugeicons/core-free-icons";
 
-export type SendActionType = "send" | "draft";
+export type SendAction =
+  | { kind: "send" }
+  | { kind: "draft" }
+  | { kind: "schedule"; sendAt: number; label: string };
 
 interface ComposeSendProps {
   canSubmit: boolean;
-  pendingAction: SendActionType | null;
-  onAction: (action: SendActionType) => void;
+  pendingAction: SendAction["kind"] | null;
+  onAction: (action: SendAction) => void;
+}
+
+function nextTomorrowMorning() {
+  const value = new Date();
+  value.setDate(value.getDate() + 1);
+  value.setHours(8, 0, 0, 0);
+  return value.getTime();
+}
+
+function nextMondayMorning() {
+  const value = new Date();
+  const day = value.getDay();
+  const daysUntilMonday = ((8 - day) % 7) || 7;
+  value.setDate(value.getDate() + daysUntilMonday);
+  value.setHours(9, 0, 0, 0);
+  return value.getTime();
 }
 
 export function ComposeSend({ canSubmit, pendingAction, onAction }: ComposeSendProps) {
   const [open, setOpen] = useState(false);
-  const [defaultAction, setDefaultAction] = useState<SendActionType>("send");
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,29 +51,29 @@ export function ComposeSend({ canSubmit, pendingAction, onAction }: ComposeSendP
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
-  const handleSelectDefault = (action: SendActionType) => {
-    setDefaultAction(action);
-    setOpen(false);
-  };
-
   const isSending = pendingAction !== null;
   const disabled = !canSubmit || isSending;
+  const scheduleOptions: Array<Extract<SendAction, { kind: "schedule" }>> = [
+    { kind: "schedule", sendAt: Date.now() + 60 * 60 * 1000, label: "In 1 hour" },
+    { kind: "schedule", sendAt: nextTomorrowMorning(), label: "Tomorrow, 8:00 AM" },
+    { kind: "schedule", sendAt: nextMondayMorning(), label: "Monday, 9:00 AM" },
+  ];
 
   return (
     <div className="relative flex items-center" ref={containerRef}>
-      <motion.div 
+      <motion.div
         layout
-        whileHover={!disabled && !open ? { scale: 1.02 } : {}} 
-        whileTap={!disabled && !open ? { scale: 0.98 } : {}} 
+        whileHover={!disabled && !open ? { scale: 1.02 } : {}}
+        whileTap={!disabled && !open ? { scale: 0.98 } : {}}
         className="inline-flex overflow-hidden rounded-md bg-radius-text-primary text-radius-bg-primary shadow-sm"
       >
         <button
           type="button"
           disabled={disabled}
-          onClick={() => onAction(defaultAction)}
-          className="inline-flex h-8 items-center gap-2 px-3 text-[12px] font-medium hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 transition-opacity"
+          onClick={() => onAction({ kind: "send" })}
+          className="inline-flex h-8 items-center gap-2 px-3 text-[12px] font-medium transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isSending && pendingAction === defaultAction ? (
+          {isSending && pendingAction === "send" ? (
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
@@ -61,9 +84,10 @@ export function ComposeSend({ canSubmit, pendingAction, onAction }: ComposeSendP
               </svg>
             </motion.div>
           ) : (
-            <motion.div layout>
-              {defaultAction === "send" ? "Send" : "Save Draft"}
-            </motion.div>
+            <>
+              <HugeiconsIcon icon={MailSend01Icon} size={13} />
+              <span>Send</span>
+            </>
           )}
         </button>
         <div className="w-px bg-radius-bg-primary/20" />
@@ -71,7 +95,7 @@ export function ComposeSend({ canSubmit, pendingAction, onAction }: ComposeSendP
           type="button"
           disabled={disabled}
           onClick={() => setOpen(!open)}
-          className={`inline-flex h-8 items-center px-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors ${
+          className={`inline-flex h-8 items-center px-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
             open ? "bg-radius-bg-primary/20" : "hover:bg-radius-bg-primary/10"
           }`}
           aria-label="More send options"
@@ -90,20 +114,35 @@ export function ComposeSend({ canSubmit, pendingAction, onAction }: ComposeSendP
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 5 }}
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
-            className="absolute bottom-[calc(100%+8px)] right-0 z-50 min-w-[160px] overflow-hidden rounded-xl border border-radius-border-subtle bg-radius-bg-primary p-1 shadow-xl"
+            className="absolute bottom-[calc(100%+8px)] right-0 z-50 min-w-[210px] overflow-hidden rounded-xl border border-radius-border-subtle bg-radius-bg-primary p-1 shadow-xl"
           >
             <div className="flex flex-col">
-              <SendOption 
-                icon={<HugeiconsIcon icon={MailSend01Icon} size={14} />} 
-                label="Send now" 
-                selected={defaultAction === "send"} 
-                onClick={() => handleSelectDefault("send")} 
+              <SendOption
+                icon={<HugeiconsIcon icon={MailSend01Icon} size={14} />}
+                label="Send now"
+                onClick={() => {
+                  setOpen(false);
+                  onAction({ kind: "send" });
+                }}
               />
-              <SendOption 
-                icon={<HugeiconsIcon icon={PencilEdit01Icon} size={14} />} 
-                label="Save as draft" 
-                selected={defaultAction === "draft"} 
-                onClick={() => handleSelectDefault("draft")} 
+              {scheduleOptions.map((option) => (
+                <SendOption
+                  key={option.label}
+                  icon={<HugeiconsIcon icon={Mail01Icon} size={14} />}
+                  label={`Schedule: ${option.label}`}
+                  onClick={() => {
+                    setOpen(false);
+                    onAction(option);
+                  }}
+                />
+              ))}
+              <SendOption
+                icon={<HugeiconsIcon icon={PencilEdit01Icon} size={14} />}
+                label="Save as draft"
+                onClick={() => {
+                  setOpen(false);
+                  onAction({ kind: "draft" });
+                }}
               />
             </div>
           </motion.div>
@@ -113,20 +152,17 @@ export function ComposeSend({ canSubmit, pendingAction, onAction }: ComposeSendP
   );
 }
 
-function SendOption({ icon, label, selected, onClick }: { icon: React.ReactNode; label: string; selected: boolean; onClick: () => void }) {
+function SendOption({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
     <motion.button
       type="button"
       onClick={onClick}
       whileHover={{ backgroundColor: "var(--radius-bg-secondary)" }}
       whileTap={{ scale: 0.98 }}
-      className="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] font-medium text-radius-text-secondary transition-colors hover:text-radius-text-primary"
+      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[12px] font-medium text-radius-text-secondary transition-colors hover:text-radius-text-primary"
     >
-      <div className="flex items-center gap-2.5">
-        <span className="text-radius-text-muted">{icon}</span>
-        <span className={selected ? "text-radius-text-primary" : ""}>{label}</span>
-      </div>
-      {selected && <div className="h-1.5 w-1.5 rounded-full bg-radius-text-primary" />}
+      <span className="text-radius-text-muted">{icon}</span>
+      <span>{label}</span>
     </motion.button>
   );
 }

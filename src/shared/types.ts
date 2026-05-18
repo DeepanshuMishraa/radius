@@ -81,6 +81,7 @@ export interface ComposeStatusMessage {
     | "send_failed"
     | "send_undone";
   undoDeadlineAt?: number;
+  scheduledForAt?: number;
   error?: string;
 }
 
@@ -105,6 +106,7 @@ export interface Message {
   attachments: Attachment[];
   category: EmailCategory;
   isRead: boolean;
+  isImportant?: boolean;
   isInbox?: boolean;
   isSent?: boolean;
   isDraft?: boolean;
@@ -132,6 +134,14 @@ export interface SyncStatus {
   syncMode?: SyncMode;
   fullSyncPending?: boolean;
   error?: string;
+}
+
+export interface SyncHistoryEntry {
+  id: string;
+  level: "info" | "success" | "warning" | "error";
+  title: string;
+  detail?: string;
+  createdAt: number;
 }
 
 // RPC schema for typed communication between main and renderer
@@ -175,6 +185,14 @@ export type RadiusRPC = {
         params: { id: string };
         response: Message | null;
       };
+      getComposeSession: {
+        params: { sessionId: string };
+        response: {
+          success: boolean;
+          session?: ComposeSession;
+          error?: string;
+        };
+      };
       getComposeSuggestions: {
         params: { query?: string; limit?: number };
         response: { contacts: ComposeContactSuggestion[] };
@@ -182,6 +200,10 @@ export type RadiusRPC = {
       getSyncStatus: {
         params: {};
         response: SyncStatus;
+      };
+      getSyncHistory: {
+        params: { limit?: number };
+        response: { events: SyncHistoryEntry[] };
       };
       openExternalUrl: {
         params: { url: string };
@@ -246,6 +268,7 @@ export type RadiusRPC = {
           bcc?: string[];
           subject: string;
           bodyText: string;
+          bodyHtml?: string;
           attachments?: ComposeAttachmentInput[];
         };
         response: {
@@ -271,12 +294,14 @@ export type RadiusRPC = {
       queueSend: {
         params: {
           sessionId: string;
+          sendAt?: number;
         };
         response: {
           success: boolean;
           sessionId?: string;
           sendId?: string;
           undoDeadlineAt?: number;
+          scheduledForAt?: number;
           error?: string;
           code?: "reauth_required" | "scope_insufficient";
         };
@@ -384,6 +409,15 @@ export type RadiusRPC = {
       resyncAccount: {
         params: {};
         response: { success: boolean; error?: string };
+      };
+      toggleMessageImportant: {
+        params: { id: string; important: boolean };
+        response: {
+          success: boolean;
+          error?: string;
+          code?: "reauth_required" | "remote_sync_failed";
+          localStateApplied?: boolean;
+        };
       };
       downloadAttachment: {
         params: { messageId: string; attachmentId: string };

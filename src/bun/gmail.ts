@@ -409,6 +409,15 @@ function buildTextPart(bodyText: string): string {
   ].join("\r\n");
 }
 
+function buildHtmlPart(bodyHtml: string): string {
+  return [
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    bodyHtml,
+  ].join("\r\n");
+}
+
 export interface GmailOutgoingAttachment {
   filename: string;
   mimeType: string;
@@ -422,6 +431,7 @@ export function buildRawEmail(payload: {
   bcc?: string[];
   subject: string;
   bodyText: string;
+  bodyHtml?: string;
   threadId?: string;
   inReplyTo?: string;
   references?: string[];
@@ -449,11 +459,16 @@ export function buildRawEmail(payload: {
   }
 
   const alternativeBoundary = `radius-alt-${crypto.randomUUID()}`;
-  const textPart = [
+  const alternativeParts = [
     `--${alternativeBoundary}`,
     buildTextPart(payload.bodyText),
-    `--${alternativeBoundary}--`,
-  ].join("\r\n");
+  ];
+  if (payload.bodyHtml?.trim()) {
+    alternativeParts.push(`--${alternativeBoundary}`);
+    alternativeParts.push(buildHtmlPart(payload.bodyHtml));
+  }
+  alternativeParts.push(`--${alternativeBoundary}--`);
+  const textPart = alternativeParts.join("\r\n");
 
   let mime: string;
   if (attachments.length === 0) {
@@ -501,6 +516,7 @@ export async function createDraft(
     bcc?: string[];
     subject: string;
     bodyText: string;
+    bodyHtml?: string;
     threadId?: string;
     inReplyTo?: string;
     references?: string[];
@@ -531,6 +547,7 @@ export async function updateDraft(
     bcc?: string[];
     subject: string;
     bodyText: string;
+    bodyHtml?: string;
     threadId?: string;
     inReplyTo?: string;
     references?: string[];
@@ -561,6 +578,7 @@ export async function sendMessage(
     bcc?: string[];
     subject: string;
     bodyText: string;
+    bodyHtml?: string;
     threadId?: string;
     inReplyTo?: string;
     references?: string[];

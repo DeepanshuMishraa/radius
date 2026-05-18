@@ -196,6 +196,17 @@ export async function createSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_pending_sends_status_deadline
       ON pending_sends(status, undo_deadline_at);
 
+    CREATE TABLE IF NOT EXISTS sync_events (
+      id TEXT PRIMARY KEY,
+      level TEXT NOT NULL DEFAULT 'info',
+      title TEXT NOT NULL,
+      detail TEXT,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_sync_events_created_at
+      ON sync_events(created_at DESC);
+
     CREATE TABLE IF NOT EXISTS pending_message_deletes (
       id TEXT PRIMARY KEY,
       message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
@@ -257,6 +268,9 @@ export async function createSchema(): Promise<void> {
   }
   if (!existingMessageColumns.has("is_trash")) {
     db.exec("ALTER TABLE messages ADD COLUMN is_trash INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!existingMessageColumns.has("is_important")) {
+    db.exec("ALTER TABLE messages ADD COLUMN is_important INTEGER NOT NULL DEFAULT 0");
   }
   const composeSessionColumns = db.query(
     `SELECT name FROM pragma_table_info('compose_sessions')`
@@ -386,6 +400,7 @@ export async function insertMessage(message: {
   attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>;
   category: string;
   isRead: boolean;
+  isImportant?: boolean;
   isInbox: boolean;
   isSent: boolean;
   isDraft: boolean;
@@ -394,8 +409,8 @@ export async function insertMessage(message: {
   const db = await getDb();
   db.run(
     `INSERT OR REPLACE INTO messages
-     (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read, is_inbox, is_sent, is_draft, is_trash)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read, is_important, is_inbox, is_sent, is_draft, is_trash)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       message.id,
       message.threadId,
@@ -410,6 +425,7 @@ export async function insertMessage(message: {
       message.attachments.length > 0 ? JSON.stringify(message.attachments) : null,
       message.category,
       message.isRead ? 1 : 0,
+      message.isImportant ? 1 : 0,
       message.isInbox ? 1 : 0,
       message.isSent ? 1 : 0,
       message.isDraft ? 1 : 0,
@@ -434,6 +450,7 @@ export async function insertMessages(
   attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>;
   category: string;
   isRead: boolean;
+  isImportant?: boolean;
   isInbox: boolean;
   isSent: boolean;
   isDraft: boolean;
@@ -446,8 +463,8 @@ export async function insertMessages(
     for (const message of messages) {
       db.run(
         `INSERT OR REPLACE INTO messages
-         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read, is_inbox, is_sent, is_draft, is_trash)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read, is_important, is_inbox, is_sent, is_draft, is_trash)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           message.id,
           message.threadId,
@@ -462,6 +479,7 @@ export async function insertMessages(
           message.attachments.length > 0 ? JSON.stringify(message.attachments) : null,
           message.category,
           message.isRead ? 1 : 0,
+          message.isImportant ? 1 : 0,
           message.isInbox ? 1 : 0,
           message.isSent ? 1 : 0,
           message.isDraft ? 1 : 0,
@@ -491,7 +509,8 @@ export async function getInboxMessages(
     .query(
       `SELECT id, thread_id as threadId, history_id as historyId,
               internal_date as internalDate, from_addr as \`from\`, to_addr as \`to\`,
-              subject, snippet, category, CAST(COALESCE(is_read, 1) AS INTEGER) as isRead
+              subject, snippet, category, CAST(COALESCE(is_read, 1) AS INTEGER) as isRead,
+              CAST(COALESCE(is_important, 0) AS INTEGER) as isImportant
        FROM messages
        WHERE is_inbox = 1
        ORDER BY internal_date DESC
@@ -512,6 +531,7 @@ export async function getMessageById(
               internal_date as internalDate, from_addr as \`from\`, to_addr as \`to\`,
               subject, snippet, body_text as bodyText, body_html as bodyHtml,
               attachments, category,
+              CAST(COALESCE(is_important, 0) AS INTEGER) as isImportant,
               CAST(COALESCE(is_inbox, 0) AS INTEGER) as isInbox,
               CAST(COALESCE(is_sent, 0) AS INTEGER) as isSent,
               CAST(COALESCE(is_draft, 0) AS INTEGER) as isDraft,
@@ -534,6 +554,7 @@ export async function getThreadMessages(
               internal_date as internalDate, from_addr as \`from\`, to_addr as \`to\`,
               subject, snippet, body_text as bodyText, body_html as bodyHtml,
               attachments, category,
+              CAST(COALESCE(is_important, 0) AS INTEGER) as isImportant,
               CAST(COALESCE(is_inbox, 0) AS INTEGER) as isInbox,
               CAST(COALESCE(is_sent, 0) AS INTEGER) as isSent,
               CAST(COALESCE(is_draft, 0) AS INTEGER) as isDraft,
@@ -582,7 +603,8 @@ export async function searchInboxMessages(
               m.subject,
               m.snippet,
               m.category,
-              CAST(COALESCE(m.is_read, 1) AS INTEGER) as isRead
+              CAST(COALESCE(m.is_read, 1) AS INTEGER) as isRead,
+              CAST(COALESCE(m.is_important, 0) AS INTEGER) as isImportant
        FROM messages_fts f
        JOIN messages m ON m.id = f.id
        WHERE messages_fts MATCH ?
@@ -767,6 +789,7 @@ export async function upsertMessageMetadata(
     snippet: string;
     category: string;
     isRead: boolean;
+    isImportant?: boolean;
     isInbox: boolean;
     isSent: boolean;
     isDraft: boolean;
@@ -781,8 +804,8 @@ export async function upsertMessageMetadata(
     for (const message of messages) {
       db.run(
         `INSERT INTO messages
-         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, category, is_read, is_inbox, is_sent, is_draft, is_trash)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, category, is_read, is_important, is_inbox, is_sent, is_draft, is_trash)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            thread_id = excluded.thread_id,
            history_id = excluded.history_id,
@@ -793,6 +816,7 @@ export async function upsertMessageMetadata(
            snippet = excluded.snippet,
            category = excluded.category,
            is_read = excluded.is_read,
+           is_important = excluded.is_important,
            is_inbox = excluded.is_inbox,
            is_sent = excluded.is_sent,
            is_draft = excluded.is_draft,
@@ -808,6 +832,7 @@ export async function upsertMessageMetadata(
           message.snippet,
           message.category,
           message.isRead ? 1 : 0,
+          message.isImportant ? 1 : 0,
           message.isInbox ? 1 : 0,
           message.isSent ? 1 : 0,
           message.isDraft ? 1 : 0,
@@ -829,6 +854,14 @@ export async function setMessageReadState(
 ): Promise<void> {
   const db = await getDb();
   db.run(`UPDATE messages SET is_read = ? WHERE id = ?`, [isRead ? 1 : 0, id]);
+}
+
+export async function setMessageImportantState(
+  id: string,
+  isImportant: boolean
+): Promise<void> {
+  const db = await getDb();
+  db.run(`UPDATE messages SET is_important = ?, category = CASE WHEN ? THEN 'important' ELSE CASE WHEN category = 'important' THEN 'regular' ELSE category END END WHERE id = ?`, [isImportant ? 1 : 0, isImportant ? 1 : 0, id]);
 }
 
 export async function listMessageIds(
@@ -875,7 +908,8 @@ export async function getMailboxMessages(
     .query(
       `SELECT id, thread_id as threadId, history_id as historyId,
               internal_date as internalDate, from_addr as \`from\`, to_addr as \`to\`,
-              subject, snippet, category, CAST(COALESCE(is_read, 1) AS INTEGER) as isRead
+              subject, snippet, category, CAST(COALESCE(is_read, 1) AS INTEGER) as isRead,
+              CAST(COALESCE(is_important, 0) AS INTEGER) as isImportant
        FROM messages
        WHERE ${column} = 1
        ORDER BY internal_date DESC
@@ -963,6 +997,55 @@ export async function resetSyncState(): Promise<void> {
     progress_total = NULL,
     error = NULL
   WHERE id = 1`);
+}
+
+export async function addSyncEvent(input: {
+  id?: string;
+  level: "info" | "success" | "warning" | "error";
+  title: string;
+  detail?: string | null;
+  createdAt?: number;
+}): Promise<void> {
+  const db = await getDb();
+  const id = input.id ?? crypto.randomUUID();
+  db.run(
+    `INSERT INTO sync_events (id, level, title, detail, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [
+      id,
+      input.level,
+      input.title.trim().slice(0, 120),
+      input.detail?.trim().slice(0, 600) ?? null,
+      input.createdAt ?? Date.now(),
+    ],
+  );
+
+  db.run(
+    `DELETE FROM sync_events
+     WHERE id NOT IN (
+       SELECT id FROM sync_events ORDER BY created_at DESC LIMIT 50
+     )`,
+  );
+}
+
+export async function getSyncEvents(
+  limit: number = 12,
+): Promise<Array<{ id: string; level: "info" | "success" | "warning" | "error"; title: string; detail: string | null; createdAt: number }>> {
+  const db = await getDb();
+  return db
+    .query(
+      `SELECT id, level, title, detail, created_at as createdAt
+       FROM sync_events
+       ORDER BY created_at DESC
+       LIMIT ?`,
+    )
+    .all(Math.min(Math.max(limit, 1), 50)) as Array<{
+      id: string;
+      level: "info" | "success" | "warning" | "error";
+      title: string;
+      detail: string | null;
+      createdAt: number;
+    }>;
 }
 
 export async function getComposeContactRows(): Promise<

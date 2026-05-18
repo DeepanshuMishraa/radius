@@ -16,6 +16,7 @@ interface ComposeRecipientsProps {
   placeholder?: string;
   autoFocus?: boolean;
   showFrom?: boolean;
+  onSuggestionError?: (message: string) => void;
 }
 
 export function ComposeRecipients({
@@ -28,10 +29,12 @@ export function ComposeRecipients({
   placeholder = "Select person",
   autoFocus = true,
   showFrom = true,
+  onSuggestionError,
 }: ComposeRecipientsProps) {
   const [recipientQuery, setRecipientQuery] = useState("");
   const [isRecipientFocused, setIsRecipientFocused] = useState(false);
   const [remoteSuggestions, setRemoteSuggestions] = useState<ContactOption[]>([]);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const recipientInputRef = useRef<HTMLInputElement>(null);
   const requestIdRef = useRef(0);
 
@@ -55,6 +58,7 @@ export function ComposeRecipients({
         })
         .then((result) => {
           if (requestIdRef.current !== currentRequestId) return;
+          setSuggestionError(null);
           setRemoteSuggestions(
             result.contacts.map((contact) => ({
               name: contact.name,
@@ -66,11 +70,15 @@ export function ComposeRecipients({
         })
         .catch((error) => {
           console.error("Failed to fetch compose suggestions:", error);
+          const message = "Suggestions are unavailable right now. You can still type an address manually.";
+          setSuggestionError(message);
+          setRemoteSuggestions([]);
+          onSuggestionError?.(message);
         });
     }, query ? 120 : 0);
 
     return () => window.clearTimeout(timer);
-  }, [isRecipientFocused, locked, recipientQuery]);
+  }, [isRecipientFocused, locked, onSuggestionError, recipientQuery]);
 
   const filteredContacts = useMemo(() => {
     const query = recipientQuery.trim().toLowerCase();
@@ -266,6 +274,11 @@ export function ComposeRecipients({
           </motion.div>
         )}
       </AnimatePresence>
+      {!locked && suggestionError ? (
+        <p className="mt-2 text-[11px] text-radius-text-muted">
+          {suggestionError}
+        </p>
+      ) : null}
     </motion.div>
   );
 }

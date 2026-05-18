@@ -1,25 +1,64 @@
 import { useState, useCallback, useEffect, useRef, useId } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon, Mail01Icon } from "@hugeicons/core-free-icons";
+import {
+  Cancel01Icon,
+  Mail01Icon,
+  SentIcon,
+  TextBoldIcon,
+  TextItalicIcon,
+  SignatureIcon,
+  ArrowDown01Icon,
+} from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { radiusRpc } from "@/mainview/lib/rpc";
 import { type ContactOption, type Attachment } from "./types";
 import { ComposeRecipients } from "./ComposeRecipients";
 import { ComposeAttachments } from "./ComposeAttachments";
 import { ComposeAttachmentList } from "./ComposeAttachmentList";
-import { ComposeSend, type SendActionType } from "./ComposeSend";
+import { ComposeSend, type SendAction } from "./ComposeSend";
 
 export type ComposeIntent =
   | { kind: "compose" }
-  | { kind: "reply" | "forward"; messageId: string };
+  | { kind: "reply" | "forward"; messageId: string }
+  | { kind: "session"; sessionId: string };
 
 interface ComposeEmailDialogProps {
   open: boolean;
   onClose: () => void;
   fromAccount: { email: string; name: string } | null;
+  accounts: Array<{ email: string; name: string }>;
   contacts: ContactOption[];
   intent: ComposeIntent;
+}
+
+const SIGNATURE_STORAGE_KEY = "radius.compose.signatures";
+
+function readSignatureMap() {
+  if (typeof window === "undefined") return {} as Record<string, string>;
+  try {
+    const raw = window.localStorage.getItem(SIGNATURE_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSignatureMap(signatures: Record<string, string>) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(SIGNATURE_STORAGE_KEY, JSON.stringify(signatures));
+}
+
+function formatSignature(signature: string) {
+  const trimmed = signature.trim();
+  return trimmed ? `\n\n-- \n${trimmed}` : "";
+}
+
+function injectSignature(body: string, signature: string) {
+  const block = formatSignature(signature);
+  if (!block) return body;
+  if (body.includes(block)) return body;
+  return body ? `${body}${block}` : block.trimStart();
 }
 
 function emptyState() {
@@ -37,20 +76,26 @@ export function ComposeEmailDialog({
   open,
   onClose,
   fromAccount,
+  accounts,
   contacts,
   intent,
 }: ComposeEmailDialogProps) {
   const [{ selectedRecipients, ccRecipients, bccRecipients, subject, body, attachments }, setComposeState] = useState(emptyState);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<SendActionType | null>(null);
+  const [pendingAction, setPendingAction] = useState<SendAction["kind"] | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
   const [hydrating, setHydrating] = useState(false);
   const [sessionMode, setSessionMode] = useState<"compose" | "reply" | "forward">("compose");
   const [fixedRecipients, setFixedRecipients] = useState(false);
   const [showCc, setShowCc] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
+  const [signatureOpen, setSignatureOpen] = useState(false);
+  const [selectedFromEmail, setSelectedFromEmail] = useState<string | null>(fromAccount?.email ?? null);
+  const [signatureMap, setSignatureMap] = useState<Record<string, string>>(() => readSignatureMap());
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   const draftSaveTimerRef = useRef<number | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
   const subjectId = useId();
   const bodyId = useId();
   const reduceMotion = useReducedMotion();
@@ -60,6 +105,10 @@ export function ComposeEmailDialog({
       : intent.kind === "forward"
         ? "Forward"
         : "Compose email";
+  const selectedFromAccount =
+    accounts.find((account) => account.email === selectedFromEmail) ?? fromAccount;
+  const activeSignature =
+    (selectedFromAccount?.email ? signatureMap[selectedFromAccount.email] : "") ?? "";
 
   const setSelectedRecipients = useCallback(
     (value: React.SetStateAction<ContactOption[]>) => {
@@ -106,11 +155,11 @@ export function ComposeEmailDialog({
   );
 
   const persistComposer = useCallback(async () => {
-    if (!sessionId || !fromAccount?.email) return;
+    if (!sessionId || !selectedFromAccount?.email) return;
 
     await radiusRpc.request.updateComposeSession({
       sessionId,
-      from: fromAccount.email,
+      from: selectedFromAccount.email,
       to: selectedRecipients.map((item) => item.email),
       cc: ccRecipients.map((item) => item.email),
       bcc: bccRecipients.map((item) => item.email),
@@ -118,7 +167,7 @@ export function ComposeEmailDialog({
       bodyText: body,
       attachments: serializeAttachments(),
     });
-  }, [bccRecipients, body, ccRecipients, fromAccount?.email, selectedRecipients, serializeAttachments, sessionId, subject]);
+  }, [bccRecipients, body, ccRecipients, selectedFromAccount?.email, selectedRecipients, serializeAttachments, sessionId, subject]);
 
   useEffect(() => {
     if (!open) {
@@ -130,6 +179,8 @@ export function ComposeEmailDialog({
       setFixedRecipients(false);
       setShowCc(false);
       setShowBcc(false);
+      setSignatureOpen(false);
+      setSelectedFromEmail(fromAccount?.email ?? null);
       setComposeState((current) => {
         for (const att of current.attachments) {
           if (att.url) URL.revokeObjectURL(att.url);
@@ -144,8 +195,8 @@ export function ComposeEmailDialog({
     setSessionId(null);
     setPendingAction(null);
     setDraftSavedAt(null);
-    setSessionMode(intent.kind === "compose" ? "compose" : intent.kind);
-    setFixedRecipients(intent.kind !== "compose");
+    setSessionMode(intent.kind === "reply" || intent.kind === "forward" ? intent.kind : "compose");
+    setFixedRecipients(intent.kind === "reply" || intent.kind === "forward");
     setComposeState((current) => {
       for (const att of current.attachments) {
         if (att.url) URL.revokeObjectURL(att.url);
@@ -156,6 +207,8 @@ export function ComposeEmailDialog({
     const request =
       intent.kind === "compose"
         ? radiusRpc.request.createComposeSession({ from: fromAccount.email })
+        : intent.kind === "session"
+          ? radiusRpc.request.getComposeSession({ sessionId: intent.sessionId })
         : radiusRpc.request.createReplyForwardSession({
             from: fromAccount.email,
             messageId: intent.messageId,
@@ -174,8 +227,10 @@ export function ComposeEmailDialog({
         setDraftSavedAt(result.session.lastSavedAt ?? null);
         setSessionMode(result.session.mode);
         setFixedRecipients(result.session.fixedRecipients);
+        setSelectedFromEmail(result.session.from);
         setShowCc(result.session.cc.length > 0);
         setShowBcc(result.session.bcc.length > 0);
+        const signature = signatureMap[result.session.from] ?? "";
         setComposeState({
           selectedRecipients: result.session.to.map((email) => ({
             email,
@@ -196,7 +251,10 @@ export function ComposeEmailDialog({
             source: "manual",
           })),
           subject: result.session.subject,
-          body: result.session.bodyText,
+          body:
+            !result.session.bodyText.trim() && signature
+              ? injectSignature(result.session.bodyText, signature)
+              : result.session.bodyText,
           attachments: result.session.attachments.map((attachment) => ({
             id: attachment.id,
             type: attachment.type,
@@ -221,10 +279,10 @@ export function ComposeEmailDialog({
     return () => {
       cancelled = true;
     };
-  }, [fromAccount?.email, intent, open]);
+  }, [fromAccount?.email, intent, open, signatureMap]);
 
   useEffect(() => {
-    if (!open || hydrating || !sessionId || !fromAccount?.email) return;
+    if (!open || hydrating || !sessionId || !selectedFromAccount?.email) return;
     if (draftSaveTimerRef.current) {
       window.clearTimeout(draftSaveTimerRef.current);
     }
@@ -243,7 +301,7 @@ export function ComposeEmailDialog({
     bccRecipients,
     body,
     ccRecipients,
-    fromAccount?.email,
+    selectedFromAccount?.email,
     hydrating,
     open,
     persistComposer,
@@ -301,18 +359,18 @@ export function ComposeEmailDialog({
     onClose();
   }, [attachments.length, bccRecipients.length, body, ccRecipients.length, onClose, persistComposer, selectedRecipients.length, sessionId, subject]);
 
-  const showUndoToast = useCallback((sendId: string, undoDeadlineAt: number) => {
-    const duration = Math.max(0, undoDeadlineAt - Date.now());
+  const showUndoToast = useCallback((sendId: string, executeAt: number, scheduledLabel?: string) => {
+    const duration = Math.max(0, executeAt - Date.now());
     toast.custom(
       (t) => (
         <div className="toast pointer-events-auto w-[320px] rounded-[14px] border border-radius-border-subtle bg-radius-bg-primary/95 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl overflow-hidden">
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <div>
               <div className="text-[12px] font-semibold text-radius-text-primary">
-                Sending in 10 seconds
+                {scheduledLabel ? `Scheduled for ${scheduledLabel}` : "Sending in 10 seconds"}
               </div>
               <div className="text-[11px] text-radius-text-muted">
-                Undo if you want to keep editing.
+                {scheduledLabel ? "Cancel if you want to keep editing." : "Undo if you want to keep editing."}
               </div>
             </div>
             <button
@@ -325,12 +383,14 @@ export function ComposeEmailDialog({
                   return;
                 }
                 toast.dismiss(t);
-                toast.success("Message retrieved", {
-                  description: "Your email has been moved back to drafts.",
+                toast.success(scheduledLabel ? "Schedule cancelled" : "Message retrieved", {
+                  description: scheduledLabel
+                    ? "Your draft is open again so you can keep editing."
+                    : "Your email has been moved back to drafts.",
                 });
               }}
             >
-              Undo
+              {scheduledLabel ? "Cancel" : "Undo"}
             </button>
           </div>
           <div
@@ -344,8 +404,8 @@ export function ComposeEmailDialog({
   }, []);
 
   const handleAction = useCallback(
-    async (action: SendActionType) => {
-      if (!fromAccount?.email) {
+    async (action: SendAction) => {
+      if (!selectedFromAccount?.email) {
         toast.error("Connect a Gmail account before composing");
         return;
       }
@@ -354,10 +414,10 @@ export function ComposeEmailDialog({
         return;
       }
 
-      setPendingAction(action);
+      setPendingAction(action.kind);
       try {
         await persistComposer();
-        if (action === "draft") {
+        if (action.kind === "draft") {
           const result = await radiusRpc.request.saveDraft({ sessionId });
           if (!result.success) {
             toast.error(result.error ?? "Something went wrong");
@@ -369,21 +429,28 @@ export function ComposeEmailDialog({
           return;
         }
 
-        const result = await radiusRpc.request.queueSend({ sessionId });
+        const result = await radiusRpc.request.queueSend({
+          sessionId,
+          sendAt: action.kind === "schedule" ? action.sendAt : undefined,
+        });
         if (!result.success || !result.sendId || !result.undoDeadlineAt) {
           toast.error(result.error ?? "Send failed");
           return;
         }
-        showUndoToast(result.sendId, result.undoDeadlineAt);
+        showUndoToast(
+          result.sendId,
+          result.undoDeadlineAt,
+          action.kind === "schedule" ? action.label : undefined,
+        );
         onClose();
       } catch (error) {
-        console.error(`Compose ${action} failed:`, error);
-        toast.error(action === "draft" ? "Draft save failed" : "Send failed");
+        console.error(`Compose ${action.kind} failed:`, error);
+        toast.error(action.kind === "draft" ? "Draft save failed" : "Send failed");
       } finally {
         setPendingAction(null);
       }
     },
-    [fromAccount?.email, onClose, persistComposer, sessionId, showUndoToast],
+    [selectedFromAccount?.email, onClose, persistComposer, sessionId, showUndoToast],
   );
 
   const handleAddAttachment = useCallback((attachment: Attachment) => {
@@ -404,6 +471,90 @@ export function ComposeEmailDialog({
     });
   }, []);
 
+  const handleFormatting = useCallback(
+    (mode: "bold" | "italic" | "bullets" | "numbers") => {
+      const textarea = bodyTextareaRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selected = body.slice(start, end);
+      let nextBody = body;
+      let nextStart = start;
+      let nextEnd = end;
+
+      if (mode === "bold" || mode === "italic") {
+        const marker = mode === "bold" ? "**" : "*";
+        const replacement = `${marker}${selected || "text"}${marker}`;
+        nextBody = `${body.slice(0, start)}${replacement}${body.slice(end)}`;
+        nextStart = start + marker.length;
+        nextEnd = nextStart + (selected || "text").length;
+      } else {
+        const lines = (selected || "List item").split("\n");
+        const replacement = lines
+          .map((line, index) =>
+            mode === "bullets" ? `- ${line}` : `${index + 1}. ${line}`
+          )
+          .join("\n");
+        nextBody = `${body.slice(0, start)}${replacement}${body.slice(end)}`;
+        nextStart = start;
+        nextEnd = start + replacement.length;
+      }
+
+      setComposeState((current) => ({ ...current, body: nextBody }));
+      window.requestAnimationFrame(() => {
+        textarea.focus();
+        textarea.setSelectionRange(nextStart, nextEnd);
+      });
+    },
+    [body]
+  );
+
+  const handleSignatureChange = useCallback((value: string) => {
+    if (!selectedFromAccount?.email) return;
+    setSignatureMap((current) => {
+      const next = { ...current, [selectedFromAccount.email]: value };
+      writeSignatureMap(next);
+      return next;
+    });
+  }, [selectedFromAccount?.email]);
+
+  const handleDropFiles = useCallback(async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDraggingOver(false);
+    const files = Array.from(event.dataTransfer.files ?? []);
+    if (files.length === 0) return;
+
+    try {
+      const nextAttachments = await Promise.all(
+        files.map(async (file) => {
+          const buffer = await file.arrayBuffer();
+          let binary = "";
+          const bytes = new Uint8Array(buffer);
+          const chunkSize = 0x8000;
+          for (let i = 0; i < bytes.length; i += chunkSize) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+          }
+          const isImage = file.type.startsWith("image/");
+          return {
+            id: crypto.randomUUID(),
+            type: isImage ? "image" : "file",
+            name: file.name,
+            size: file.size,
+            mimeType: file.type || (isImage ? "image/png" : "application/octet-stream"),
+            dataBase64: btoa(binary),
+            file,
+            url: isImage ? URL.createObjectURL(file) : undefined,
+          } satisfies Attachment;
+        })
+      );
+      nextAttachments.forEach((attachment) => handleAddAttachment(attachment));
+    } catch (error) {
+      console.error("Failed to drop attachment:", error);
+      toast.error("Attachment upload failed");
+    }
+  }, [handleAddAttachment]);
+
   const draftLabel =
     pendingAction === "draft"
       ? "Saving..."
@@ -413,7 +564,7 @@ export function ComposeEmailDialog({
           ? "Unsaved"
           : "Draft";
   const canSubmit =
-    Boolean(fromAccount?.email) &&
+    Boolean(selectedFromAccount?.email) &&
     (selectedRecipients.length > 0 || ccRecipients.length > 0 || bccRecipients.length > 0) &&
     (subject.trim().length > 0 || body.trim().length > 0 || attachments.length > 0);
   const title =
@@ -444,7 +595,30 @@ export function ComposeEmailDialog({
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
             transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 450, damping: 35 }}
             className="w-full max-w-[720px] rounded-xl border border-radius-border-subtle bg-radius-bg-primary shadow-2xl flex flex-col font-[family-name:var(--font-family-sans)] antialiased pointer-events-auto overflow-hidden max-h-[90vh]"
+            onDragEnter={(event) => {
+              event.preventDefault();
+              setIsDraggingOver(true);
+            }}
+            onDragOver={(event) => event.preventDefault()}
+            onDragLeave={(event) => {
+              if (event.currentTarget === event.target) {
+                setIsDraggingOver(false);
+              }
+            }}
+            onDrop={handleDropFiles}
           >
+            {isDraggingOver ? (
+              <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-radius-bg-primary/92 backdrop-blur-sm">
+                <div className="rounded-2xl border border-dashed border-radius-accent/40 px-5 py-4 text-center">
+                  <p className="text-[13px] font-medium text-radius-text-primary">
+                    Drop files to attach
+                  </p>
+                  <p className="mt-1 text-[11px] text-radius-text-muted">
+                    Images and documents will be added to this draft.
+                  </p>
+                </div>
+              </div>
+            ) : null}
             <motion.div layout className="flex items-center justify-between px-5 pt-4 pb-2 shrink-0">
               <div className="flex items-center gap-2">
                 <HugeiconsIcon icon={Mail01Icon} size={16} className="text-radius-text-primary" />
@@ -464,12 +638,38 @@ export function ComposeEmailDialog({
 
             <div className="flex-1 overflow-y-auto">
               <ComposeRecipients
-                fromAccount={fromAccount}
+                fromAccount={selectedFromAccount}
                 contacts={contacts}
                 selectedRecipients={selectedRecipients}
                 setSelectedRecipients={setSelectedRecipients}
                 locked={fixedRecipients}
+                onSuggestionError={(message) => {
+                  toast.error("Contact suggestions unavailable", {
+                    description: message,
+                  });
+                }}
               />
+              {accounts.length > 1 ? (
+                <div className="px-5 pb-2">
+                  <label className="mb-1 block text-[11px] text-radius-text-muted">
+                    Send from
+                  </label>
+                  <div className="relative w-fit">
+                    <select
+                      value={selectedFromEmail ?? ""}
+                      onChange={(event) => setSelectedFromEmail(event.target.value)}
+                      className="appearance-none rounded-full border border-radius-border-subtle bg-radius-bg-primary px-3 py-1.5 pr-8 text-[12px] text-radius-text-primary outline-none"
+                    >
+                      {accounts.map((account) => (
+                        <option key={account.email} value={account.email}>
+                          {account.name || account.email}
+                        </option>
+                      ))}
+                    </select>
+                    <HugeiconsIcon icon={ArrowDown01Icon} size={12} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-radius-text-muted" />
+                  </div>
+                </div>
+              ) : null}
               {!fixedRecipients ? (
                 <div className="px-5 pb-2 text-[11px]">
                   <button
@@ -499,6 +699,7 @@ export function ComposeEmailDialog({
                   placeholder="Add copy recipients"
                   autoFocus={false}
                   showFrom={false}
+                  onSuggestionError={() => {}}
                 />
               ) : null}
               {showBcc ? (
@@ -512,6 +713,7 @@ export function ComposeEmailDialog({
                   placeholder="Add hidden recipients"
                   autoFocus={false}
                   showFrom={false}
+                  onSuggestionError={() => {}}
                 />
               ) : null}
 
@@ -534,11 +736,48 @@ export function ComposeEmailDialog({
                 </motion.div>
 
                 <motion.div layout className="pt-1 pb-2">
+                  <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                    <button type="button" onClick={() => handleFormatting("bold")} className="inline-flex items-center gap-1 rounded-full border border-radius-border-subtle px-2.5 py-1 text-[11px] text-radius-text-muted transition-colors hover:text-radius-text-primary">
+                      <HugeiconsIcon icon={TextBoldIcon} size={12} />
+                      Bold
+                    </button>
+                    <button type="button" onClick={() => handleFormatting("italic")} className="inline-flex items-center gap-1 rounded-full border border-radius-border-subtle px-2.5 py-1 text-[11px] text-radius-text-muted transition-colors hover:text-radius-text-primary">
+                      <HugeiconsIcon icon={TextItalicIcon} size={12} />
+                      Italic
+                    </button>
+                    <button type="button" onClick={() => handleFormatting("bullets")} className="inline-flex items-center gap-1 rounded-full border border-radius-border-subtle px-2.5 py-1 text-[11px] text-radius-text-muted transition-colors hover:text-radius-text-primary">
+                      <span className="text-[12px] leading-none">•</span>
+                      List
+                    </button>
+                    <button type="button" onClick={() => handleFormatting("numbers")} className="inline-flex items-center gap-1 rounded-full border border-radius-border-subtle px-2.5 py-1 text-[11px] text-radius-text-muted transition-colors hover:text-radius-text-primary">
+                      <span className="text-[11px] leading-none">1.</span>
+                      Steps
+                    </button>
+                    <button type="button" onClick={() => setSignatureOpen((current) => !current)} className="inline-flex items-center gap-1 rounded-full border border-radius-border-subtle px-2.5 py-1 text-[11px] text-radius-text-muted transition-colors hover:text-radius-text-primary">
+                      <HugeiconsIcon icon={SignatureIcon} size={12} />
+                      Signature
+                    </button>
+                  </div>
+                  {signatureOpen && selectedFromAccount?.email ? (
+                    <div className="mb-3 rounded-2xl border border-radius-border-subtle bg-radius-bg-secondary/40 p-3">
+                      <label htmlFor={`${bodyId}-signature`} className="block text-[11px] text-radius-text-muted">
+                        Signature for {selectedFromAccount.email}
+                      </label>
+                      <textarea
+                        id={`${bodyId}-signature`}
+                        value={activeSignature}
+                        onChange={(event) => handleSignatureChange(event.target.value)}
+                        placeholder="Add a signature for this account"
+                        className="mt-2 min-h-[72px] w-full resize-none bg-transparent text-[12px] leading-relaxed text-radius-text-primary outline-none placeholder:text-radius-text-muted"
+                      />
+                    </div>
+                  ) : null}
                   <label htmlFor={bodyId} className="sr-only">
                     Message body
                   </label>
                   <textarea
                     id={bodyId}
+                    ref={bodyTextareaRef}
                     value={body}
                     onChange={(event) =>
                       setComposeState((current) => ({ ...current, body: event.target.value }))
@@ -546,6 +785,9 @@ export function ComposeEmailDialog({
                     placeholder="Write your message..."
                     className="min-h-[140px] w-full resize-none border-0 bg-transparent px-0 py-1 text-[13px] leading-relaxed text-radius-text-secondary outline-none placeholder:text-radius-text-muted focus:ring-0 focus-visible:ring-0"
                   />
+                  <p className="mt-2 text-[10px] text-radius-text-muted">
+                    Formatting is preserved when sent. Drag files anywhere into this window to attach them.
+                  </p>
                 </motion.div>
               </motion.div>
             </div>
@@ -555,6 +797,10 @@ export function ComposeEmailDialog({
             <motion.div layout className="flex items-center justify-between gap-3 px-5 py-3 border-t border-radius-border-subtle shrink-0">
               <div className="flex items-center gap-2">
                 <ComposeAttachments onAddAttachment={handleAddAttachment} />
+                <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-radius-text-muted">
+                  <HugeiconsIcon icon={SentIcon} size={10} />
+                  Ready
+                </span>
               </div>
 
               <div className="flex items-center gap-3">

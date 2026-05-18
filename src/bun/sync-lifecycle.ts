@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import type { SyncMode } from "../shared/types";
 import {
+  addSyncEvent,
   updateSyncState,
   getSyncState,
   switchAccount as switchDbAccount,
@@ -193,6 +194,11 @@ async function handleOAuthCallback(
 ): Promise<void> {
   if (!code || !codeVerifier) {
     console.error("❌ OAuth callback missing code or verifier");
+    await addSyncEvent({
+      level: "error",
+      title: "Gmail connection failed",
+      detail: "OAuth callback was missing the authorization code.",
+    });
     await updateSyncState({
       status: "error",
       phase: null,
@@ -221,6 +227,11 @@ async function handleOAuthCallback(
     setAccountEmail(email);
 
     if (!options.startSync) {
+      await addSyncEvent({
+        level: "success",
+        title: "Gmail reconnected",
+        detail: `${email} is connected again.`,
+      });
       await updateSyncState({
         error: null,
         lastSyncAt: Date.now(),
@@ -239,6 +250,14 @@ async function handleOAuthCallback(
     console.log(
       `✅ Authenticated as ${email} — opening inbox, streaming messages in background`,
     );
+    await addSyncEvent({
+      level: "info",
+      title: "Initial sync started",
+      detail:
+        syncMode === "all"
+          ? `Connecting ${email} and downloading your complete archive.`
+          : `Connecting ${email} and downloading recent mail first.`,
+    });
 
     runInitialAndBackgroundSync(syncMode)
       .then(() => {
@@ -251,6 +270,11 @@ async function handleOAuthCallback(
       .catch((err) => {
         const msg = err instanceof Error ? err.message : String(err);
         console.error("❌ Background sync failed:", msg);
+        void addSyncEvent({
+          level: "error",
+          title: "Initial sync failed",
+          detail: msg,
+        });
         updateSyncState({ status: "error", phase: null, error: msg });
       });
 
@@ -260,6 +284,11 @@ async function handleOAuthCallback(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("❌ OAuth callback error:", message);
+    await addSyncEvent({
+      level: "error",
+      title: "Gmail connection failed",
+      detail: message,
+    });
     await updateSyncState({ status: "error", phase: null, error: message });
   }
 }
@@ -392,6 +421,14 @@ export async function handleStartSync(params: { syncMode?: SyncMode }) {
   const { syncMode } = params;
   try {
     const resolvedSyncMode = syncMode ?? "recent";
+    await addSyncEvent({
+      level: "info",
+      title: "Sync requested",
+      detail:
+        resolvedSyncMode === "all"
+          ? "A complete archive sync was started manually."
+          : "A recent-mail sync was started manually.",
+    });
     runInitialAndBackgroundSync(resolvedSyncMode)
       .then(() => {
         if (resolvedSyncMode === "all") {
@@ -402,6 +439,11 @@ export async function handleStartSync(params: { syncMode?: SyncMode }) {
       })
       .catch((err) => {
         console.error("Sync failed:", err);
+        void addSyncEvent({
+          level: "error",
+          title: "Sync failed",
+          detail: err instanceof Error ? err.message : String(err),
+        });
       });
     return { success: true };
   } catch (err) {
@@ -580,6 +622,11 @@ export async function handleResyncAccount() {
       lastSyncAt: Date.now(),
       error: null,
     });
+    await addSyncEvent({
+      level: "warning",
+      title: "Mailbox resync started",
+      detail: "Radius cleared cached mail and is rebuilding the local inbox.",
+    });
 
     const resumedSyncMode = "recent";
     runInitialAndBackgroundSync(resumedSyncMode)
@@ -589,6 +636,11 @@ export async function handleResyncAccount() {
       .catch((err) => {
         const msg = err instanceof Error ? err.message : String(err);
         console.error("❌ Resync failed:", msg);
+        void addSyncEvent({
+          level: "error",
+          title: "Mailbox resync failed",
+          detail: msg,
+        });
         updateSyncState({ status: "error", phase: null, error: msg });
       });
 
@@ -600,6 +652,11 @@ export async function handleResyncAccount() {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("❌ Resync account failed:", message);
+    await addSyncEvent({
+      level: "error",
+      title: "Mailbox resync failed",
+      detail: message,
+    });
     return { success: false, error: message };
   }
 }

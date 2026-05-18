@@ -17,6 +17,7 @@ interface InboxListProps {
   loading?: boolean;
   emptyMessage?: string;
   headerAction?: ReactNode;
+  toolbar?: ReactNode;
 }
 
 function formatDateShort(timestamp: number): string {
@@ -208,6 +209,7 @@ export function InboxList({
   loading = false,
   emptyMessage,
   headerAction,
+  toolbar,
 }: InboxListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -265,6 +267,7 @@ export function InboxList({
           </span>
         </div>
       </div>
+      {toolbar ? toolbar : null}
 
       {messages.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">

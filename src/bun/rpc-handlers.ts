@@ -1,5 +1,5 @@
 import type { RadiusRPC } from "../shared/types";
-import { getInboxMessages, searchInboxMessages, getMessageById, updateMessageBodies, getSyncState, setMessageReadState, getComposeContactRows, getComposeSessionRecipientRows, searchComposeContacts, upsertComposeContacts, getMailboxMessages as getStoredMailboxMessages } from "./db";
+import { getInboxMessages, searchInboxMessages, getMessageById, updateMessageBodies, getSyncState, setMessageReadState, setMessageImportantState, getComposeContactRows, getComposeSessionRecipientRows, searchComposeContacts, upsertComposeContacts, getMailboxMessages as getStoredMailboxMessages, getSyncEvents } from "./db";
 import { getAccountEmail, getValidAccessToken } from "./auth";
 import { getMessage as getGmailMessage, extractBodies, getAttachment, modifyMessageLabels, GmailAPIError, parseHeaders, classifyMessageNature, isReadFromLabels } from "./gmail";
 import {
@@ -65,6 +65,7 @@ function normalizeMessageRecord(
     category:
       typeof message.category === "string" ? message.category : "regular",
     isRead: Boolean(message.isRead),
+    isImportant: Boolean(message.isImportant),
     isInbox: Boolean(message.isInbox),
     isSent: Boolean(message.isSent),
     isDraft: Boolean(message.isDraft),
@@ -156,6 +157,22 @@ export async function handleGetMailboxMessages(params: {
     ) as unknown as RadiusRPC["bun"]["requests"]["getMailboxMessages"]["response"]["messages"],
     total: result.total,
   };
+}
+
+export async function handleGetComposeSession(params: {
+  sessionId: string;
+}): Promise<RadiusRPC["bun"]["requests"]["getComposeSession"]["response"]> {
+  try {
+    const { getComposeSessionById } = await import("./compose");
+    const session = await getComposeSessionById(params.sessionId);
+    if (!session) {
+      return { success: false, error: "Compose session not found." };
+    }
+    return { success: true, session };
+  } catch (error) {
+    console.error("getComposeSession error:", error);
+    return { success: false, error: "Failed to load draft." };
+  }
 }
 
 function parseAddressCandidates(value: string | null | undefined): Array<{ name: string; email: string }> {
@@ -259,6 +276,18 @@ export async function handleGetSyncStatus() {
   };
 }
 
+export async function handleGetSyncHistory(params: {
+  limit?: number;
+}): Promise<RadiusRPC["bun"]["requests"]["getSyncHistory"]["response"]> {
+  const events = await getSyncEvents(params.limit ?? 12);
+  return {
+    events: events.map((event) => ({
+      ...event,
+      detail: event.detail ?? undefined,
+    })),
+  };
+}
+
 export async function handleMarkMessageRead(params: { id: string }): Promise<{
   success: boolean;
   error?: string;
@@ -341,6 +370,55 @@ export async function handleMarkMessageUnread(params: { id: string }): Promise<{
         success: false,
         error:
           "Gmail read sync needs fresh Gmail modify permission. Reconnect Gmail once to enable it.",
+        code: "reauth_required",
+        localStateApplied: true,
+      };
+    }
+
+    return {
+      success: false,
+      error: String(err),
+      code: "remote_sync_failed" as const,
+      localStateApplied: true,
+    };
+  }
+}
+
+export async function handleToggleMessageImportant(params: {
+  id: string;
+  important: boolean;
+}): Promise<{
+  success: boolean;
+  error?: string;
+  code?: "reauth_required" | "remote_sync_failed";
+  localStateApplied?: boolean;
+}> {
+  const { id, important } = params;
+  try {
+    const message = await getMessageById(id);
+    if (!message) {
+      return { success: false, error: `Message not found: ${id}` };
+    }
+
+    await setMessageImportantState(id, important);
+    const accessToken = await getValidAccessToken();
+    await modifyMessageLabels(accessToken, id, important ? {
+      addLabelIds: ["IMPORTANT"],
+    } : {
+      removeLabelIds: ["IMPORTANT"],
+    });
+    return { success: true, localStateApplied: true };
+  } catch (err) {
+    console.error("toggleMessageImportant error:", err);
+    if (
+      err instanceof GmailAPIError &&
+      err.status === 403 &&
+      err.body.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")
+    ) {
+      return {
+        success: false,
+        error:
+          "Gmail importance sync needs fresh Gmail modify permission. Reconnect Gmail once to enable it.",
         code: "reauth_required",
         localStateApplied: true,
       };
