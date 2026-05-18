@@ -7,7 +7,9 @@ interface InboxListProps {
   messages: Message[];
   total: number;
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  selectedIds?: Set<string>;
+  onSelect: (id: string, multi: boolean, range: boolean) => void;
+  onToggleSelect?: (id: string) => void;
   syncStatus: SyncStatus;
   onReachEnd?: () => void;
   heading?: string;
@@ -39,10 +41,10 @@ function CategoryBadge({ category }: { category: EmailCategory }) {
 
   const labels: Record<string, string> = {
     important: "Important",
-    promotional: "Promo",
+    promotional: "Promotions",
     social: "Social",
-    updates: "Update",
-    forums: "Forum",
+    updates: "Updates",
+    forums: "Forums",
     spam: "Spam",
   };
 
@@ -50,9 +52,10 @@ function CategoryBadge({ category }: { category: EmailCategory }) {
   if (!label) return null;
 
   return (
-    <span 
+    <span
       className="inline-flex shrink-0 items-center justify-center rounded px-1.5 py-[1px] text-[8.5px] font-bold uppercase tracking-[0.16em] text-radius-text-muted border border-radius-border-subtle/60 bg-radius-bg-secondary/40 backdrop-blur-sm"
-      title={category}
+      title={`${label} category`}
+      aria-label={`${label} category`}
     >
       {label}
     </span>
@@ -60,42 +63,87 @@ function CategoryBadge({ category }: { category: EmailCategory }) {
 }
 
 function ReadIndicator({ isRead }: { isRead: boolean }) {
-  if (isRead) return (
-    <span className="w-2 h-2 shrink-0 rounded-full bg-transparent" />
-  );
+  if (isRead)
+    return (
+      <span
+        className="flex h-2.5 w-2.5 shrink-0 items-center justify-center rounded-full border border-radius-border-subtle/80 bg-transparent"
+        aria-label="Read"
+        title="Read"
+      >
+        <span className="sr-only">Read</span>
+      </span>
+    );
 
   return (
     <span
-      className="w-2 h-2 shrink-0 rounded-full bg-radius-accent shadow-[0_0_8px_rgba(var(--radius-accent),0.4)]"
+      className="h-2.5 w-2.5 shrink-0 rounded-full bg-radius-accent shadow-[0_0_8px_rgba(var(--radius-accent),0.4)]"
       title="Unread"
       aria-label="Unread"
     />
   );
 }
 
+function SenderAvatar({ senderName }: { senderName: string }) {
+  const letter = (senderName || "?").trim().charAt(0).toUpperCase() || "?";
+
+  return (
+    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-radius-border-subtle/70 bg-radius-bg-secondary text-[11px] font-semibold text-radius-text-primary">
+      {letter}
+    </span>
+  );
+}
+
 function EmailRow({
   message,
   isSelected,
+  isMultiSelected,
   onClick,
+  onToggleSelect,
 }: {
   message: Message;
   isSelected: boolean;
-  onClick: () => void;
+  isMultiSelected?: boolean;
+  onClick: (e: React.MouseEvent) => void;
+  onToggleSelect?: (e: React.MouseEvent) => void;
 }) {
   const senderName = message.from?.split("<")[0].trim() || message.from || "";
 
   return (
     <div
       onClick={onClick}
+      aria-label={`${message.isRead ? "Read" : "Unread"} message from ${senderName}: ${message.subject}`}
       className={`
-        flex items-start gap-3 h-[104px] px-4 py-3.5 cursor-pointer select-none overflow-hidden transition-colors duration-150
-        ${isSelected ? "border-l-[2px] border-l-radius-accent bg-radius-bg-secondary/80" : "border-l-[2px] border-l-transparent hover:bg-radius-bg-secondary/50"}
-        ${!message.isRead && !isSelected ? "bg-radius-bg-secondary/20" : ""}
+        group flex items-start gap-3 h-[80px] px-4 py-3 cursor-pointer select-none overflow-hidden transition-colors duration-150
+        ${isSelected || isMultiSelected ? "border-l-[2px] border-l-radius-accent bg-radius-bg-secondary/80" : "border-l-[2px] border-l-transparent hover:bg-radius-bg-secondary/50"}
+        ${!message.isRead && !isSelected && !isMultiSelected ? "bg-radius-accent-subtle/35" : ""}
       `}
     >
-      {/* Unread dot column */}
-      <div className="mt-[5px] shrink-0">
+      {/* Unread dot / Checkbox column */}
+      <div className="mt-[2px] shrink-0 flex flex-col items-center gap-2">
+        {onToggleSelect && (
+          <div 
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelect(e);
+            }}
+            className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-opacity ${
+              isMultiSelected
+                ? "bg-radius-accent border-radius-accent opacity-100"
+                : "border-radius-border-subtle bg-transparent opacity-0 group-hover:opacity-100"
+            }`}
+          >
+            {isMultiSelected && (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-white">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
+          </div>
+        )}
         <ReadIndicator isRead={message.isRead} />
+      </div>
+
+      <div className="mt-[1px]">
+        <SenderAvatar senderName={senderName} />
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
@@ -105,8 +153,8 @@ function EmailRow({
             <span
               className={`truncate text-[13.5px] font-[family-name:var(--font-family-sans)] ${
                 message.isRead
-                  ? "font-medium text-radius-text-primary/80"
-                  : "font-semibold text-radius-text-primary"
+                  ? "font-normal text-radius-text-primary/70"
+                  : "font-bold text-radius-text-primary"
               }`}
             >
               {senderName}
@@ -125,7 +173,7 @@ function EmailRow({
           className={`text-[13px] truncate font-[family-name:var(--font-family-sans)] leading-snug ${
             message.isRead
               ? "text-radius-text-primary/70 font-normal"
-              : "text-radius-text-primary font-medium"
+              : "text-radius-text-primary font-bold"
           }`}
         >
           {message.subject}
@@ -150,7 +198,9 @@ export function InboxList({
   messages,
   total,
   selectedId,
+  selectedIds,
   onSelect,
+  onToggleSelect,
   syncStatus,
   onReachEnd,
   heading = "Inbox",
@@ -164,14 +214,14 @@ export function InboxList({
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 104,
+    estimateSize: () => 80,
     getItemKey: (index) => messages[index]?.id ?? index,
     overscan: 5,
   });
 
   const handleMessageClick = useCallback(
-    (id: string) => {
-      onSelect(id);
+    (id: string, e: React.MouseEvent) => {
+      onSelect(id, e.metaKey || e.ctrlKey, e.shiftKey);
     },
     [onSelect]
   );
@@ -262,7 +312,9 @@ export function InboxList({
                   <EmailRow
                     message={message}
                     isSelected={selectedId === message.id}
-                    onClick={() => handleMessageClick(message.id)}
+                    isMultiSelected={selectedIds?.has(message.id)}
+                    onClick={(e) => handleMessageClick(message.id, e)}
+                    onToggleSelect={onToggleSelect ? () => onToggleSelect(message.id) : undefined}
                   />
                 </div>
               );

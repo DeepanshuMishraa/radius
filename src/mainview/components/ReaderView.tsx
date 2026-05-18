@@ -12,6 +12,7 @@ import {
   Delete01Icon,
   Forward02Icon,
   MailReply01Icon,
+  Mail01Icon,
 } from "@hugeicons/core-free-icons";
 import { radiusRpc } from "../lib/rpc";
 
@@ -25,6 +26,8 @@ interface ReaderViewProps {
   onDelete?: () => void;
   onForward?: () => void;
   onReply?: () => void;
+  onToggleRead?: () => void;
+  onOpenInGmail?: () => void;
 }
 
 function formatFullDate(timestamp: number): string {
@@ -281,12 +284,18 @@ function ActionBarWidget({
   visible,
   onReply,
   onForward,
-  onDelete
+  onDelete,
+  onToggleRead,
+  onOpenInGmail,
+  messageIsRead,
 }: {
   visible: boolean;
   onReply?: () => void;
   onForward?: () => void;
   onDelete?: () => void;
+  onToggleRead?: () => void;
+  onOpenInGmail?: () => void;
+  messageIsRead?: boolean;
 }) {
   if (!visible) return null;
 
@@ -309,6 +318,13 @@ function ActionBarWidget({
     >
       <ActionButton icon={<HugeiconsIcon icon={MailReply01Icon} size={16} />} tooltip="Reply" onClick={onReply} />
       <ActionButton icon={<HugeiconsIcon icon={Forward02Icon} size={16} />} tooltip="Forward" onClick={onForward} />
+      <div className="w-[1px] h-3.5 bg-radius-border-subtle mx-1" />
+      <ActionButton
+        icon={<HugeiconsIcon icon={Mail01Icon} size={16} />}
+        tooltip={messageIsRead ? "Mark as unread" : "Mark as read"}
+        onClick={onToggleRead}
+      />
+      <ActionButton icon={<HugeiconsIcon icon={ArrowUpRight01Icon} size={16} />} tooltip="Open in Gmail" onClick={onOpenInGmail} />
       <div className="w-[1px] h-3.5 bg-radius-border-subtle mx-1" />
       <ActionButton 
         icon={<HugeiconsIcon icon={Delete01Icon} size={16} />} 
@@ -749,7 +765,8 @@ function NewsletterFrame({
 
   return (
     <iframe
-      title="Newsletter content"
+      title="Newsletter email content"
+      aria-label="Newsletter email content"
       className="newsletter-frame"
       sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox"
       srcDoc={srcDoc}
@@ -987,6 +1004,8 @@ export const ReaderView = memo(function ReaderView({
   onReply,
   onForward,
   onDelete,
+  onToggleRead,
+  onOpenInGmail,
 }: ReaderViewProps) {
   const { theme, appearance, resolvedTheme } = useTheme();
   const newsletterThemeConfig = useMemo(() => {
@@ -1131,16 +1150,13 @@ export const ReaderView = memo(function ReaderView({
     });
   }, []);
 
-  const repliedMessages = useMemo(
+  const threadConversation = useMemo(
     () =>
       !message
         ? []
         : threadMessages
             .filter(
-              (threadMessage) =>
-                threadMessage.id !== message.id &&
-                Boolean(threadMessage.isSent) &&
-                threadMessage.internalDate >= message.internalDate,
+              (threadMessage) => threadMessage.id !== message.id,
             )
             .sort((a, b) => a.internalDate - b.internalDate),
     [message, threadMessages],
@@ -1149,14 +1165,14 @@ export const ReaderView = memo(function ReaderView({
   if (!message) {
     const hour = new Date().getHours();
     let timeGreeting = "evening";
-    let subtext = "Ready to wrap up your day?";
+    let subtext = "Choose a message from the left, or press / to search.";
     
     if (hour < 12) {
       timeGreeting = "morning";
-      subtext = "Ready to start your day?";
+      subtext = "Choose a message from the left, or press / to search.";
     } else if (hour < 17) {
       timeGreeting = "afternoon";
-      subtext = "Hope your day is going well.";
+      subtext = "Choose a message from the left, or press / to search.";
     }
 
     const greeting = `Good ${timeGreeting}, ${systemName}.`;
@@ -1170,7 +1186,7 @@ export const ReaderView = memo(function ReaderView({
             : greeting;
     const mailboxSubtext =
       mailbox === "sent"
-        ? "Pick a sent message from the left to review what you shipped."
+        ? "Review what you shipped, or press C to start something new."
         : mailbox === "drafts"
           ? "Your saved drafts are waiting on the left."
           : mailbox === "trash"
@@ -1214,6 +1230,9 @@ export const ReaderView = memo(function ReaderView({
         onReply={onReply}
         onForward={onForward}
         onDelete={onDelete}
+        onToggleRead={onToggleRead}
+        onOpenInGmail={onOpenInGmail}
+        messageIsRead={message.isRead}
       />
 
       <div className="flex-1 email-enter relative" key={message.id}>
@@ -1249,7 +1268,7 @@ export const ReaderView = memo(function ReaderView({
                 />
               </div>
               <AttachmentList attachments={message.attachments} messageId={message.id} />
-              {mailbox === "inbox" && repliedMessages.length > 0 ? (
+              {mailbox === "inbox" && threadConversation.length > 0 ? (
                 <div className="mt-16">
                   <div className="relative mb-8">
                     <div className="absolute inset-0 flex items-center" aria-hidden="true">
@@ -1257,12 +1276,12 @@ export const ReaderView = memo(function ReaderView({
                     </div>
                     <div className="relative flex justify-center">
                       <span className="bg-radius-bg-primary px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-radius-text-muted/70 font-[family-name:var(--font-family-sans)]">
-                        Replies
+                        Full thread
                       </span>
                     </div>
                   </div>
                   <div className="flex flex-col">
-                    {repliedMessages.map((reply) => (
+                    {threadConversation.map((reply) => (
                       <ReplyThreadCard key={reply.id} message={reply} />
                     ))}
                   </div>
@@ -1321,7 +1340,7 @@ export const ReaderView = memo(function ReaderView({
                 <AttachmentList attachments={message.attachments} messageId={message.id} />
               </div>
             )}
-            {mailbox === "inbox" && repliedMessages.length > 0 ? (
+            {mailbox === "inbox" && threadConversation.length > 0 ? (
               <div className="max-w-[720px] mx-auto mt-16">
                 <div className="relative mb-8">
                   <div className="absolute inset-0 flex items-center" aria-hidden="true">
@@ -1329,12 +1348,12 @@ export const ReaderView = memo(function ReaderView({
                   </div>
                   <div className="relative flex justify-center">
                     <span className="bg-radius-bg-primary px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-radius-text-muted/70 font-[family-name:var(--font-family-sans)]">
-                      Replies
+                      Full thread
                     </span>
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  {repliedMessages.map((reply) => (
+                  {threadConversation.map((reply) => (
                     <ReplyThreadCard key={reply.id} message={reply} />
                   ))}
                 </div>

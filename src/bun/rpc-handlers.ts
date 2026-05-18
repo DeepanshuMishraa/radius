@@ -307,6 +307,54 @@ export async function handleMarkMessageRead(params: { id: string }): Promise<{
   }
 }
 
+export async function handleMarkMessageUnread(params: { id: string }): Promise<{
+  success: boolean;
+  error?: string;
+  code?: "reauth_required" | "remote_sync_failed";
+  localStateApplied?: boolean;
+}> {
+  const { id } = params;
+  try {
+    const message = await getMessageById(id);
+    if (!message) {
+      return { success: false, error: `Message not found: ${id}` };
+    }
+
+    if (!Boolean(message.isRead)) {
+      return { success: true, localStateApplied: true };
+    }
+
+    await setMessageReadState(id, false);
+    const accessToken = await getValidAccessToken();
+    await modifyMessageLabels(accessToken, id, {
+      addLabelIds: ["UNREAD"],
+    });
+    return { success: true, localStateApplied: true };
+  } catch (err) {
+    console.error("markMessageUnread error:", err);
+    if (
+      err instanceof GmailAPIError &&
+      err.status === 403 &&
+      err.body.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")
+    ) {
+      return {
+        success: false,
+        error:
+          "Gmail read sync needs fresh Gmail modify permission. Reconnect Gmail once to enable it.",
+        code: "reauth_required",
+        localStateApplied: true,
+      };
+    }
+
+    return {
+      success: false,
+      error: String(err),
+      code: "remote_sync_failed" as const,
+      localStateApplied: true,
+    };
+  }
+}
+
 export async function handleDownloadAttachment(params: { messageId: string; attachmentId: string }) {
   try {
     const accessToken = await getValidAccessToken();

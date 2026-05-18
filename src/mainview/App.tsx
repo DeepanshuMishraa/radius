@@ -17,7 +17,16 @@ import { SyncPill } from "@/components/sync-pill";
 import { AboutDialog } from "@/components/about";
 import { AddAccountDialog } from "@/components/add-account";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon, Mail01Icon } from "@hugeicons/core-free-icons";
+import {
+  Cancel01Icon,
+  Delete01Icon,
+  Home01Icon,
+  Mail01Icon,
+  MailSend01Icon,
+  PencilEdit01Icon,
+  Refresh01Icon,
+  Search01Icon,
+} from "@hugeicons/core-free-icons";
 import { Toaster, toast } from "sonner";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { radiusRpc } from "./lib/rpc";
@@ -33,6 +42,21 @@ import type {
 const INBOX_PAGE_STEP = 500;
 const INITIAL_INBOX_LIMIT = 3000;
 type MailboxKind = "inbox" | "sent" | "drafts" | "trash";
+
+const MAILBOX_SHORTCUTS: Record<MailboxKind, string> = {
+  inbox: "G I",
+  sent: "G S",
+  drafts: "G D",
+  trash: "G T",
+};
+
+function isEditableTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    target.closest("input, textarea, select, [contenteditable='true']") !== null
+  );
+}
 
 function parseAddressLabel(address: string | null | undefined) {
   if (!address) return { name: "Radius", email: "" };
@@ -98,8 +122,137 @@ function ThemedToaster() {
   );
 }
 
+function MailboxRail({
+  activeMailbox,
+  searchActive,
+  onShowInbox,
+  onShowMailbox,
+  onOpenSearch,
+}: {
+  activeMailbox: MailboxKind;
+  searchActive: boolean;
+  onShowInbox: () => void;
+  onShowMailbox: (mailbox: Exclude<MailboxKind, "inbox">) => void;
+  onOpenSearch: () => void;
+}) {
+  const items: Array<{
+    mailbox: MailboxKind;
+    label: string;
+    shortcut: string;
+    icon: typeof Home01Icon;
+  }> = [
+    { mailbox: "inbox", label: "Inbox", shortcut: MAILBOX_SHORTCUTS.inbox, icon: Home01Icon },
+    { mailbox: "sent", label: "Sent", shortcut: MAILBOX_SHORTCUTS.sent, icon: MailSend01Icon },
+    { mailbox: "drafts", label: "Drafts", shortcut: MAILBOX_SHORTCUTS.drafts, icon: PencilEdit01Icon },
+    { mailbox: "trash", label: "Trash", shortcut: MAILBOX_SHORTCUTS.trash, icon: Delete01Icon },
+  ];
+
+  return (
+    <nav
+      aria-label="Mailbox navigation"
+      className="flex w-[74px] shrink-0 flex-col items-center gap-2 border-r border-radius-border-subtle bg-radius-bg-primary px-2 pb-3 pt-14"
+    >
+      {items.map((item) => {
+        const isActive = !searchActive && activeMailbox === item.mailbox;
+        const onClick =
+          item.mailbox === "inbox"
+            ? onShowInbox
+            : () => onShowMailbox(item.mailbox as Exclude<MailboxKind, "inbox">);
+
+        return (
+          <button
+            key={item.mailbox}
+            type="button"
+            onClick={onClick}
+            aria-current={isActive ? "page" : undefined}
+            className={`group flex w-full flex-col items-center gap-1.5 rounded-2xl px-2 py-3 text-[10px] font-medium tracking-[0.08em] transition-colors ${
+              isActive
+                ? "bg-radius-bg-secondary text-radius-text-primary"
+                : "text-radius-text-muted hover:bg-radius-bg-secondary/70 hover:text-radius-text-primary"
+            }`}
+            title={`${item.label} (${item.shortcut})`}
+          >
+            <HugeiconsIcon icon={item.icon} size={16} />
+            <span className="uppercase">{item.label}</span>
+          </button>
+        );
+      })}
+
+      <button
+        type="button"
+        onClick={onOpenSearch}
+        className={`mt-2 flex w-full flex-col items-center gap-1.5 rounded-2xl border border-dashed px-2 py-3 text-[10px] font-medium tracking-[0.08em] transition-colors ${
+          searchActive
+            ? "border-radius-accent/40 bg-radius-accent-subtle text-radius-text-primary"
+            : "border-radius-border-subtle text-radius-text-muted hover:border-radius-border hover:text-radius-text-primary"
+        }`}
+        title="Search (/ or Cmd+F)"
+      >
+        <HugeiconsIcon icon={Search01Icon} size={16} />
+        <span className="uppercase">Search</span>
+      </button>
+    </nav>
+  );
+}
+
+function FirstRunGuide({
+  visible,
+  onDismiss,
+  onCompose,
+  onSearch,
+  onCommands,
+}: {
+  visible: boolean;
+  onDismiss: () => void;
+  onCompose: () => void;
+  onSearch: () => void;
+  onCommands: () => void;
+}) {
+  if (!visible) return null;
+
+  return (
+    <section className="pointer-events-auto absolute right-6 top-16 z-20 w-[320px] rounded-[22px] border border-radius-border-subtle bg-radius-bg-primary/94 p-4 shadow-[0_20px_40px_rgba(0,0,0,0.08)] backdrop-blur-xl">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-radius-accent">
+            First steps
+          </p>
+          <h2 className="mt-1 text-[18px] font-medium text-radius-text-primary font-[family-name:var(--font-family-serif)]">
+            Radius stays quiet, but it still has a few fast paths worth knowing.
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
+          aria-label="Dismiss tips"
+        >
+          <HugeiconsIcon icon={Cancel01Icon} size={13} />
+        </button>
+      </div>
+
+      <div className="mt-4 space-y-2 text-[12px] text-radius-text-secondary">
+        <button type="button" onClick={onCompose} className="flex w-full items-center justify-between rounded-2xl bg-radius-bg-secondary/70 px-3 py-2 text-left transition-colors hover:bg-radius-bg-secondary">
+          <span>Compose a message</span>
+          <span className="text-radius-text-muted">C</span>
+        </button>
+        <button type="button" onClick={onSearch} className="flex w-full items-center justify-between rounded-2xl bg-radius-bg-secondary/70 px-3 py-2 text-left transition-colors hover:bg-radius-bg-secondary">
+          <span>Search across your mail</span>
+          <span className="text-radius-text-muted">/</span>
+        </button>
+        <button type="button" onClick={onCommands} className="flex w-full items-center justify-between rounded-2xl bg-radius-bg-secondary/70 px-3 py-2 text-left transition-colors hover:bg-radius-bg-secondary">
+          <span>Open commands, accounts, and themes</span>
+          <span className="text-radius-text-muted">Cmd+K</span>
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function App() {
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -129,6 +282,10 @@ function App() {
   const [composeIntent, setComposeIntent] = useState<ComposeIntent | null>(null);
   const composeToastTimersRef = useRef<number[]>([]);
   const activeMailboxRef = useRef<Exclude<MailboxKind, "inbox"> | null>(null);
+  const mailboxShortcutStateRef = useRef<{ armed: boolean; timer: number | null }>({
+    armed: false,
+    timer: null,
+  });
   const [mailboxView, setMailboxView] = useState<MailboxKind>("inbox");
   const [mailboxMessages, setMailboxMessages] = useState<Record<Exclude<MailboxKind, "inbox">, Message[]>>({
     sent: [],
@@ -136,6 +293,7 @@ function App() {
     trash: [],
   });
   const [composeSuggestions, setComposeSuggestions] = useState<ComposeContactSuggestion[]>([]);
+  const [welcomeGuideDismissed, setWelcomeGuideDismissed] = useState(false);
 
   const { isAuthenticated, startOAuth } = useAuth();
   const { accounts, activeAccount, refresh: refreshAccounts, removeAccount } = useAccounts();
@@ -350,6 +508,9 @@ function App() {
     setNotificationPromptVisible(
       !nativeNotificationsEnabled && browserPermission !== "granted"
     );
+    setWelcomeGuideDismissed(
+      window.localStorage.getItem("radius.first-run-guide.dismissed") === "true"
+    );
   }, []);
 
   const openNotificationSettings = useCallback(async () => {
@@ -421,9 +582,49 @@ function App() {
     );
   }, [total]);
 
-  const handleSelectMessage = useCallback((id: string) => {
-    setSelectedMessageId(id);
-    setSidebarOpen(false);
+  const handleSelectMessage = useCallback((id: string, multi: boolean, range: boolean) => {
+    if (multi || range) {
+      setSelectedMessageIds((prev) => {
+        const next = new Set(prev);
+        if (range && lastSelectedId) {
+          const startIndex = visibleMessages.findIndex((m) => m.id === lastSelectedId);
+          const endIndex = visibleMessages.findIndex((m) => m.id === id);
+          if (startIndex !== -1 && endIndex !== -1) {
+            const start = Math.min(startIndex, endIndex);
+            const end = Math.max(startIndex, endIndex);
+            for (let i = start; i <= end; i++) {
+              next.add(visibleMessages[i].id);
+            }
+          }
+        } else {
+          if (next.has(id)) {
+            next.delete(id);
+          } else {
+            next.add(id);
+          }
+        }
+        return next;
+      });
+      setLastSelectedId(id);
+    } else {
+      setSelectedMessageId(id);
+      setSelectedMessageIds(new Set([id]));
+      setLastSelectedId(id);
+      setSidebarOpen(false);
+    }
+  }, [visibleMessages, lastSelectedId]);
+
+  const handleToggleSelectMessage = useCallback((id: string) => {
+    setSelectedMessageIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+    setLastSelectedId(id);
   }, []);
 
   const currentMessageIndex = useMemo(() => {
@@ -483,6 +684,96 @@ function App() {
       });
   }, [selectedMessage]);
 
+  const selectedMessages = useMemo(
+    () => visibleMessages.filter((message) => selectedMessageIds.has(message.id)),
+    [selectedMessageIds, visibleMessages]
+  );
+
+  const updateMessagesReadState = useCallback(
+    async (messageIds: string[], read: boolean) => {
+      if (messageIds.length === 0) return;
+
+      setMessageOverrides((prev) => {
+        const next = { ...prev };
+        for (const id of messageIds) {
+          next[id] = {
+            ...(next[id] ?? {}),
+            isRead: read,
+          };
+        }
+        return next;
+      });
+
+      const action = read ? radiusRpc.request.markMessageRead : radiusRpc.request.markMessageUnread;
+      const failures: string[] = [];
+
+      for (const id of messageIds) {
+        try {
+          const result = await action({ id });
+          if (!result.success) {
+            failures.push(id);
+            if (result.code === "reauth_required") {
+              setGmailSyncNotice(result.error ?? "Reconnect Gmail to finish syncing message state.");
+            }
+          } else {
+            failedReadRef.current.delete(id);
+          }
+        } catch (error) {
+          console.error(`Failed to mark message ${read ? "read" : "unread"}:`, error);
+          failures.push(id);
+        }
+      }
+
+      if (failures.length > 0) {
+        setMessageOverrides((prev) => {
+          const next = { ...prev };
+          for (const id of failures) {
+            delete next[id];
+          }
+          return next;
+        });
+        toast.error(
+          failures.length === 1
+            ? `Could not mark the message as ${read ? "read" : "unread"}`
+            : `Could not update ${failures.length} messages`
+        );
+        return;
+      }
+
+      toast.success(
+        messageIds.length === 1
+          ? `Marked as ${read ? "read" : "unread"}`
+          : `${messageIds.length} messages marked ${read ? "read" : "unread"}`
+      );
+    },
+    []
+  );
+
+  const handleMarkSelectedRead = useCallback(async () => {
+    await updateMessagesReadState(
+      selectedMessages.map((message) => message.id),
+      true
+    );
+  }, [selectedMessages, updateMessagesReadState]);
+
+  const handleMarkSelectedUnread = useCallback(async () => {
+    await updateMessagesReadState(
+      selectedMessages.map((message) => message.id),
+      false
+    );
+  }, [selectedMessages, updateMessagesReadState]);
+
+  const handleOpenInGmail = useCallback(async () => {
+    if (!selectedMessage) return;
+    const url = `https://mail.google.com/mail/u/${activeAccount ?? 0}/#all/${selectedMessage.threadId}`;
+    try {
+      await radiusRpc.request.openExternalUrl({ url });
+    } catch (err) {
+      console.error("Open in Gmail error:", err);
+      toast.error("Failed to open Gmail");
+    }
+  }, [selectedMessage, activeAccount]);
+
   const handleOpenSidebar = useCallback(() => {
     setSidebarOpen(true);
   }, []);
@@ -497,6 +788,34 @@ function App() {
     setCmdOpen(false);
     setComposeIntent({ kind: "compose" });
   }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target)) return;
+
+      const key = e.key.toLowerCase();
+      if (key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        handleOpenSearch();
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && key === "f") {
+        e.preventDefault();
+        handleOpenSearch();
+        return;
+      }
+
+      if (key === "c" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        handleOpenCompose();
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleOpenCompose, handleOpenSearch]);
 
   const refreshMailbox = useCallback(
     async (mailbox: Exclude<MailboxKind, "inbox">) => {
@@ -532,7 +851,59 @@ function App() {
     setMailboxView("inbox");
     setSidebarOpen(true);
     setSelectedMessageId(null);
+    setSelectedMessageIds(new Set());
   }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const normalized = e.key.toLowerCase();
+      const hotkeyMap: Record<string, MailboxKind> = {
+        i: "inbox",
+        s: "sent",
+        d: "drafts",
+        t: "trash",
+      };
+
+      if (normalized === "g") {
+        mailboxShortcutStateRef.current.armed = true;
+        if (mailboxShortcutStateRef.current.timer !== null) {
+          window.clearTimeout(mailboxShortcutStateRef.current.timer);
+        }
+        mailboxShortcutStateRef.current.timer = window.setTimeout(() => {
+          mailboxShortcutStateRef.current.armed = false;
+          mailboxShortcutStateRef.current.timer = null;
+        }, 550);
+        return;
+      }
+
+      if (!mailboxShortcutStateRef.current.armed || !hotkeyMap[normalized]) return;
+
+      e.preventDefault();
+      mailboxShortcutStateRef.current.armed = false;
+      if (mailboxShortcutStateRef.current.timer !== null) {
+        window.clearTimeout(mailboxShortcutStateRef.current.timer);
+        mailboxShortcutStateRef.current.timer = null;
+      }
+
+      const mailbox = hotkeyMap[normalized];
+      if (mailbox === "inbox") {
+        handleShowInbox();
+      } else {
+        void handleOpenMailbox(mailbox);
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => {
+      if (mailboxShortcutStateRef.current.timer !== null) {
+        window.clearTimeout(mailboxShortcutStateRef.current.timer);
+        mailboxShortcutStateRef.current.timer = null;
+      }
+      window.removeEventListener("keydown", handler);
+    };
+  }, [handleOpenMailbox, handleShowInbox]);
 
   const refreshVisibleMailboxData = useCallback(async () => {
     await refreshInbox();
@@ -633,6 +1004,35 @@ function App() {
       toast.error("Delete failed");
     }
   }, [mailboxView, refreshVisibleMailboxData, selectedMessage, visibleMessages]);
+
+  const handleDeleteSelected = useCallback(async () => {
+    if (selectedMessages.length === 0) return;
+
+    const ids = selectedMessages.map((message) => message.id);
+    let deleted = 0;
+
+    for (const id of ids) {
+      try {
+        const result = await radiusRpc.request.queueDeleteMessage({ messageId: id });
+        if (result.success) {
+          deleted += 1;
+        }
+      } catch (error) {
+        console.error("Bulk delete failed:", error);
+      }
+    }
+
+    await refreshVisibleMailboxData();
+    setSelectedMessageIds(new Set());
+    if (deleted === 0) {
+      toast.error("Delete failed");
+      return;
+    }
+
+    toast.success(
+      deleted === 1 ? "Message moved to trash" : `${deleted} messages moved to trash`
+    );
+  }, [refreshVisibleMailboxData, selectedMessages]);
 
   const handleEmptyTrash = useCallback(async () => {
     try {
@@ -774,6 +1174,10 @@ function App() {
     setUpdateInfo(null);
   }, []);
 
+  const dismissGmailSyncNotice = useCallback(() => {
+    setGmailSyncNotice(null);
+  }, []);
+
   const handleSwitchAccount = useCallback(
     async (email: string) => {
       if (email === activeAccount) {
@@ -784,14 +1188,24 @@ function App() {
       setAccountSwitching(true);
       setCmdOpen(false);
       try {
-        await radiusRpc.request.switchAccount({ email });
-        window.location.reload();
+        const result = await radiusRpc.request.switchAccount({ email });
+        if (!result.success) {
+          throw new Error(result.error ?? "Failed to switch account");
+        }
+        setSelectedMessageId(null);
+        setSelectedMessageIds(new Set());
+        setMailboxView("inbox");
+        setSearchOpen(false);
+        setSearchDraft("");
+        await Promise.all([refreshAccounts(), refreshInbox(), refreshMailbox("sent"), refreshMailbox("trash"), refreshMailbox("drafts")]);
+        setAccountSwitching(false);
       } catch (err) {
         console.error("Failed to switch account:", err);
+        toast.error("Failed to switch account");
         setAccountSwitching(false);
       }
     },
-    [activeAccount]
+    [activeAccount, refreshAccounts, refreshInbox, refreshMailbox]
   );
 
   const handleAddAccount = useCallback(() => {
@@ -887,10 +1301,16 @@ function App() {
   const handleSubmitSearch = useCallback(() => {
     if (searchedMessages.length > 0) {
       setSelectedMessageId(searchedMessages[0].id);
-      setSidebarOpen(false);
-      setSearchOpen(false);
+      setSidebarOpen(true);
     }
   }, [searchedMessages]);
+
+  const dismissWelcomeGuide = useCallback(() => {
+    setWelcomeGuideDismissed(true);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("radius.first-run-guide.dismissed", "true");
+    }
+  }, []);
 
   const searchMeta = useMemo(() => {
     const trimmedQuery = deferredSearchQuery.trim();
@@ -900,6 +1320,57 @@ function App() {
     if (searchedTotal === 0) return `No emails match "${trimmedQuery}"`;
     return `${searchedTotal.toLocaleString()} result${searchedTotal === 1 ? "" : "s"} for "${trimmedQuery}"`;
   }, [deferredSearchQuery, searchLoading, searchOpen, searchedTotal]);
+
+  const welcomeGuideVisible =
+    !welcomeGuideDismissed &&
+    Boolean(syncStatus.initialSyncCompletedAt) &&
+    !selectedMessage &&
+    !cmdOpen &&
+    !composeIntent;
+
+  const inboxHeaderAction = useMemo(() => {
+    if (selectedMessages.length > 0) {
+      const allRead = selectedMessages.every((message) => message.isRead);
+      const allUnread = selectedMessages.every((message) => !message.isRead);
+
+      return (
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => void (allRead ? handleMarkSelectedUnread() : handleMarkSelectedRead())}
+            className="rounded-full border border-radius-border-subtle px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-radius-text-muted transition-colors hover:border-radius-border hover:text-radius-text-primary"
+          >
+            {allUnread ? "Mark Read" : allRead ? "Mark Unread" : "Toggle Read"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleDeleteSelected()}
+            className="rounded-full border border-radius-border-subtle px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-radius-text-muted transition-colors hover:border-radius-border hover:text-radius-text-primary"
+          >
+            Delete
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={() => void refreshVisibleMailboxData()}
+        className="inline-flex items-center gap-1.5 rounded-full border border-radius-border-subtle px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-radius-text-muted transition-colors hover:border-radius-border hover:text-radius-text-primary"
+        title="Refresh mailbox"
+      >
+        <HugeiconsIcon icon={Refresh01Icon} size={12} />
+        Refresh
+      </button>
+    );
+  }, [
+    handleDeleteSelected,
+    handleMarkSelectedRead,
+    handleMarkSelectedUnread,
+    refreshVisibleMailboxData,
+    selectedMessages,
+  ]);
 
   if (isAuthenticated === null && !hasAuthSignal) {
     return (
@@ -928,6 +1399,19 @@ function App() {
       <TooltipProvider>
       <div className="relative flex h-full bg-radius-bg-primary overflow-hidden">
         <DragRegion />
+      <a
+        href="#radius-reader"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-14 focus:z-[120] focus:rounded-full focus:bg-radius-bg-primary focus:px-3 focus:py-2 focus:text-[12px] focus:text-radius-text-primary"
+      >
+        Skip to message content
+      </a>
+      <MailboxRail
+        activeMailbox={mailboxView}
+        searchActive={searchActive}
+        onShowInbox={handleShowInbox}
+        onShowMailbox={handleOpenMailbox}
+        onOpenSearch={handleOpenSearch}
+      />
       <aside
         className="sidebar-panel h-full border-r border-radius-border-subtle bg-radius-bg-primary will-change-transform"
         data-open={sidebarOpen}
@@ -936,7 +1420,9 @@ function App() {
           messages={visibleMessages}
           total={visibleTotal}
           selectedId={selectedMessageId}
+          selectedIds={selectedMessageIds}
           onSelect={handleSelectMessage}
+          onToggleSelect={handleToggleSelectMessage}
           syncStatus={syncStatus}
           heading={
             searchActive
@@ -960,19 +1446,31 @@ function App() {
                 : `No ${mailboxView} emails`
           }
           headerAction={
-            mailboxView === "trash" ? (
-              <button
-                type="button"
-                onClick={() => void handleEmptyTrash()}
-                className="rounded-full border border-radius-border-subtle px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-radius-text-muted transition-colors hover:border-radius-border hover:text-radius-text-primary"
-              >
-                Empty Trash
-              </button>
-            ) : undefined
+            mailboxView === "trash" && selectedMessages.length === 0 ? (
+              <div className="flex items-center gap-1.5">
+                {inboxHeaderAction}
+                <button
+                  type="button"
+                  onClick={() => void handleEmptyTrash()}
+                  className="rounded-full border border-radius-border-subtle px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-radius-text-muted transition-colors hover:border-radius-border hover:text-radius-text-primary"
+                >
+                  Empty Trash
+                </button>
+              </div>
+            ) : (
+              inboxHeaderAction
+            )
           }
         />
       </aside>
-      <main className="flex-1 min-w-0 h-full">
+      <main id="radius-reader" className="flex-1 min-w-0 h-full">
+        <FirstRunGuide
+          visible={welcomeGuideVisible}
+          onDismiss={dismissWelcomeGuide}
+          onCompose={handleOpenCompose}
+          onSearch={handleOpenSearch}
+          onCommands={() => setCmdOpen(true)}
+        />
         <ReaderView
           message={selectedMessage}
           mailbox={searchActive ? "inbox" : mailboxView}
@@ -983,6 +1481,15 @@ function App() {
           onReply={handleReply}
           onForward={handleForward}
           onDelete={handleDelete}
+          onToggleRead={() =>
+            void updateMessagesReadState(
+              selectedMessage
+                ? [selectedMessage.id]
+                : [],
+              Boolean(selectedMessage?.isRead ? false : true)
+            )
+          }
+          onOpenInGmail={handleOpenInGmail}
         />
       </main>
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen} modal={false}>
@@ -1048,7 +1555,12 @@ function App() {
           onDismiss={dismissNotificationPrompt}
         />
       </div>
-      <SyncPill syncStatus={syncStatus} notice={gmailSyncNotice} />
+      <SyncPill
+        syncStatus={syncStatus}
+        notice={gmailSyncNotice}
+        onDismissNotice={gmailSyncNotice ? dismissGmailSyncNotice : undefined}
+        onRefresh={() => void refreshVisibleMailboxData()}
+      />
       <ThemedToaster />
       {accountSwitching && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-radius-bg-primary animate-in fade-in duration-200">

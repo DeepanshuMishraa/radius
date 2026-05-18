@@ -161,7 +161,7 @@ export function CommandK({
             {page === "accounts"
               ? "Accounts"
               : page === "mailboxes"
-                ? "Mailroom"
+                ? "Mailboxes"
                 : "Themes"}
           </span>
         </div>
@@ -213,7 +213,7 @@ export function CommandK({
       <div className="grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]">
         <div className="overflow-hidden">
           <CommandList className="max-h-[60vh]">
-            <CommandEmpty className="py-12 text-center text-[13px] text-radius-text-muted">
+            <CommandEmpty className={cn("py-12 text-center text-[13px] text-radius-text-muted", (search.trim().length === 0 || page !== "home") && "hidden")}>
               No results found.
             </CommandEmpty>
             

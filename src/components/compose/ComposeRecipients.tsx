@@ -12,6 +12,10 @@ interface ComposeRecipientsProps {
   selectedRecipients: ContactOption[];
   setSelectedRecipients: React.Dispatch<React.SetStateAction<ContactOption[]>>;
   locked?: boolean;
+  label?: string;
+  placeholder?: string;
+  autoFocus?: boolean;
+  showFrom?: boolean;
 }
 
 export function ComposeRecipients({
@@ -20,6 +24,10 @@ export function ComposeRecipients({
   selectedRecipients,
   setSelectedRecipients,
   locked = false,
+  label = "To",
+  placeholder = "Select person",
+  autoFocus = true,
+  showFrom = true,
 }: ComposeRecipientsProps) {
   const [recipientQuery, setRecipientQuery] = useState("");
   const [isRecipientFocused, setIsRecipientFocused] = useState(false);
@@ -28,12 +36,12 @@ export function ComposeRecipients({
   const requestIdRef = useRef(0);
 
   useEffect(() => {
-    if (locked) return;
+    if (locked || !autoFocus) return;
     const timer = window.setTimeout(() => {
       recipientInputRef.current?.focus();
     }, 30);
     return () => window.clearTimeout(timer);
-  }, [locked]);
+  }, [autoFocus, locked]);
 
   useEffect(() => {
     if (locked || !isRecipientFocused) return;
@@ -127,6 +135,7 @@ export function ComposeRecipients({
   return (
     <motion.div layout className="px-5 pb-4">
       {/* From */}
+      {showFrom ? (
       <motion.div layout className="flex items-center gap-3">
         <span className="w-8 text-[12px] text-radius-text-muted">From</span>
         <div className="inline-flex items-center gap-1.5 rounded-full border border-radius-border-subtle bg-radius-bg-primary px-2 py-0.5 shadow-sm">
@@ -139,10 +148,11 @@ export function ComposeRecipients({
           <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} className="text-[#1d9bf0]" />
         </div>
       </motion.div>
+      ) : null}
 
       {/* To */}
-      <motion.div layout className="mt-2 flex items-start gap-3">
-        <span className="w-8 pt-1.5 text-[12px] text-radius-text-muted">To</span>
+      <motion.div layout className={`${showFrom ? "mt-2" : ""} flex items-start gap-3`}>
+        <span className="w-8 pt-1.5 text-[12px] text-radius-text-muted">{label}</span>
         <div className="flex min-h-[28px] flex-1 flex-wrap items-center gap-1.5">
           <AnimatePresence>
             {selectedRecipients.map((recipient) => (
@@ -212,7 +222,8 @@ export function ComposeRecipients({
                     removeRecipient(selectedRecipients[selectedRecipients.length - 1].email);
                   }
                 }}
-                placeholder="Select person"
+                placeholder={placeholder}
+                aria-label={`${label} recipients`}
                 className="min-w-[100px] flex-1 bg-transparent text-[12px] text-radius-text-primary outline-none placeholder:text-radius-text-muted py-1"
               />
             </motion.div>

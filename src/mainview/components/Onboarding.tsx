@@ -60,7 +60,8 @@ export function Onboarding({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-full bg-radius-bg-primary px-6 onboarding-enter">
-      <div className="flex w-full max-w-[520px] flex-col items-center text-center">
+      <div className="flex w-full max-w-[760px] flex-col items-center gap-10 text-center lg:flex-row lg:items-start lg:text-left">
+        <div className="flex-1 max-w-[520px] flex flex-col items-center text-center lg:items-start lg:text-left">
         {/* Mark */}
         <div className="relative mb-12">
           <RadiusMark className="w-12 h-12 text-radius-accent" />
@@ -78,9 +79,15 @@ export function Onboarding({
 
         {/* Error — minimal inline */}
         {error && (
-          <div className="mb-8 text-center">
-            <p className="text-[12px] text-radius-error font-[family-name:var(--font-family-sans)]">
+          <div className="mb-8 w-full rounded-[22px] border border-radius-error/20 bg-radius-error/5 px-4 py-3 text-left">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-radius-error font-[family-name:var(--font-family-sans)]">
+              Gmail needs attention
+            </p>
+            <p className="mt-1 text-[12px] leading-[1.6] text-radius-text-primary font-[family-name:var(--font-family-sans)]">
               {error}
+            </p>
+            <p className="mt-2 text-[11px] leading-[1.55] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+              If the Google window did not appear, check whether a pop-up was blocked and try again. If access was revoked, reconnect the same account.
             </p>
           </div>
         )}
@@ -98,10 +105,10 @@ export function Onboarding({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-                  Fetch 3,000 emails
+                  Quick start
                 </p>
                 <p className="mt-1 text-[11px] leading-[1.55] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-                  Clean migration. Fastest setup. Radius brings in your latest 3,000 emails and gets you reading quickly.
+                  Start with your latest 3,000 emails. Best if you want Radius ready in a minute or two.
                 </p>
               </div>
               <span
@@ -126,10 +133,10 @@ export function Onboarding({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-                  Fetch all emails
+                  Complete archive
                 </p>
                 <p className="mt-1 text-[11px] leading-[1.55] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-                  Takes longer. Radius fetches your first 3,000 upfront, then keeps pulling older mail in batches while the app is open.
+                  Bring in everything. Radius starts with recent mail, then quietly fills in older conversations while you keep reading.
                 </p>
               </div>
               <span
@@ -196,6 +203,39 @@ export function Onboarding({
         <p className="mt-10 text-[10px] text-radius-text-muted/60 tracking-wide font-[family-name:var(--font-family-sans)]">
           Read-only. We never touch your mail. Full migrations continue gently in the background.
         </p>
+        </div>
+
+        <aside className="w-full max-w-[280px] rounded-[26px] border border-radius-border-subtle bg-radius-bg-secondary/60 p-5 text-left backdrop-blur-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-radius-accent font-[family-name:var(--font-family-sans)]">
+            What you get
+          </p>
+          <div className="mt-4 space-y-3">
+            <div className="rounded-[18px] border border-radius-border-subtle bg-radius-bg-primary/80 p-3">
+              <p className="text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+                Faster reading
+              </p>
+              <p className="mt-1 text-[11px] leading-[1.6] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                A denser, calmer inbox built for triage rather than endless tab juggling.
+              </p>
+            </div>
+            <div className="rounded-[18px] border border-radius-border-subtle bg-radius-bg-primary/80 p-3">
+              <p className="text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+                Quiet shortcuts
+              </p>
+              <p className="mt-1 text-[11px] leading-[1.6] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                Press <span className="text-radius-text-primary">/</span> to search, <span className="text-radius-text-primary">C</span> to compose, and <span className="text-radius-text-primary">Cmd+K</span> for everything else.
+              </p>
+            </div>
+            <div className="rounded-[18px] border border-radius-border-subtle bg-radius-bg-primary/80 p-3">
+              <p className="text-[12px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
+                Gentle sync
+              </p>
+              <p className="mt-1 text-[11px] leading-[1.6] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                You can start reading right away while older mail lands in the background.
+              </p>
+            </div>
+          </div>
+        </aside>
       </div>
 
       <style>{`

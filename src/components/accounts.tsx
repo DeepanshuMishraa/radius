@@ -1,6 +1,6 @@
 import { CommandGroup, CommandItem, CommandShortcut } from "@/components/ui/command";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { UserCircleIcon, Add01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
+import { Add01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 import type { Account } from "@/mainview/hooks/useInbox";
 
 interface AccountsProps {
@@ -33,9 +33,18 @@ export function Accounts({
             className="justify-between"
             disabled={!!deleteTarget}
           >
-            <div className="flex items-center gap-2">
-              <HugeiconsIcon icon={UserCircleIcon} size={16} />
-              <span className="text-sm">{account.email}</span>
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-radius-border-subtle bg-radius-bg-secondary text-[10px] font-semibold text-radius-text-primary">
+                {(account.name || account.email).slice(0, 1).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <div className="truncate text-sm text-radius-text-primary">
+                  {account.name || account.email}
+                </div>
+                <div className="truncate text-[11px] text-radius-text-muted">
+                  {account.email}
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {account.email === activeAccount && (

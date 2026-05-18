@@ -1,4 +1,4 @@
-import { CommandGroup, CommandItem } from "@/components/ui/command";
+import { CommandGroup, CommandItem, CommandShortcut } from "@/components/ui/command";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Sun01Icon,
@@ -46,6 +46,7 @@ export function Home({
         >
           <HugeiconsIcon icon={Mail01Icon} size={16} />
           <span>Compose Email</span>
+          <CommandShortcut>C</CommandShortcut>
         </CommandItem>
         <CommandItem
           value="search-emails"
@@ -53,13 +54,14 @@ export function Home({
         >
           <HugeiconsIcon icon={Search01Icon} size={16} />
           <span>Search Emails</span>
+          <CommandShortcut>/</CommandShortcut>
         </CommandItem>
         <CommandItem
-          value="mailroom"
+          value="mailboxes"
           onSelect={onOpenMailroom}
         >
           <HugeiconsIcon icon={Mailbox01Icon} size={16} />
-          <span>Mailroom</span>
+          <span>Mailboxes</span>
         </CommandItem>
         <CommandItem
           value="show-inbox"
@@ -67,6 +69,7 @@ export function Home({
         >
           <HugeiconsIcon icon={Home01Icon} size={16} />
           <span>Show Inbox</span>
+          <CommandShortcut>G I</CommandShortcut>
         </CommandItem>
       </CommandGroup>
       <CommandGroup heading="Workspace">

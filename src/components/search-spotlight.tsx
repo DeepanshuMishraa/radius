@@ -35,12 +35,16 @@ export function EmailSearchSpotlight({
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-11 z-50 flex justify-center px-4">
-      <div className="pointer-events-auto w-full max-w-[420px] border border-radius-border-subtle bg-radius-bg-primary">
+      <div className="pointer-events-auto w-full max-w-[460px] rounded-[20px] border border-radius-border-subtle bg-radius-bg-primary/96 shadow-[0_18px_40px_rgba(0,0,0,0.08)] backdrop-blur-xl">
+        <label htmlFor="radius-email-search" className="sr-only">
+          Search email
+        </label>
         <div className="flex items-center gap-2 px-3 py-2">
           <span className="shrink-0 select-none text-[11px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
             /
           </span>
           <input
+            id="radius-email-search"
             ref={inputRef}
             value={query}
             onChange={(event) => onChangeQuery(event.target.value)}
@@ -59,6 +63,7 @@ export function EmailSearchSpotlight({
               }
             }}
             placeholder="Search email"
+            aria-describedby="radius-email-search-hint"
             className="min-w-0 flex-1 bg-transparent text-[13px] text-radius-text-primary outline-none placeholder:text-radius-text-muted font-[family-name:var(--font-family-sans)]"
           />
           {query.trim() ? (
@@ -74,6 +79,12 @@ export function EmailSearchSpotlight({
           >
             <span className="text-[15px] leading-none">×</span>
           </button>
+        </div>
+        <div
+          id="radius-email-search-hint"
+          className="border-t border-radius-border-subtle px-3 py-2 text-[10px] text-radius-text-muted font-[family-name:var(--font-family-sans)]"
+        >
+          Try <span className="text-radius-text-primary">from:</span>, <span className="text-radius-text-primary">subject:</span>, or <span className="text-radius-text-primary">has:attachment</span>
         </div>
       </div>
     </div>

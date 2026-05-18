@@ -3,9 +3,27 @@ import { useSyncStatus } from "@/mainview/hooks/useInbox";
 interface SyncPillProps {
   syncStatus: ReturnType<typeof useSyncStatus>;
   notice: string | null;
+  onDismissNotice?: () => void;
+  onRefresh?: () => void;
 }
 
-export function SyncPill({ syncStatus, notice }: SyncPillProps) {
+function formatLastSynced(timestamp?: number) {
+  if (!timestamp) return null;
+  const diffMs = Date.now() - timestamp;
+  if (diffMs < 60_000) return "Updated just now";
+  const minutes = Math.round(diffMs / 60_000);
+  if (minutes < 60) return `Updated ${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `Updated ${hours}h ago`;
+  return `Updated ${new Date(timestamp).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })}`;
+}
+
+export function SyncPill({ syncStatus, notice, onDismissNotice, onRefresh }: SyncPillProps) {
   const isInitialSync =
     syncStatus.status === "syncing" &&
     (syncStatus.phase === "initial" || !syncStatus.initialSyncCompletedAt);
@@ -18,6 +36,7 @@ export function SyncPill({ syncStatus, notice }: SyncPillProps) {
   const total = syncStatus.progress?.total ?? 0;
   const pct = total > 0 ? Math.min(Math.round((current / total) * 100), 100) : 0;
   const isStillFetching = current >= total && syncStatus.status === "syncing";
+  const lastSynced = formatLastSynced(syncStatus.lastSyncAt);
 
   return (
     <div className="fixed bottom-4 left-4 z-40 w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-[18px] border border-radius-border-subtle bg-radius-bg-primary/92 shadow-[0_12px_36px_rgba(0,0,0,0.14)] backdrop-blur-xl">
@@ -67,6 +86,33 @@ export function SyncPill({ syncStatus, notice }: SyncPillProps) {
               />
             </div>
           ) : null}
+          {lastSynced ? (
+            <p className="mt-2 text-[10px] uppercase tracking-[0.12em] text-radius-text-muted">
+              {lastSynced}
+            </p>
+          ) : null}
+          {(onRefresh || onDismissNotice) && (
+            <div className="mt-3 flex items-center gap-2">
+              {onRefresh ? (
+                <button
+                  type="button"
+                  onClick={onRefresh}
+                  className="inline-flex items-center rounded-lg border border-radius-border-subtle px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-radius-text-muted transition-colors hover:border-radius-border hover:text-radius-text-primary"
+                >
+                  Refresh
+                </button>
+              ) : null}
+              {notice && onDismissNotice ? (
+                <button
+                  type="button"
+                  onClick={onDismissNotice}
+                  className="inline-flex items-center rounded-lg border border-radius-border-subtle px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-radius-text-muted transition-colors hover:border-radius-border hover:text-radius-text-primary"
+                >
+                  Dismiss
+                </button>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
     </div>

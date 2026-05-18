@@ -30,7 +30,7 @@ export function NotificationPermissionPrompt({
           </p>
           <p className="mt-1 text-[11px] leading-[1.5] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
             {mode === "followup"
-              ? "Open Notifications settings and set Radius to Banners so new mail pops up."
+              ? "Open Notifications settings and switch Radius to Banners so alerts stay lightweight instead of blocking you."
               : "Enable native alerts so Radius can notify you when new email arrives."}
           </p>
         </div>
@@ -60,6 +60,13 @@ export function NotificationPermissionPrompt({
             Open settings
           </button>
         )}
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="inline-flex items-center rounded-lg px-2 py-1.5 text-[11px] font-medium text-radius-text-muted transition-colors hover:text-radius-text-primary"
+        >
+          Not now
+        </button>
       </div>
     </div>
   );
