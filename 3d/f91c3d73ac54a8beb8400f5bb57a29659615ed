@@ -1,0 +1,11 @@
+landing/src/styles/global.css
+  ai_agent 6-11,13-19,22,36-54,69,79-80,132-184,187-207,209
+landing/src/pages/index.astro
+  ai_agent 5-6,8-14,16-102,104-199,201-348,350-386,388-425
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "3df91c3d73ac54a8beb8400f5bb57a29659615ed",
+  "prompts": {}
+}
