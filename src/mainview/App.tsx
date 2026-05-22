@@ -23,7 +23,7 @@ import notifSoundUrl from "../../assets/notif.mp3";
 import { Toaster, toast } from "sonner";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { radiusRpc } from "./lib/rpc";
-import { applyUISettings } from "@/lib/font-utils";
+import { applyUISettings, normalizeUISettings } from "@/lib/font-utils";
 import type {
   ComposeContactSuggestion,
   PendingDeleteStatusMessage,
@@ -355,16 +355,14 @@ function App() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const uiFont = localStorage.getItem("radius.ui.font") || "";
-    const readerFont = localStorage.getItem("radius.reader.font") || "";
-    const fontSizeStr = localStorage.getItem("radius.app.fontsize");
-    const fontSize = fontSizeStr ? parseInt(fontSizeStr, 10) : 14;
 
-    applyUISettings({
-      uiFont: uiFont || undefined,
-      readerFont: readerFont || undefined,
-      fontSize: fontSize || undefined,
+    const normalizedSettings = normalizeUISettings({
+      uiFont: localStorage.getItem("radius.ui.font"),
+      readerFont: localStorage.getItem("radius.reader.font"),
+      fontSize: localStorage.getItem("radius.app.fontsize"),
     });
+
+    applyUISettings(normalizedSettings);
   }, []);
 
   useEffect(() => {

@@ -79,8 +79,8 @@ export function ComposeEmailDialog({
     [attachments],
   );
 
-  const persistComposer = useCallback(async () => {
-    if (!sessionId || !fromAccount?.email) return;
+  const persistComposer = useCallback(async (): Promise<boolean> => {
+    if (!sessionId || !fromAccount?.email) return false;
 
     setSaveStatus("saving");
     try {
@@ -97,12 +97,15 @@ export function ComposeEmailDialog({
         if (result.session?.lastSavedAt) {
           setDraftSavedAt(result.session.lastSavedAt);
         }
+        return true;
       } else {
         setSaveStatus("error");
+        return false;
       }
     } catch (error) {
       console.error("Failed to update compose session:", error);
       setSaveStatus("error");
+      return false;
     }
   }, [body, fromAccount?.email, selectedRecipients, serializeAttachments, sessionId, subject]);
 
@@ -308,7 +311,12 @@ export function ComposeEmailDialog({
 
       setPendingAction(action);
       try {
-        await persistComposer();
+        const didPersist = await persistComposer();
+        if (!didPersist) {
+          toast.error(action === "draft" ? "Draft save failed" : "Failed to save before sending");
+          return;
+        }
+
         if (action === "draft") {
           const result = await radiusRpc.request.saveDraft({ sessionId });
           if (!result.success) {

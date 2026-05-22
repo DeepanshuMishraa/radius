@@ -78,13 +78,45 @@ export function isFontInstalled(fontName: string): boolean {
   }
 }
 
-interface FontSettings {
+export interface FontSettings {
   uiFont?: string;
   readerFont?: string;
   fontSize?: number;
 }
 
 export const UI_SETTINGS_EVENT = "radius:ui-settings-changed";
+const DEFAULT_FONT_SIZE = 14;
+const MIN_FONT_SIZE = 12;
+const MAX_FONT_SIZE = 18;
+
+function normalizeStoredFontValue(value: string | null): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function normalizeStoredFontSize(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const parsed = parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return undefined;
+  return Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, parsed));
+}
+
+export function normalizeUISettings(input: {
+  uiFont?: string | null;
+  readerFont?: string | null;
+  fontSize?: string | number | null;
+}): FontSettings {
+  const normalizedFontSize =
+    typeof input.fontSize === "number"
+      ? Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, input.fontSize))
+      : normalizeStoredFontSize(input.fontSize ?? null);
+
+  return {
+    uiFont: normalizeStoredFontValue(input.uiFont ?? null),
+    readerFont: normalizeStoredFontValue(input.readerFont ?? null),
+    fontSize: normalizedFontSize,
+  };
+}
 
 /**
  * Instantly applies user customizations directly to CSS custom properties
@@ -110,10 +142,9 @@ export function applyUISettings(settings: FontSettings) {
     }
   }
 
-  if (settings.fontSize) {
+  if (settings.fontSize !== undefined) {
     // Proportional UI scaling mapping, using 14px as scale = 1.0 (Medium / default).
-    const baseFontSize = 14;
-    const zoom = settings.fontSize / baseFontSize;
+    const zoom = settings.fontSize / DEFAULT_FONT_SIZE;
     root.style.setProperty("--radius-app-zoom", zoom.toString());
   }
 

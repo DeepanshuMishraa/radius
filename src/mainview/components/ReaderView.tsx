@@ -1025,7 +1025,7 @@ export const ReaderView = memo(function ReaderView({
     );
   });
   
-  const [textSize] = useState<"sm" | "md" | "lg">(() => {
+  const [textSize, setTextSize] = useState<"sm" | "md" | "lg">(() => {
     const saved = localStorage.getItem("radius.reader.textsize");
     return (saved === "sm" || saved === "md" || saved === "lg") ? saved : "md";
   });
@@ -1075,6 +1075,13 @@ export const ReaderView = memo(function ReaderView({
         computedStyles.getPropertyValue("--font-family-reader").trim() ||
           computedStyles.getPropertyValue("--font-family-sans").trim() ||
           '"JetBrains Mono", ui-sans-serif, system-ui, sans-serif'
+      );
+
+      const savedTextSize = localStorage.getItem("radius.reader.textsize");
+      setTextSize(
+        savedTextSize === "sm" || savedTextSize === "md" || savedTextSize === "lg"
+          ? savedTextSize
+          : "md"
       );
     };
 
@@ -1399,7 +1406,7 @@ export const ReaderView = memo(function ReaderView({
               </div>
             ) : (
               <div className="max-w-[720px] mx-auto">
-                <div className={`font-[family-name:var(--font-family-sans)] text-radius-text-primary whitespace-pre-wrap ${plainTextClass}`}>
+                <div className={`font-[family-name:var(--font-family-reader)] text-radius-text-primary whitespace-pre-wrap ${plainTextClass}`}>
                   {message.bodyText || message.snippet}
                 </div>
                 <AttachmentList attachments={message.attachments} messageId={message.id} />
