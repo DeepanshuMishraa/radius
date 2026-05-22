@@ -1,0 +1,19 @@
+src/components/settings-dialog.tsx
+  s_c19124fdc0f991::t_b5d72a9f8bab80 553
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "ae26f6139b3b5dd72714fcdcdf4030bda30df2ca",
+  "prompts": {},
+  "sessions": {
+    "s_c19124fdc0f991": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e4f46-c467-7e1f-801c-a8d93d694dcd",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
