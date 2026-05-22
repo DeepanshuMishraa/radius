@@ -16,11 +16,14 @@ import { UpdateNotification } from "@/components/update-notification";
 import { SyncPill } from "@/components/sync-pill";
 import { AboutDialog } from "@/components/about";
 import { AddAccountDialog } from "@/components/add-account";
+import { SettingsDialog } from "@/components/settings-dialog";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Cancel01Icon, Mail01Icon } from "@hugeicons/core-free-icons";
+import notifSoundUrl from "../../assets/notif.mp3";
 import { Toaster, toast } from "sonner";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { radiusRpc } from "./lib/rpc";
+import { applyUISettings, normalizeUISettings } from "@/lib/font-utils";
 import type {
   ComposeContactSuggestion,
   PendingDeleteStatusMessage,
@@ -126,6 +129,7 @@ function App() {
   const [addAccountMode, setAddAccountMode] = useState<SyncMode | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [aboutInfo, setAboutInfo] = useState<LocalReleaseInfo | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [composeIntent, setComposeIntent] = useState<ComposeIntent | null>(null);
   const composeToastTimersRef = useRef<number[]>([]);
   const activeMailboxRef = useRef<Exclude<MailboxKind, "inbox"> | null>(null);
@@ -290,6 +294,15 @@ function App() {
 
   useEffect(() => {
     const handleNewMail = (incomingMessage: Message) => {
+      try {
+        const audio = new Audio(notifSoundUrl);
+        audio.play().catch(() => {
+          // Ignore autoplay policy rejections or decode errors.
+        });
+      } catch {
+        // Ignore audio initialization errors.
+      }
+
       const sender = parseAddressLabel(incomingMessage.from);
       toast.custom(
         (t) => (
@@ -338,6 +351,18 @@ function App() {
     return () => {
       radiusRpc.removeMessageListener("newMail", handleNewMail);
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const normalizedSettings = normalizeUISettings({
+      uiFont: localStorage.getItem("radius.ui.font"),
+      readerFont: localStorage.getItem("radius.reader.font"),
+      fontSize: localStorage.getItem("radius.app.fontsize"),
+    });
+
+    applyUISettings(normalizedSettings);
   }, []);
 
   useEffect(() => {
@@ -869,8 +894,14 @@ function App() {
     void refreshAccounts();
   }, [refreshAccounts]);
 
+  const handleOpenSettings = useCallback(() => {
+    setCmdOpen(false);
+    setSettingsOpen(true);
+  }, []);
+
   const handleOpenAbout = useCallback(async () => {
     setCmdOpen(false);
+    setSettingsOpen(false);
     setAboutOpen(true);
     try {
       const info = await radiusRpc.request.getLocalReleaseInfo({});
@@ -924,7 +955,7 @@ function App() {
   }
 
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+    <ThemeProvider defaultTheme="nothing-light" storageKey="vite-ui-theme">
       <TooltipProvider>
       <div className="relative flex h-full bg-radius-bg-primary overflow-hidden">
         <DragRegion />
@@ -999,17 +1030,12 @@ function App() {
             onSearchEmails={handleOpenSearch}
             onComposeEmail={handleOpenCompose}
             onCheckForUpdates={handleCheckForUpdates}
-            onSwitchAccount={handleSwitchAccount}
-            onAddAccount={handleAddAccount}
-            onRemoveAccount={handleRemoveAccount}
-            onAbout={handleOpenAbout}
             onShowMailbox={handleOpenMailbox}
             onShowInbox={handleShowInbox}
             onClose={() => setCmdOpen(false)}
             onResync={handleResync}
             onReconnect={handleReconnect}
-            accounts={accounts}
-            activeAccount={activeAccount}
+            onOpenSettings={handleOpenSettings}
           />
         </DialogContent>
       </Dialog>
@@ -1071,6 +1097,16 @@ function App() {
         open={aboutOpen}
         onClose={handleCloseAbout}
         info={aboutInfo}
+      />
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        accounts={accounts}
+        activeAccount={activeAccount}
+        onSwitchAccount={handleSwitchAccount}
+        onAddAccount={handleAddAccount}
+        onRemoveAccount={handleRemoveAccount}
+        onAbout={handleOpenAbout}
       />
       </div>
       </TooltipProvider>

@@ -216,6 +216,7 @@
     --font-family-sans:
         "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
     --font-family-serif: "Playfair Display", Georgia, serif;
+    --font-family-reader: var(--font-family-sans);
 
     --transition-duration-80: 80ms;
 }
@@ -223,6 +224,10 @@
 @layer base {
     html {
         color-scheme: light dark;
+        zoom: var(--radius-app-zoom, 1);
+        height: calc(100vh / var(--radius-app-zoom, 1));
+        width: calc(100vw / var(--radius-app-zoom, 1));
+        overflow: hidden;
     }
 
     body {
@@ -235,7 +240,8 @@
             background-color 0.18s cubic-bezier(0.32, 0.72, 0, 1),
             color 0.18s cubic-bezier(0.32, 0.72, 0, 1);
         overflow: hidden;
-        height: 100vh;
+        height: 100%;
+        width: 100%;
         padding: 4px;
         box-sizing: border-box;
     }

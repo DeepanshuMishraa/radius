@@ -285,9 +285,10 @@ export const APP_THEMES = Object.entries(themeFiles)
   .sort((left, right) => left.name.localeCompare(right.name));
 
 export const DEFAULT_THEME_ID =
-  APP_THEMES.find((theme) => theme.id === "dark")?.id ??
+  APP_THEMES.find((theme) => theme.id === "nothing-light")?.id ??
+  APP_THEMES.find((theme) => theme.id === "light")?.id ??
   APP_THEMES[0]?.id ??
-  "dark";
+  "nothing-light";
 
 export const getThemeById = (themeId: string | null | undefined) =>
   APP_THEMES.find((theme) => theme.id === themeId) ?? null;

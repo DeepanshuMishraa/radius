@@ -51,7 +51,7 @@ function CategoryBadge({ category }: { category: EmailCategory }) {
 
   return (
     <span 
-      className="inline-flex shrink-0 items-center justify-center rounded px-1.5 py-[1px] text-[8.5px] font-bold uppercase tracking-[0.16em] text-radius-text-muted border border-radius-border-subtle/60 bg-radius-bg-secondary/40 backdrop-blur-sm"
+      className="inline-flex shrink-0 items-center justify-center rounded px-1.5 py-[1px] text-[8.5px] font-bold uppercase tracking-[0.16em] text-radius-text-muted border border-radius-border-subtle/60 bg-radius-bg-secondary/40 backdrop-blur-sm opacity-30 group-hover/row:opacity-100 hover:opacity-100! transition-opacity duration-200"
       title={category}
     >
       {label}
@@ -88,9 +88,9 @@ function EmailRow({
     <div
       onClick={onClick}
       className={`
-        flex items-start gap-3 h-[104px] px-4 py-3.5 cursor-pointer select-none overflow-hidden transition-colors duration-150
-        ${isSelected ? "border-l-[2px] border-l-radius-accent bg-radius-bg-secondary/80" : "border-l-[2px] border-l-transparent hover:bg-radius-bg-secondary/50"}
-        ${!message.isRead && !isSelected ? "bg-radius-bg-secondary/20" : ""}
+        group/row flex items-start gap-4 h-[92px] px-6 py-4 cursor-pointer select-none overflow-hidden transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]
+        ${isSelected ? "border-l-[3px] border-l-radius-accent bg-radius-bg-secondary/70 shadow-sm" : "border-l-[3px] border-l-transparent hover:bg-radius-bg-secondary/30"}
+        ${!message.isRead && !isSelected ? "bg-radius-bg-secondary/10" : ""}
       `}
     >
       {/* Unread dot column */}
@@ -135,8 +135,8 @@ function EmailRow({
         <p
           className={`text-[12.5px] truncate font-[family-name:var(--font-family-sans)] leading-relaxed mt-0.5 ${
             message.isRead
-              ? "text-radius-text-muted/60"
-              : "text-radius-text-secondary/80"
+              ? "text-radius-text-muted/50"
+              : "text-radius-text-secondary/70"
           }`}
         >
           {message.snippet}
@@ -164,7 +164,7 @@ export function InboxList({
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 104,
+    estimateSize: () => 92,
     getItemKey: (index) => messages[index]?.id ?? index,
     overscan: 5,
   });

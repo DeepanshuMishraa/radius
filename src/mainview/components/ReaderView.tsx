@@ -14,6 +14,7 @@ import {
   MailReply01Icon,
 } from "@hugeicons/core-free-icons";
 import { radiusRpc } from "../lib/rpc";
+import { UI_SETTINGS_EVENT } from "@/lib/font-utils";
 
 interface ReaderViewProps {
   message: Message | null;
@@ -65,7 +66,7 @@ function AddressReveal({
 
   return (
     <span
-      className="group/address relative inline-grid min-h-[1.35rem] max-w-full text-[14px] font-[family-name:var(--font-family-serif)] text-radius-text-primary"
+      className="group/address relative inline-grid min-h-[1.35rem] max-w-full text-[14px] font-[family-name:var(--font-family-serif)] text-radius-text-primary cursor-pointer select-none"
       title={secondaryLabel}
     >
       <span
@@ -294,7 +295,7 @@ function ActionBarWidget({
     <div
       className="
         fixed top-[46px] right-6 z-30
-        flex items-center gap-0.5
+        flex items-center gap-1.5
         p-1
         rounded-lg
         bg-radius-bg-primary/70 backdrop-blur-md
@@ -309,7 +310,7 @@ function ActionBarWidget({
     >
       <ActionButton icon={<HugeiconsIcon icon={MailReply01Icon} size={16} />} tooltip="Reply" onClick={onReply} />
       <ActionButton icon={<HugeiconsIcon icon={Forward02Icon} size={16} />} tooltip="Forward" onClick={onForward} />
-      <div className="w-[1px] h-3.5 bg-radius-border-subtle mx-1" />
+      <div className="w-[1px] h-3.5 bg-radius-border-subtle/75" />
       <ActionButton 
         icon={<HugeiconsIcon icon={Delete01Icon} size={16} />} 
         tooltip="Delete" 
@@ -464,6 +465,7 @@ function buildNewsletterSrcDoc(
     mutedText: string;
     border: string;
     accent: string;
+    readerFont: string;
   }
 ): string {
   const escapedFrameId = JSON.stringify(frameId);
@@ -484,12 +486,14 @@ function buildNewsletterSrcDoc(
         --radius-newsletter-muted: ${theme.mutedText};
         --radius-newsletter-border: ${theme.border};
         --radius-newsletter-accent: ${theme.accent};
+        --radius-newsletter-font: ${theme.readerFont};
       }
       html, body {
         margin: 0;
         padding: 0;
         background: var(--radius-newsletter-surface);
         color: var(--radius-newsletter-text);
+        font-family: var(--radius-newsletter-font);
         overflow-x: hidden;
       }
       * {
@@ -518,6 +522,13 @@ function buildNewsletterSrcDoc(
       .radius-email-root,
       .radius-email-inner {
         color: var(--radius-newsletter-text);
+        font-family: var(--radius-newsletter-font);
+      }
+      .radius-email-inner :is(body, table, tbody, thead, tfoot, tr, td, th, div, section, article, main, aside, p, span, li, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, font, a, strong, em, b, i) {
+        font-family: var(--radius-newsletter-font) !important;
+      }
+      .radius-email-inner :is(pre, code, kbd, samp) {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
       }
       body[data-radius-appearance="dark"] .radius-email-inner,
       body[data-radius-appearance="dark"] .radius-email-inner :is(body, table, tbody, thead, tfoot, tr, td, th, div, section, article, main, aside, p, span, li, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, font) {
@@ -549,6 +560,7 @@ function buildNewsletterSrcDoc(
       const frameId = ${escapedFrameId};
       const theme = ${escapedTheme};
       const IGNORED_TAGS = new Set(["IMG", "SVG", "PATH", "VIDEO", "SOURCE", "PICTURE", "CANVAS"]);
+      const CODE_TAGS = new Set(["PRE", "CODE", "KBD", "SAMP"]);
       const SURFACE_TAGS = new Set(["TABLE", "TBODY", "THEAD", "TFOOT", "TR", "TD", "TH", "DIV", "SECTION", "ARTICLE", "MAIN", "ASIDE"]);
 
       const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -610,6 +622,16 @@ function buildNewsletterSrcDoc(
         for (const element of root.querySelectorAll("*")) {
           if (!(element instanceof HTMLElement)) continue;
           if (IGNORED_TAGS.has(element.tagName)) continue;
+
+          if (CODE_TAGS.has(element.tagName)) {
+            element.style.setProperty(
+              "font-family",
+              "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+              "important"
+            );
+          } else {
+            element.style.setProperty("font-family", theme.readerFont, "important");
+          }
 
           const computed = window.getComputedStyle(element);
           const bg = parseColor(computed.backgroundColor);
@@ -721,6 +743,7 @@ function NewsletterFrame({
     mutedText: string;
     border: string;
     accent: string;
+    readerFont: string;
   };
 }) {
   const [height, setHeight] = useState(900);
@@ -808,7 +831,7 @@ const EMAIL_ALLOWED_ATTR = [
 
 const EMAIL_BODY_STYLES = `
   .email-body {
-    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
+    font-family: var(--font-family-reader, var(--font-family-sans)), ui-monospace, SFMono-Regular, monospace;
     word-wrap: break-word;
     overflow-wrap: break-word;
   }
@@ -817,14 +840,14 @@ const EMAIL_BODY_STYLES = `
     font-family: inherit !important;
   }
   .email-body--simple {
-    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
+    font-family: var(--font-family-reader, var(--font-family-sans)), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
     background: transparent;
     font-size: 1.08rem;
     line-height: 1.85;
   }
   .email-section--simple {
-    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
+    font-family: var(--font-family-reader, var(--font-family-sans)), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
     font-size: 1.08rem;
     line-height: 1.85;
@@ -862,13 +885,13 @@ const EMAIL_BODY_STYLES = `
   }
   .email-section--simple h1, .email-section--simple h2, .email-section--simple h3,
   .email-section--simple h4, .email-section--simple h5, .email-section--simple h6 {
-    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
+    font-family: var(--font-family-reader, var(--font-family-sans)), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
   }
 
   .email-body--simple h1, .email-body--simple h2, .email-body--simple h3,
   .email-body--simple h4, .email-body--simple h5, .email-body--simple h6 {
-    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
+    font-family: var(--font-family-reader, var(--font-family-sans)), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
   }
   .email-body h1 { font-size: 1.5em; }
@@ -989,6 +1012,44 @@ export const ReaderView = memo(function ReaderView({
   onDelete,
 }: ReaderViewProps) {
   const { theme, appearance, resolvedTheme } = useTheme();
+  const [readerFontFamily, setReaderFontFamily] = useState(() => {
+    if (typeof window === "undefined") {
+      return '"JetBrains Mono", ui-sans-serif, system-ui, sans-serif';
+    }
+
+    const computedStyles = window.getComputedStyle(document.documentElement);
+    return (
+      computedStyles.getPropertyValue("--font-family-reader").trim() ||
+      computedStyles.getPropertyValue("--font-family-sans").trim() ||
+      '"JetBrains Mono", ui-sans-serif, system-ui, sans-serif'
+    );
+  });
+  
+  const [textSize, setTextSize] = useState<"sm" | "md" | "lg">(() => {
+    const saved = localStorage.getItem("radius.reader.textsize");
+    return (saved === "sm" || saved === "md" || saved === "lg") ? saved : "md";
+  });
+
+  const richTextClass = 
+    textSize === "sm" 
+      ? "text-[13px] leading-[1.5]" 
+      : textSize === "lg" 
+        ? "text-[17px] leading-[1.7]" 
+        : "text-[15px] leading-[1.6]";
+
+  const simpleTextClass = 
+    textSize === "sm" 
+      ? "text-[15px] leading-[1.65]" 
+      : textSize === "lg" 
+        ? "text-[20px] leading-[2.0]" 
+        : "text-[17px] leading-[1.85]";
+
+  const plainTextClass = 
+    textSize === "sm" 
+      ? "text-[15px] leading-[1.55]" 
+      : textSize === "lg" 
+        ? "text-[20px] leading-[1.95]" 
+        : "text-[17px] leading-[1.75]";
   const newsletterThemeConfig = useMemo(() => {
     const variables = resolvedTheme?.variables ?? {};
 
@@ -1001,8 +1062,38 @@ export const ReaderView = memo(function ReaderView({
       mutedText: variables["--radius-text-secondary"] ?? "#5c5a57",
       border: variables["--radius-border-subtle"] ?? "#e5e0d9",
       accent: variables["--radius-accent"] ?? "#c4785a",
+      readerFont: readerFontFamily,
     };
-  }, [appearance, resolvedTheme, theme]);
+  }, [appearance, readerFontFamily, resolvedTheme, theme]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const syncReaderFont = () => {
+      const computedStyles = window.getComputedStyle(document.documentElement);
+      setReaderFontFamily(
+        computedStyles.getPropertyValue("--font-family-reader").trim() ||
+          computedStyles.getPropertyValue("--font-family-sans").trim() ||
+          '"JetBrains Mono", ui-sans-serif, system-ui, sans-serif'
+      );
+
+      const savedTextSize = localStorage.getItem("radius.reader.textsize");
+      setTextSize(
+        savedTextSize === "sm" || savedTextSize === "md" || savedTextSize === "lg"
+          ? savedTextSize
+          : "md"
+      );
+    };
+
+    const handleSettingsChanged = () => {
+      syncReaderFont();
+    };
+
+    window.addEventListener(UI_SETTINGS_EVENT, handleSettingsChanged as EventListener);
+    return () => {
+      window.removeEventListener(UI_SETTINGS_EVENT, handleSettingsChanged as EventListener);
+    };
+  }, []);
   useEffect(() => {
     if (!message) return;
     const handler = (e: KeyboardEvent) => {
@@ -1305,7 +1396,7 @@ export const ReaderView = memo(function ReaderView({
             {sanitizedHtml ? (
               <div className="max-w-[720px] mx-auto">
                 <div
-                  className={hasRichHtml ? "email-body min-w-0 text-[15px] leading-[1.6]" : "email-body email-body--simple min-w-0 text-[17px] leading-[1.85]"}
+                  className={`email-body min-w-0 ${hasRichHtml ? `email-body--rich ${richTextClass}` : `email-body--simple ${simpleTextClass}`}`}
                   onClick={handleBodyClick}
                   dangerouslySetInnerHTML={{
                     __html: hasRichHtml ? (htmlRender.html ?? sanitizedHtml) : sanitizedHtml,
@@ -1315,7 +1406,7 @@ export const ReaderView = memo(function ReaderView({
               </div>
             ) : (
               <div className="max-w-[720px] mx-auto">
-                <div className="font-[family-name:var(--font-family-sans)] text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
+                <div className={`font-[family-name:var(--font-family-reader)] text-radius-text-primary whitespace-pre-wrap ${plainTextClass}`}>
                   {message.bodyText || message.snippet}
                 </div>
                 <AttachmentList attachments={message.attachments} messageId={message.id} />
