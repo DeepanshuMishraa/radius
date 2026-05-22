@@ -14,9 +14,10 @@ import { Home } from "./home";
 import { Accounts } from "./accounts";
 import { Themes } from "./themes";
 import { Mailboxes } from "./mailboxes";
+import { UISettings } from "./ui-settings";
 import { cn } from "@/lib/utils";
 
-type Page = "home" | "accounts" | "themes" | "mailboxes";
+type Page = "home" | "accounts" | "themes" | "mailboxes" | "ui-settings";
 
 interface CommandKProps {
   onSearchEmails: () => void;
@@ -112,12 +113,36 @@ export function CommandK({
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (deleteTarget) {
+          e.preventDefault();
+          e.stopPropagation();
+          setDeleteTarget(null);
+          return;
+        }
+        if (page !== "home") {
+          e.preventDefault();
+          e.stopPropagation();
+          setPage("home");
+          setSearch("");
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+        return;
+      }
+
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
+        const active = document.activeElement;
+        if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) {
+          return;
+        }
         e.preventDefault();
         inputRef.current?.select();
       }
     },
-    []
+    [page, deleteTarget, onClose]
   );
 
   const handleBack = React.useCallback(() => {
@@ -162,7 +187,9 @@ export function CommandK({
               ? "Accounts"
               : page === "mailboxes"
                 ? "Mailroom"
-                : "Themes"}
+                : page === "ui-settings"
+                  ? "UI Settings"
+                  : "Themes"}
           </span>
         </div>
       )}
@@ -212,52 +239,64 @@ export function CommandK({
 
       <div className="grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]">
         <div className="overflow-hidden">
-          <CommandList className="max-h-[60vh]">
-            <CommandEmpty className="py-12 text-center text-[13px] text-radius-text-muted">
-              No results found.
-            </CommandEmpty>
-            
-            <div className="p-1.5">
-              {page === "home" ? (
-                <Home
-                  onSelectTheme={() => {
-                    setPage("themes");
-                    setSearch("");
-                  }}
-                  onOpenMailroom={() => {
-                    setPage("mailboxes");
-                    setSearch("");
-                  }}
-                  onSearchEmails={onSearchEmails}
-                  onComposeEmail={onComposeEmail}
-                  onCheckForUpdates={onCheckForUpdates}
-                  onSelectAccounts={() => setPage("accounts")}
-                  onAbout={onAbout}
-                  onShowInbox={onShowInbox}
-                  onResync={onResync}
-                  onReconnect={onReconnect}
-                />
-              ) : page === "accounts" ? (
-                <Accounts
-                  accounts={accounts}
-                  activeAccount={activeAccount}
-                  deleteTarget={deleteTarget}
-                  onSwitchAccount={onSwitchAccount}
-                  onAddAccount={onAddAccount}
-                />
-              ) : page === "mailboxes" ? (
-                <Mailboxes
-                  onSelectMailbox={onShowMailbox}
-                />
-              ) : (
-                <Themes
-                  themes={themes}
-                  currentTheme={theme}
-                  onSetTheme={setTheme}
-                />
-              )}
+          {page === "ui-settings" ? (
+            <div className="max-h-[60vh] overflow-y-auto p-1.5 bg-transparent">
+              <UISettings />
             </div>
-          </CommandList>
+          ) : (
+            <CommandList className="max-h-[60vh]">
+              {page === "home" && (
+                <CommandEmpty className="py-12 text-center text-[13px] text-radius-text-muted">
+                  No results found.
+                </CommandEmpty>
+              )}
+              
+              <div className="p-1.5">
+                {page === "home" ? (
+                  <Home
+                    onSelectTheme={() => {
+                      setPage("themes");
+                      setSearch("");
+                    }}
+                    onOpenMailroom={() => {
+                      setPage("mailboxes");
+                      setSearch("");
+                    }}
+                    onSelectUiSettings={() => {
+                      setPage("ui-settings");
+                      setSearch("");
+                    }}
+                    onSearchEmails={onSearchEmails}
+                    onComposeEmail={onComposeEmail}
+                    onCheckForUpdates={onCheckForUpdates}
+                    onSelectAccounts={() => setPage("accounts")}
+                    onAbout={onAbout}
+                    onShowInbox={onShowInbox}
+                    onResync={onResync}
+                    onReconnect={onReconnect}
+                  />
+                ) : page === "accounts" ? (
+                  <Accounts
+                    accounts={accounts}
+                    activeAccount={activeAccount}
+                    deleteTarget={deleteTarget}
+                    onSwitchAccount={onSwitchAccount}
+                    onAddAccount={onAddAccount}
+                  />
+                ) : page === "mailboxes" ? (
+                  <Mailboxes
+                    onSelectMailbox={onShowMailbox}
+                  />
+                ) : (
+                  <Themes
+                    themes={themes}
+                    currentTheme={theme}
+                    onSetTheme={setTheme}
+                  />
+                )}
+              </div>
+            </CommandList>
+          )}
         </div>
       </div>
     </Command>

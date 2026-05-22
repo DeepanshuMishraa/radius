@@ -65,7 +65,7 @@ function AddressReveal({
 
   return (
     <span
-      className="group/address relative inline-grid min-h-[1.35rem] max-w-full text-[14px] font-[family-name:var(--font-family-serif)] text-radius-text-primary"
+      className="group/address relative inline-grid min-h-[1.35rem] max-w-full text-[14px] font-[family-name:var(--font-family-serif)] text-radius-text-primary cursor-pointer select-none"
       title={secondaryLabel}
     >
       <span
@@ -294,7 +294,7 @@ function ActionBarWidget({
     <div
       className="
         fixed top-[46px] right-6 z-30
-        flex items-center gap-0.5
+        flex items-center gap-1.5
         p-1
         rounded-lg
         bg-radius-bg-primary/70 backdrop-blur-md
@@ -309,7 +309,7 @@ function ActionBarWidget({
     >
       <ActionButton icon={<HugeiconsIcon icon={MailReply01Icon} size={16} />} tooltip="Reply" onClick={onReply} />
       <ActionButton icon={<HugeiconsIcon icon={Forward02Icon} size={16} />} tooltip="Forward" onClick={onForward} />
-      <div className="w-[1px] h-3.5 bg-radius-border-subtle mx-1" />
+      <div className="w-[1px] h-3.5 bg-radius-border-subtle/75" />
       <ActionButton 
         icon={<HugeiconsIcon icon={Delete01Icon} size={16} />} 
         tooltip="Delete" 
@@ -989,6 +989,47 @@ export const ReaderView = memo(function ReaderView({
   onDelete,
 }: ReaderViewProps) {
   const { theme, appearance, resolvedTheme } = useTheme();
+  
+  const [textSize, setTextSize] = useState<"sm" | "md" | "lg">(() => {
+    const saved = localStorage.getItem("radius.reader.textsize");
+    return (saved === "sm" || saved === "md" || saved === "lg") ? saved : "md";
+  });
+
+  const handleSetTextSize = useCallback((size: "sm" | "md" | "lg") => {
+    setTextSize(size);
+    localStorage.setItem("radius.reader.textsize", size);
+  }, []);
+
+  const decreaseTextSize = useCallback(() => {
+    if (textSize === "lg") handleSetTextSize("md");
+    else if (textSize === "md") handleSetTextSize("sm");
+  }, [textSize, handleSetTextSize]);
+
+  const increaseTextSize = useCallback(() => {
+    if (textSize === "sm") handleSetTextSize("md");
+    else if (textSize === "md") handleSetTextSize("lg");
+  }, [textSize, handleSetTextSize]);
+
+  const richTextClass = 
+    textSize === "sm" 
+      ? "text-[13px] leading-[1.5]" 
+      : textSize === "lg" 
+        ? "text-[17px] leading-[1.7]" 
+        : "text-[15px] leading-[1.6]";
+
+  const simpleTextClass = 
+    textSize === "sm" 
+      ? "text-[15px] leading-[1.65]" 
+      : textSize === "lg" 
+        ? "text-[20px] leading-[2.0]" 
+        : "text-[17px] leading-[1.85]";
+
+  const plainTextClass = 
+    textSize === "sm" 
+      ? "text-[15px] leading-[1.55]" 
+      : textSize === "lg" 
+        ? "text-[20px] leading-[1.95]" 
+        : "text-[17px] leading-[1.75]";
   const newsletterThemeConfig = useMemo(() => {
     const variables = resolvedTheme?.variables ?? {};
 
@@ -1207,7 +1248,12 @@ export const ReaderView = memo(function ReaderView({
   const recipient = parseAddress(message.to);
 
   return (
-    <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-11">
+    <div 
+      className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-11"
+      style={{
+        "--font-family-sans": "var(--font-family-reader, var(--font-family-sans))"
+      } as React.CSSProperties}
+    >
       <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
       <ActionBarWidget 
         visible={true} 
@@ -1305,7 +1351,7 @@ export const ReaderView = memo(function ReaderView({
             {sanitizedHtml ? (
               <div className="max-w-[720px] mx-auto">
                 <div
-                  className={hasRichHtml ? "email-body min-w-0 text-[15px] leading-[1.6]" : "email-body email-body--simple min-w-0 text-[17px] leading-[1.85]"}
+                  className={`email-body min-w-0 ${hasRichHtml ? `email-body--rich ${richTextClass}` : `email-body--simple ${simpleTextClass}`}`}
                   onClick={handleBodyClick}
                   dangerouslySetInnerHTML={{
                     __html: hasRichHtml ? (htmlRender.html ?? sanitizedHtml) : sanitizedHtml,
@@ -1315,7 +1361,7 @@ export const ReaderView = memo(function ReaderView({
               </div>
             ) : (
               <div className="max-w-[720px] mx-auto">
-                <div className="font-[family-name:var(--font-family-sans)] text-[17px] leading-[1.75] text-radius-text-primary whitespace-pre-wrap">
+                <div className={`font-[family-name:var(--font-family-sans)] text-radius-text-primary whitespace-pre-wrap ${plainTextClass}`}>
                   {message.bodyText || message.snippet}
                 </div>
                 <AttachmentList attachments={message.attachments} messageId={message.id} />

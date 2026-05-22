@@ -45,7 +45,9 @@ export function ComposeEmailDialog({
   const [hydrating, setHydrating] = useState(false);
   const [sessionMode, setSessionMode] = useState<"compose" | "reply" | "forward">("compose");
   const [fixedRecipients, setFixedRecipients] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const draftSaveTimerRef = useRef<number | null>(null);
+  const isFirstChangeRef = useRef(true);
   const requestedTitle =
     intent.kind === "reply"
       ? "Reply"
@@ -80,14 +82,28 @@ export function ComposeEmailDialog({
   const persistComposer = useCallback(async () => {
     if (!sessionId || !fromAccount?.email) return;
 
-    await radiusRpc.request.updateComposeSession({
-      sessionId,
-      from: fromAccount.email,
-      to: selectedRecipients.map((item) => item.email),
-      subject: subject.trim(),
-      bodyText: body,
-      attachments: serializeAttachments(),
-    });
+    setSaveStatus("saving");
+    try {
+      const result = await radiusRpc.request.updateComposeSession({
+        sessionId,
+        from: fromAccount.email,
+        to: selectedRecipients.map((item) => item.email),
+        subject: subject.trim(),
+        bodyText: body,
+        attachments: serializeAttachments(),
+      });
+      if (result.success) {
+        setSaveStatus("saved");
+        if (result.session?.lastSavedAt) {
+          setDraftSavedAt(result.session.lastSavedAt);
+        }
+      } else {
+        setSaveStatus("error");
+      }
+    } catch (error) {
+      console.error("Failed to update compose session:", error);
+      setSaveStatus("error");
+    }
   }, [body, fromAccount?.email, selectedRecipients, serializeAttachments, sessionId, subject]);
 
   useEffect(() => {
@@ -98,6 +114,8 @@ export function ComposeEmailDialog({
       setHydrating(false);
       setSessionMode("compose");
       setFixedRecipients(false);
+      setSaveStatus("idle");
+      isFirstChangeRef.current = true;
       setComposeState((current) => {
         for (const att of current.attachments) {
           if (att.url) URL.revokeObjectURL(att.url);
@@ -112,6 +130,8 @@ export function ComposeEmailDialog({
     setSessionId(null);
     setPendingAction(null);
     setDraftSavedAt(null);
+    setSaveStatus("idle");
+    isFirstChangeRef.current = true;
     setSessionMode(intent.kind === "compose" ? "compose" : intent.kind);
     setFixedRecipients(intent.kind !== "compose");
     setComposeState((current) => {
@@ -140,6 +160,8 @@ export function ComposeEmailDialog({
 
         setSessionId(result.session.id);
         setDraftSavedAt(result.session.lastSavedAt ?? null);
+        setSaveStatus("idle");
+        isFirstChangeRef.current = true;
         setSessionMode(result.session.mode);
         setFixedRecipients(result.session.fixedRecipients);
         setComposeState({
@@ -179,6 +201,13 @@ export function ComposeEmailDialog({
 
   useEffect(() => {
     if (!open || hydrating || !sessionId || !fromAccount?.email) return;
+
+    if (isFirstChangeRef.current) {
+      isFirstChangeRef.current = false;
+    } else {
+      setSaveStatus("saving");
+    }
+
     if (draftSaveTimerRef.current) {
       window.clearTimeout(draftSaveTimerRef.current);
     }
@@ -327,14 +356,29 @@ export function ComposeEmailDialog({
     });
   }, []);
 
-  const draftLabel =
-    pendingAction === "draft"
-      ? "SAVING"
-      : draftSavedAt
-        ? "SAVED"
-        : sessionId
-          ? "LOCAL"
-          : "DRAFT";
+  let statusText = "DRAFT";
+  let dotClass = "bg-neutral-400 dark:bg-neutral-500";
+  let textClass = "text-neutral-500 dark:text-neutral-400";
+  let pulse = false;
+
+  if (saveStatus === "saving" || pendingAction === "draft") {
+    statusText = "SAVING...";
+    dotClass = "bg-amber-500 animate-pulse";
+    textClass = "text-amber-600 dark:text-amber-400";
+    pulse = true;
+  } else if (saveStatus === "error") {
+    statusText = "ERROR";
+    dotClass = "bg-rose-500";
+    textClass = "text-rose-600 dark:text-rose-400";
+  } else if (saveStatus === "saved" || draftSavedAt) {
+    statusText = "SAVED";
+    dotClass = "bg-emerald-500";
+    textClass = "text-emerald-600 dark:text-emerald-400";
+  } else if (sessionId) {
+    statusText = "LOCAL";
+    dotClass = "bg-blue-500";
+    textClass = "text-blue-600 dark:text-blue-400";
+  }
   const canSubmit =
     Boolean(fromAccount?.email) &&
     selectedRecipients.length > 0 &&
@@ -425,10 +469,10 @@ export function ComposeEmailDialog({
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="inline-flex items-center gap-1.5">
-                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[#1d9bf0]" />
-                  <span className="text-[10px] font-bold tracking-wider text-[#1d9bf0]">
-                    {draftLabel}
+                <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-radius-bg-secondary/40 border border-radius-border-subtle/50 transition-all duration-300 ${textClass}`}>
+                  <span className={`inline-flex h-1.5 w-1.5 rounded-full transition-colors duration-300 ${dotClass}`} />
+                  <span className="text-[10px] font-bold tracking-wider uppercase">
+                    {statusText}
                   </span>
                 </div>
 

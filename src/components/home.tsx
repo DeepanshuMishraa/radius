@@ -10,6 +10,7 @@ import {
   Mailbox01Icon,
   Home01Icon,
   CloudDownloadIcon,
+  Settings01Icon,
 } from "@hugeicons/core-free-icons";
 
 interface HomeProps {
@@ -23,6 +24,7 @@ interface HomeProps {
   onShowInbox: () => void;
   onResync: () => void;
   onReconnect: () => void;
+  onSelectUiSettings: () => void;
 }
 
 export function Home({
@@ -36,6 +38,7 @@ export function Home({
   onShowInbox,
   onResync,
   onReconnect,
+  onSelectUiSettings,
 }: HomeProps) {
   return (
     <>
@@ -83,6 +86,13 @@ export function Home({
         >
           <HugeiconsIcon icon={Sun01Icon} size={16} />
           <span>Toggle Theme</span>
+        </CommandItem>
+        <CommandItem
+          value="ui-settings"
+          onSelect={onSelectUiSettings}
+        >
+          <HugeiconsIcon icon={Settings01Icon} size={16} />
+          <span>UI Settings</span>
         </CommandItem>
       </CommandGroup>
       <CommandGroup heading="System">

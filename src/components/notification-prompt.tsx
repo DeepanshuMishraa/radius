@@ -44,20 +44,21 @@ export function NotificationPermissionPrompt({
         </button>
       </div>
       <div className="flex items-center gap-2 border-t border-radius-border-subtle px-3.5 py-2.5">
-        <button
-          type="button"
-          onClick={() => void onRequestPermission()}
-          className="inline-flex items-center rounded-lg bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover"
-        >
-          {mode === "followup" ? "Try again" : "Enable alerts"}
-        </button>
-        {mode === "followup" && (
+        {mode === "followup" ? (
           <button
             type="button"
             onClick={() => void onOpenSettings()}
-            className="inline-flex items-center rounded-lg border border-radius-border-subtle bg-transparent px-3 py-1.5 text-[11px] font-medium text-radius-text-secondary transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary"
+            className="inline-flex items-center rounded-lg bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover cursor-pointer"
           >
-            Open settings
+            Open Settings
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void onRequestPermission()}
+            className="inline-flex items-center rounded-lg bg-radius-accent px-3 py-1.5 text-[11px] font-medium text-radius-text-inverse transition-colors hover:bg-radius-accent-hover cursor-pointer"
+          >
+            Enable alerts
           </button>
         )}
       </div>
