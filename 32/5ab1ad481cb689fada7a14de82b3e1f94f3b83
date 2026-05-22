@@ -1,0 +1,22 @@
+src/lib/font-utils.ts
+  s_73bf9e2b1fa1d9::t_e368d14302cc56 87-88,119-120
+src/mainview/components/ReaderView.tsx
+  s_73bf9e2b1fa1d9::t_ebdf4c42fe0b5a 468,489,496,525-531,563,626-635,746
+  s_73bf9e2b1fa1d9::t_c79da32c622d8e 17,1015-1026,1065-1087,1089
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "325ab1ad481cb689fada7a14de82b3e1f94f3b83",
+  "prompts": {},
+  "sessions": {
+    "s_73bf9e2b1fa1d9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4fbc-bec2-78b0-8dd0-fef88be43927",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
