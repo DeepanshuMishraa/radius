@@ -1,0 +1,28 @@
+src/mainview/components/ReaderView.tsx
+  s_73bf9e2b1fa1d9::t_4399267ce944a8 1028,1079-1085,1409
+src/components/compose/index.tsx
+  s_73bf9e2b1fa1d9::t_7c71924d07b5fe 82-83,100,103,108,314-319
+src/components/settings-dialog.tsx
+  s_73bf9e2b1fa1d9::t_0ad101dc793772 44-120,124-128,132-133,138-140,142-143,146,148,152-153,158-160,162-163,166,168,171,177,180-183,187-200,205,207-208,211-212,217-218,222-230,235,243-246,250-263,268,270-271,274-275,280-281,285-293,298,304-305,308-309,315,317-320,323-326,330,333,357-362,368,380,382-389,391-397,399,402,406,409-410,416-428,430,438,442,453-458,463,469,471-478,480-482,486-487,495,497,505-509,516,523,530,538-543,563-567,589,609-615
+  s_73bf9e2b1fa1d9::t_bda90b8aded3f8 569-581,583
+src/lib/font-utils.ts
+  s_73bf9e2b1fa1d9::t_24cfd9a2a1c698 81,88-119,145,147
+src/mainview/App.tsx
+  s_73bf9e2b1fa1d9::t_3033e47c19aba8 26,358-362,364-365
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "b1e41a43d7e0f533f201fb7de2806d9b3ba33b48",
+  "prompts": {},
+  "sessions": {
+    "s_73bf9e2b1fa1d9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4fbc-bec2-78b0-8dd0-fef88be43927",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
