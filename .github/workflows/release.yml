@@ -41,7 +41,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build app
-        run: bun run build:beta
+        run: bun run build:canary
 
       - name: Rename artifact
         id: artifact
@@ -60,11 +60,11 @@ jobs:
           fi
 
           if [ "${{ matrix.platform }}" = "macos" ]; then
-            SRC=$(ls artifacts/beta-macos-${{ matrix.arch }}-*.dmg | head -n 1)
+            SRC=$(ls artifacts/canary-macos-${{ matrix.arch }}-*.dmg | head -n 1)
           elif [ "${{ matrix.platform }}" = "win" ]; then
-            SRC=$(ls artifacts/beta-win-${{ matrix.arch }}-*.zip | head -n 1)
+            SRC=$(ls artifacts/canary-win-${{ matrix.arch }}-*.zip | head -n 1)
           else
-            SRC=$(ls artifacts/beta-linux-${{ matrix.arch }}-*.tar.gz | head -n 1)
+            SRC=$(ls artifacts/canary-linux-${{ matrix.arch }}-*.tar.gz | head -n 1)
           fi
 
           DST="artifacts/radius-${VERSION}-${SUFFIX}"
