@@ -6,10 +6,10 @@ const releaseBaseUrl = "https://github.com/DeepanshuMishraa/radius/releases/late
 const fallbackUrl = "https://github.com/DeepanshuMishraa/radius/releases/latest";
 
 const downloadUrls = {
-  macArm: `${releaseBaseUrl}/canary-macos-arm64-Radius.dmg`,
-  macIntel: `${releaseBaseUrl}/canary-macos-x64-Radius.dmg`,
-  winX64: `${releaseBaseUrl}/canary-win-x64-Radius-Setup.zip`,
-  linuxX64: `${releaseBaseUrl}/canary-linux-x64-Radius-Setup.tar.gz`,
+  macArm: `${releaseBaseUrl}/radius-macos-apple-silicon.dmg`,
+  macIntel: `${releaseBaseUrl}/radius-macos-intel.dmg`,
+  winX64: `${releaseBaseUrl}/radius-windows-x64.zip`,
+  linuxX64: `${releaseBaseUrl}/radius-linux-x64.tar.gz`,
 };
 ---
 
@@ -289,7 +289,7 @@ const downloadUrls = {
       </div>
     </dialog>
 
-    <script define:vars={{ downloadUrls }}>
+    <script define:vars={{ downloadUrls, fallbackUrl }}>
       // CPU Arch / OS detection helper
       function detectAppleArch() {
         const ua = navigator.userAgent.toLowerCase();
@@ -381,7 +381,7 @@ const downloadUrls = {
           window.location.href = downloadUrls.linuxX64;
         } else {
           // Fallback redirect to latest release
-          window.location.href = "https://github.com/DeepanshuMishraa/radius/releases/latest";
+          window.location.href = fallbackUrl;
         }
       });
 

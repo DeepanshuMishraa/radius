@@ -9,24 +9,28 @@ permissions:
 
 jobs:
   build:
-    name: Build ${{ matrix.os }}
+    name: Build ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: macos-latest
-            platform: macos
-            arch: arm64
+            artifact_glob: artifacts/canary-macos-arm64-*.dmg
+            asset_name: radius-macos-apple-silicon.dmg
+            label: macOS Apple Silicon
           - os: macos-15-intel
-            platform: macos
-            arch: x64
+            artifact_glob: artifacts/canary-macos-x64-*.dmg
+            asset_name: radius-macos-intel.dmg
+            label: macOS Intel
           - os: ubuntu-latest
-            platform: linux
-            arch: x64
+            artifact_glob: artifacts/canary-linux-x64-*.tar.gz
+            asset_name: radius-linux-x64.tar.gz
+            label: Linux x64
           - os: windows-latest
-            platform: win
-            arch: x64
+            artifact_glob: artifacts/canary-win-x64-*.zip
+            asset_name: radius-windows-x64.zip
+            label: Windows x64
 
     steps:
       - name: Checkout
@@ -43,40 +47,24 @@ jobs:
       - name: Build app
         run: bun run build:canary
 
-      - name: Rename artifact
+      - name: Package release asset
         id: artifact
         shell: bash
         run: |
-          VERSION=${{ github.event.release.tag_name }}
-
-          if [ "${{ matrix.platform }}" = "macos" ] && [ "${{ matrix.arch }}" = "arm64" ]; then
-            SUFFIX="silicon.dmg"
-          elif [ "${{ matrix.platform }}" = "macos" ] && [ "${{ matrix.arch }}" = "x64" ]; then
-            SUFFIX="intel.dmg"
-          elif [ "${{ matrix.platform }}" = "win" ]; then
-            SUFFIX="windows.zip"
-          else
-            SUFFIX="linux.tar.gz"
+          SRC=$(find artifacts -maxdepth 1 -type f -path "${{ matrix.artifact_glob }}" | head -n 1)
+          if [ -z "$SRC" ]; then
+            echo "Expected release artifact matching ${{ matrix.artifact_glob }} was not found"
+            exit 1
           fi
 
-          if [ "${{ matrix.platform }}" = "macos" ]; then
-            SRC=$(ls artifacts/canary-macos-${{ matrix.arch }}-*.dmg | head -n 1)
-          elif [ "${{ matrix.platform }}" = "win" ]; then
-            SRC=$(ls artifacts/canary-win-${{ matrix.arch }}-*.zip | head -n 1)
-          else
-            SRC=$(ls artifacts/canary-linux-${{ matrix.arch }}-*.tar.gz | head -n 1)
-          fi
-
-          DST="artifacts/radius-${VERSION}-${SUFFIX}"
+          DST="artifacts/${{ matrix.asset_name }}"
           cp "$SRC" "$DST"
           echo "file=$DST" >> "$GITHUB_OUTPUT"
 
-      - name: Upload to release
+      - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            artifacts/*
-            ${{ steps.artifact.outputs.file }}
+          files: ${{ steps.artifact.outputs.file }}
           tag_name: ${{ github.event.release.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
