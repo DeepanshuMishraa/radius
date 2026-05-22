@@ -359,13 +359,11 @@ export function ComposeEmailDialog({
   let statusText = "DRAFT";
   let dotClass = "bg-neutral-400 dark:bg-neutral-500";
   let textClass = "text-neutral-500 dark:text-neutral-400";
-  let pulse = false;
 
   if (saveStatus === "saving" || pendingAction === "draft") {
     statusText = "SAVING...";
     dotClass = "bg-amber-500 animate-pulse";
     textClass = "text-amber-600 dark:text-amber-400";
-    pulse = true;
   } else if (saveStatus === "error") {
     statusText = "ERROR";
     dotClass = "bg-rose-500";

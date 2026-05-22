@@ -990,25 +990,10 @@ export const ReaderView = memo(function ReaderView({
 }: ReaderViewProps) {
   const { theme, appearance, resolvedTheme } = useTheme();
   
-  const [textSize, setTextSize] = useState<"sm" | "md" | "lg">(() => {
+  const [textSize] = useState<"sm" | "md" | "lg">(() => {
     const saved = localStorage.getItem("radius.reader.textsize");
     return (saved === "sm" || saved === "md" || saved === "lg") ? saved : "md";
   });
-
-  const handleSetTextSize = useCallback((size: "sm" | "md" | "lg") => {
-    setTextSize(size);
-    localStorage.setItem("radius.reader.textsize", size);
-  }, []);
-
-  const decreaseTextSize = useCallback(() => {
-    if (textSize === "lg") handleSetTextSize("md");
-    else if (textSize === "md") handleSetTextSize("sm");
-  }, [textSize, handleSetTextSize]);
-
-  const increaseTextSize = useCallback(() => {
-    if (textSize === "sm") handleSetTextSize("md");
-    else if (textSize === "md") handleSetTextSize("lg");
-  }, [textSize, handleSetTextSize]);
 
   const richTextClass = 
     textSize === "sm" 

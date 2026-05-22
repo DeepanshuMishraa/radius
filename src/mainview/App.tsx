@@ -16,6 +16,7 @@ import { UpdateNotification } from "@/components/update-notification";
 import { SyncPill } from "@/components/sync-pill";
 import { AboutDialog } from "@/components/about";
 import { AddAccountDialog } from "@/components/add-account";
+import { SettingsDialog } from "@/components/settings-dialog";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Cancel01Icon, Mail01Icon } from "@hugeicons/core-free-icons";
 import notifSoundUrl from "../../assets/notif.mp3";
@@ -128,6 +129,7 @@ function App() {
   const [addAccountMode, setAddAccountMode] = useState<SyncMode | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [aboutInfo, setAboutInfo] = useState<LocalReleaseInfo | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [composeIntent, setComposeIntent] = useState<ComposeIntent | null>(null);
   const composeToastTimersRef = useRef<number[]>([]);
   const activeMailboxRef = useRef<Exclude<MailboxKind, "inbox"> | null>(null);
@@ -894,8 +896,14 @@ function App() {
     void refreshAccounts();
   }, [refreshAccounts]);
 
+  const handleOpenSettings = useCallback(() => {
+    setCmdOpen(false);
+    setSettingsOpen(true);
+  }, []);
+
   const handleOpenAbout = useCallback(async () => {
     setCmdOpen(false);
+    setSettingsOpen(false);
     setAboutOpen(true);
     try {
       const info = await radiusRpc.request.getLocalReleaseInfo({});
@@ -1024,17 +1032,12 @@ function App() {
             onSearchEmails={handleOpenSearch}
             onComposeEmail={handleOpenCompose}
             onCheckForUpdates={handleCheckForUpdates}
-            onSwitchAccount={handleSwitchAccount}
-            onAddAccount={handleAddAccount}
-            onRemoveAccount={handleRemoveAccount}
-            onAbout={handleOpenAbout}
             onShowMailbox={handleOpenMailbox}
             onShowInbox={handleShowInbox}
             onClose={() => setCmdOpen(false)}
             onResync={handleResync}
             onReconnect={handleReconnect}
-            accounts={accounts}
-            activeAccount={activeAccount}
+            onOpenSettings={handleOpenSettings}
           />
         </DialogContent>
       </Dialog>
@@ -1096,6 +1099,16 @@ function App() {
         open={aboutOpen}
         onClose={handleCloseAbout}
         info={aboutInfo}
+      />
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        accounts={accounts}
+        activeAccount={activeAccount}
+        onSwitchAccount={handleSwitchAccount}
+        onAddAccount={handleAddAccount}
+        onRemoveAccount={handleRemoveAccount}
+        onAbout={handleOpenAbout}
       />
       </div>
       </TooltipProvider>
