@@ -1233,12 +1233,7 @@ export const ReaderView = memo(function ReaderView({
   const recipient = parseAddress(message.to);
 
   return (
-    <div 
-      className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-11"
-      style={{
-        "--font-family-sans": "var(--font-family-reader, var(--font-family-sans))"
-      } as React.CSSProperties}
-    >
+    <div className="flex flex-col h-full bg-radius-bg-primary overflow-auto relative pt-11">
       <InboxWidget visible={!sidebarOpen} onClick={onOpenSidebar} />
       <ActionBarWidget 
         visible={true} 
