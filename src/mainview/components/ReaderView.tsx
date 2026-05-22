@@ -808,7 +808,7 @@ const EMAIL_ALLOWED_ATTR = [
 
 const EMAIL_BODY_STYLES = `
   .email-body {
-    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
+    font-family: var(--font-family-reader, var(--font-family-sans)), ui-monospace, SFMono-Regular, monospace;
     word-wrap: break-word;
     overflow-wrap: break-word;
   }
@@ -817,14 +817,14 @@ const EMAIL_BODY_STYLES = `
     font-family: inherit !important;
   }
   .email-body--simple {
-    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
+    font-family: var(--font-family-reader, var(--font-family-sans)), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
     background: transparent;
     font-size: 1.08rem;
     line-height: 1.85;
   }
   .email-section--simple {
-    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
+    font-family: var(--font-family-reader, var(--font-family-sans)), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
     font-size: 1.08rem;
     line-height: 1.85;
@@ -862,13 +862,13 @@ const EMAIL_BODY_STYLES = `
   }
   .email-section--simple h1, .email-section--simple h2, .email-section--simple h3,
   .email-section--simple h4, .email-section--simple h5, .email-section--simple h6 {
-    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
+    font-family: var(--font-family-reader, var(--font-family-sans)), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
   }
 
   .email-body--simple h1, .email-body--simple h2, .email-body--simple h3,
   .email-body--simple h4, .email-body--simple h5, .email-body--simple h6 {
-    font-family: var(--font-family-sans), ui-monospace, SFMono-Regular, monospace;
+    font-family: var(--font-family-reader, var(--font-family-sans)), ui-monospace, SFMono-Regular, monospace;
     color: var(--radius-text-primary, #292827);
   }
   .email-body h1 { font-size: 1.5em; }

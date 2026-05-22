@@ -15,6 +15,14 @@ import {
   CheckmarkCircle01Icon,
   InformationCircleIcon,
 } from "@hugeicons/core-free-icons";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+  CommandInput,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { isFontInstalled, applyUISettings } from "@/lib/font-utils";
@@ -217,232 +225,6 @@ function TypographyPanel() {
   );
 }
 
-// ─── Accounts Panel ──────────────────────────────────────────────
-
-function AccountsPanel({
-  accounts,
-  activeAccount,
-  onSwitchAccount,
-  onAddAccount,
-  onRemoveAccount,
-}: {
-  accounts: Account[];
-  activeAccount: string | null;
-  onSwitchAccount: (email: string) => void;
-  onAddAccount: () => void;
-  onRemoveAccount: (email: string) => void;
-}) {
-  const [deleteTarget, setDeleteTarget] = React.useState<string | null>(null);
-
-  return (
-    <div className="flex flex-col gap-3 px-2 py-2">
-      {deleteTarget && (
-        <div className="mx-2 rounded-lg border border-radius-error/30 bg-radius-error/5 p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <HugeiconsIcon icon={Delete01Icon} size={16} className="text-radius-error shrink-0" />
-            <p className="text-[13px] font-semibold text-radius-text-primary">Delete account?</p>
-          </div>
-          <p className="mt-1 truncate text-[12px] text-radius-text-secondary">{deleteTarget}</p>
-          <div className="mt-4 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setDeleteTarget(null)}
-              className="inline-flex items-center rounded-md border border-radius-border-subtle bg-radius-bg-primary px-3 py-1.5 text-[12px] font-medium text-radius-text-secondary transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary shadow-sm"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onRemoveAccount(deleteTarget);
-                setDeleteTarget(null);
-              }}
-              className="inline-flex items-center rounded-md bg-radius-error px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:opacity-90 shadow-sm"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-col gap-0.5">
-        <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-radius-text-muted mb-1">Your accounts</p>
-        {accounts.map((account) => (
-          <button
-            key={account.email}
-            type="button"
-            onClick={() => {
-              if (account.email !== activeAccount) onSwitchAccount(account.email);
-            }}
-            disabled={!!deleteTarget}
-            className={cn(
-              "flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-radius-accent/40",
-              account.email === activeAccount
-                ? "bg-radius-accent/10 text-radius-accent"
-                : "hover:bg-radius-bg-secondary text-radius-text-primary"
-            )}
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <HugeiconsIcon icon={UserCircleIcon} size={18} className={cn(
-                "shrink-0",
-                account.email === activeAccount ? "text-radius-accent" : "text-radius-text-muted"
-              )} />
-              <span className="text-[13px] font-medium truncate">{account.email}</span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {account.email === activeAccount && (
-                <HugeiconsIcon icon={Tick01Icon} size={14} className="text-radius-accent" />
-              )}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeleteTarget(account.email);
-                }}
-                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-radius-text-muted opacity-0 transition-opacity hover:bg-radius-error/10 hover:text-radius-error group-hover:opacity-100"
-                style={{ opacity: deleteTarget ? 0 : undefined }}
-                title="Remove account"
-              >
-                <HugeiconsIcon icon={Delete01Icon} size={13} />
-              </button>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      <button
-        type="button"
-        onClick={onAddAccount}
-        className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-radius-bg-secondary text-radius-text-primary outline-none focus-visible:ring-2 focus-visible:ring-radius-accent/40"
-      >
-        <HugeiconsIcon icon={Add01Icon} size={18} className="text-radius-accent" />
-        <span className="text-[13px] font-medium">Add Account</span>
-      </button>
-    </div>
-  );
-}
-
-// ─── Appearance Panel ────────────────────────────────────────────
-
-interface ThemeItem {
-  id: string;
-  name: string;
-}
-
-function AppearancePanel({
-  themes,
-  currentTheme,
-  onSetTheme,
-}: {
-  themes: ThemeItem[];
-  currentTheme: string;
-  onSetTheme: (id: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-0.5 px-2 py-2">
-      <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-radius-text-muted mb-1">Available themes</p>
-      {themes.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => {
-            if (item.id !== currentTheme) onSetTheme(item.id);
-          }}
-          className={cn(
-            "flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-radius-accent/40",
-            item.id === currentTheme
-              ? "bg-radius-accent/10 text-radius-accent"
-              : "hover:bg-radius-bg-secondary text-radius-text-primary"
-          )}
-        >
-          <div className="flex items-center gap-2.5">
-            <HugeiconsIcon
-              icon={item.id === "dark" ? Moon01Icon : item.id === "light" ? Sun01Icon : SolarSystem01Icon}
-              size={18}
-              className={item.id === currentTheme ? "text-radius-accent" : "text-radius-text-muted"}
-            />
-            <span className="text-[13px] font-medium">{item.name}</span>
-          </div>
-          {item.id === currentTheme && <HugeiconsIcon icon={Tick01Icon} size={14} className="text-radius-accent" />}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ─── Home Panel (Categories) ─────────────────────────────────────
-
-function HomePanel({
-  onNavigate,
-  onAbout,
-}: {
-  onNavigate: (page: SettingsPage) => void;
-  onAbout?: () => void;
-}) {
-  const categories: { id: SettingsPage | "about"; label: string; desc: string; icon: React.ReactNode }[] = [
-    {
-      id: "accounts",
-      label: "Accounts",
-      desc: "Switch, add, or remove email accounts",
-      icon: <HugeiconsIcon icon={UserCircleIcon} size={18} className="text-radius-text-muted" />,
-    },
-    {
-      id: "appearance",
-      label: "Appearance",
-      desc: "Light, dark, and system theme modes",
-      icon: <HugeiconsIcon icon={Sun01Icon} size={18} className="text-radius-text-muted" />,
-    },
-    {
-      id: "typography",
-      label: "Typography",
-      desc: "Fonts, sizing, and reader view preferences",
-      icon: <HugeiconsIcon icon={Settings01Icon} size={18} className="text-radius-text-muted" />,
-    },
-  ];
-
-  return (
-    <div className="flex flex-col gap-0.5 px-2 py-2">
-      {categories.map((cat) => (
-        <button
-          key={cat.id}
-          type="button"
-          onClick={() => {
-            if (cat.id === "about") {
-              onAbout?.();
-            } else {
-              onNavigate(cat.id as SettingsPage);
-            }
-          }}
-          className="flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-radius-bg-secondary group outline-none focus-visible:ring-2 focus-visible:ring-radius-accent/40"
-        >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-radius-bg-secondary/80 border border-radius-border-subtle/50">
-            {cat.icon}
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-[13px] font-medium text-radius-text-primary">{cat.label}</span>
-            <span className="text-[11px] text-radius-text-muted">{cat.desc}</span>
-          </div>
-        </button>
-      ))}
-      {onAbout && (
-        <button
-          type="button"
-          onClick={onAbout}
-          className="flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-radius-bg-secondary group outline-none focus-visible:ring-2 focus-visible:ring-radius-accent/40"
-        >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-radius-bg-secondary/80 border border-radius-border-subtle/50">
-            <HugeiconsIcon icon={InformationCircleIcon} size={18} className="text-radius-text-muted" />
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-[13px] font-medium text-radius-text-primary">About</span>
-            <span className="text-[11px] text-radius-text-muted">Version info and credits</span>
-          </div>
-        </button>
-      )}
-    </div>
-  );
-}
-
 // ─── Settings Dialog Shell ───────────────────────────────────────
 
 const PAGE_TITLES: Record<SettingsPage, string> = {
@@ -463,94 +245,58 @@ export function SettingsDialog({
   onAbout,
 }: SettingsDialogProps) {
   const [page, setPage] = React.useState<SettingsPage>("home");
+  const [search, setSearch] = React.useState("");
+  const [deleteTarget, setDeleteTarget] = React.useState<string | null>(null);
   const { theme, themes, setTheme } = useTheme();
-  const contentRef = React.useRef<HTMLDivElement>(null);
-  const pageRef = React.useRef<SettingsPage>("home");
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
-  // Keep ref in sync for the escape handler
+  // Reset when opened
   React.useEffect(() => {
-    pageRef.current = page;
-  }, [page]);
-
-  // Reset to home when opened
-  React.useEffect(() => {
-    if (open) setPage("home");
+    if (open) {
+      setPage("home");
+      setSearch("");
+      setDeleteTarget(null);
+    }
   }, [open]);
 
-  // Focus first item when page changes
+  // Focus input on page change
   React.useEffect(() => {
     if (!open) return;
-    const timer = setTimeout(() => {
-      const container = contentRef.current;
-      if (!container) return;
-      const first = container.querySelector<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      );
-      first?.focus();
-    }, 50);
+    const timer = setTimeout(() => inputRef.current?.focus(), 50);
     return () => clearTimeout(timer);
   }, [page, open]);
 
-  // Keyboard navigation + escape
+  // Escape handling — cmdk doesn't handle "back to parent page" for us
   React.useEffect(() => {
     if (!open) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const container = contentRef.current;
-      if (!container) return;
-
-      // ── Escape: back from submenu, close from home ──
+    const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        e.stopImmediatePropagation();
-        if (pageRef.current !== "home") {
+        if (deleteTarget) {
+          setDeleteTarget(null);
+          return;
+        }
+        if (page !== "home") {
           setPage("home");
+          setSearch("");
         } else {
           onClose();
         }
-        return;
-      }
-
-      // ── Arrow navigation ──
-      const FOCUSABLE_SELECTOR =
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-      const items = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-        (el) => !el.closest('[aria-hidden="true"]') && el.offsetParent !== null
-      );
-      const active = document.activeElement as HTMLElement | null;
-      const idx = active ? items.indexOf(active) : -1;
-
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        const next = items[(idx + 1) % items.length];
-        next?.focus();
-        return;
-      }
-
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        const prev = items[(idx - 1 + items.length) % items.length];
-        prev?.focus();
-        return;
-      }
-
-      if (e.key === "Home") {
-        e.preventDefault();
-        items[0]?.focus();
-        return;
-      }
-
-      if (e.key === "End") {
-        e.preventDefault();
-        items[items.length - 1]?.focus();
-        return;
       }
     };
+    document.addEventListener("keydown", handleEscape, { capture: true });
+    return () => document.removeEventListener("keydown", handleEscape, { capture: true });
+  }, [open, page, onClose, deleteTarget]);
 
-    document.addEventListener("keydown", handleKeyDown, { capture: true });
-    return () => document.removeEventListener("keydown", handleKeyDown, { capture: true });
-  }, [open, onClose]);
+  const handleBack = React.useCallback(() => {
+    if (deleteTarget) {
+      setDeleteTarget(null);
+      return;
+    }
+    setPage("home");
+    setSearch("");
+  }, [deleteTarget]);
 
   if (!open) return null;
 
@@ -560,44 +306,186 @@ export function SettingsDialog({
         className="mx-auto flex flex-col rounded-[1.25rem] border border-radius-border-subtle bg-radius-bg-primary/60 p-1 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] backdrop-blur-2xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] w-full max-w-[560px]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-full rounded-xl border border-radius-border-subtle overflow-hidden bg-radius-bg-primary font-[family-name:var(--font-family-sans)] antialiased shadow-sm">
+        <Command
+          className="w-full rounded-xl border border-radius-border-subtle overflow-hidden bg-radius-bg-primary font-[family-name:var(--font-family-sans)] antialiased shadow-sm"
+          onKeyDown={(e) => {
+            // Let cmdk handle arrow keys / enter; we only hijack Escape here
+            if (e.key === "Escape") {
+              e.preventDefault();
+            }
+          }}
+        >
           {/* Header */}
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-radius-border-subtle">
-            {page !== "home" && (
+          {page !== "home" && (
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-radius-border-subtle">
               <button
                 type="button"
-                onClick={() => setPage("home")}
+                onClick={handleBack}
                 className="inline-flex h-6 w-6 items-center justify-center rounded-md text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary hover:shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-radius-accent/40"
                 aria-label="Back"
               >
                 <HugeiconsIcon icon={ArrowLeft01Icon} size={14} />
               </button>
-            )}
-            <span className="text-[13px] font-medium text-radius-text-primary">{PAGE_TITLES[page]}</span>
+              <span className="text-[13px] font-medium text-radius-text-primary">
+                {PAGE_TITLES[page]}
+              </span>
+            </div>
+          )}
+
+          {/* Search input (hidden on sub-pages so cmdk still works) */}
+          <div className={cn(
+            page !== "home" ? "sr-only" : "bg-transparent",
+            "border-b border-radius-border-subtle"
+          )}>
+            <CommandInput
+              ref={inputRef}
+              placeholder={page === "home" ? "Search settings..." : ""}
+              autoFocus
+              value={search}
+              onValueChange={setSearch}
+            />
           </div>
 
-          {/* Content */}
-          <div ref={contentRef} className="max-h-[60vh] overflow-y-auto">
-            {page === "home" && <HomePanel onNavigate={setPage} onAbout={onAbout} />}
-            {page === "accounts" && (
-              <AccountsPanel
-                accounts={accounts}
-                activeAccount={activeAccount}
-                onSwitchAccount={onSwitchAccount}
-                onAddAccount={onAddAccount}
-                onRemoveAccount={onRemoveAccount}
-              />
+          <CommandList className="max-h-[60vh]">
+            {/* Delete confirmation */}
+            {page === "accounts" && deleteTarget && (
+              <div className="mx-3 mt-3 mb-1 rounded-lg border border-radius-error/30 bg-radius-error/5 p-4 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <HugeiconsIcon icon={Delete01Icon} size={16} className="text-radius-error shrink-0" />
+                  <p className="text-[13px] font-semibold text-radius-text-primary">Delete account?</p>
+                </div>
+                <p className="mt-1 truncate text-[12px] text-radius-text-secondary">{deleteTarget}</p>
+                <div className="mt-4 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(null)}
+                    className="inline-flex items-center rounded-md border border-radius-border-subtle bg-radius-bg-primary px-3 py-1.5 text-[12px] font-medium text-radius-text-secondary transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary shadow-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onRemoveAccount(deleteTarget);
+                      setDeleteTarget(null);
+                    }}
+                    className="inline-flex items-center rounded-md bg-radius-error px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:opacity-90 shadow-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             )}
+
+            {page === "home" && <CommandEmpty className="py-12 text-center text-[13px] text-radius-text-muted">No results found.</CommandEmpty>}
+
+            {/* ─── HOME ─── */}
+            {page === "home" && (
+              <>
+                <CommandGroup heading="Settings">
+                  <CommandItem
+                    value="accounts"
+                    onSelect={() => { setPage("accounts"); setSearch(""); }}
+                  >
+                    <HugeiconsIcon icon={UserCircleIcon} size={16} className="text-radius-text-muted" />
+                    <span>Accounts</span>
+                  </CommandItem>
+                  <CommandItem
+                    value="appearance"
+                    onSelect={() => { setPage("appearance"); setSearch(""); }}
+                  >
+                    <HugeiconsIcon icon={Sun01Icon} size={16} className="text-radius-text-muted" />
+                    <span>Appearance</span>
+                  </CommandItem>
+                  <CommandItem
+                    value="typography"
+                    onSelect={() => { setPage("typography"); setSearch(""); }}
+                  >
+                    <HugeiconsIcon icon={Settings01Icon} size={16} className="text-radius-text-muted" />
+                    <span>Typography</span>
+                  </CommandItem>
+                </CommandGroup>
+                {onAbout && (
+                  <CommandGroup heading="Info">
+                    <CommandItem
+                      value="about"
+                      onSelect={() => { onAbout(); }}
+                    >
+                      <HugeiconsIcon icon={InformationCircleIcon} size={16} className="text-radius-text-muted" />
+                      <span>About</span>
+                    </CommandItem>
+                  </CommandGroup>
+                )}
+              </>
+            )}
+
+            {/* ─── ACCOUNTS ─── */}
+            {page === "accounts" && !deleteTarget && (
+              <>
+                <CommandGroup heading="Your accounts">
+                  {accounts.map((account) => (
+                    <CommandItem
+                      key={account.email}
+                      value={account.email}
+                      onSelect={() => {
+                        if (account.email !== activeAccount) onSwitchAccount(account.email);
+                      }}
+                      data-checked={account.email === activeAccount}
+                    >
+                      <HugeiconsIcon icon={UserCircleIcon} size={16} className="text-radius-text-muted" />
+                      <span>{account.email}</span>
+                      {account.email === activeAccount && (
+                        <HugeiconsIcon icon={Tick01Icon} size={14} className="ml-auto text-radius-accent" />
+                      )}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+                <CommandGroup heading="Actions">
+                  <CommandItem
+                    value="add-account"
+                    onSelect={onAddAccount}
+                  >
+                    <HugeiconsIcon icon={Add01Icon} size={16} className="text-radius-accent" />
+                    <span>Add Account</span>
+                  </CommandItem>
+                </CommandGroup>
+              </>
+            )}
+
+            {/* ─── APPEARANCE ─── */}
             {page === "appearance" && (
-              <AppearancePanel
-                themes={themes}
-                currentTheme={theme}
-                onSetTheme={setTheme}
-              />
+              <CommandGroup heading="Available themes">
+                {themes.map((item) => (
+                  <CommandItem
+                    key={item.id}
+                    value={item.name}
+                    onSelect={() => {
+                      if (item.id !== theme) setTheme(item.id);
+                    }}
+                    data-checked={item.id === theme}
+                  >
+                    <HugeiconsIcon
+                      icon={item.id === "dark" ? Moon01Icon : item.id === "light" ? Sun01Icon : SolarSystem01Icon}
+                      size={16}
+                      className="text-radius-text-muted"
+                    />
+                    <span>{item.name}</span>
+                    {item.id === theme && (
+                      <HugeiconsIcon icon={Tick01Icon} size={14} className="ml-auto text-radius-accent" />
+                    )}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
             )}
-            {page === "typography" && <TypographyPanel />}
-          </div>
-        </div>
+
+            {/* ─── TYPOGRAPHY ─── */}
+            {page === "typography" && (
+              <div className="p-1">
+                <TypographyPanel />
+              </div>
+            )}
+          </CommandList>
+        </Command>
       </div>
     </div>
   );
