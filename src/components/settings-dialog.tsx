@@ -276,7 +276,7 @@ function AccountsPanel({
             }}
             disabled={!!deleteTarget}
             className={cn(
-              "flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left transition-colors",
+              "flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-radius-accent/40",
               account.email === activeAccount
                 ? "bg-radius-accent/10 text-radius-accent"
                 : "hover:bg-radius-bg-secondary text-radius-text-primary"
@@ -313,7 +313,7 @@ function AccountsPanel({
       <button
         type="button"
         onClick={onAddAccount}
-        className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-radius-bg-secondary text-radius-text-primary"
+        className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-radius-bg-secondary text-radius-text-primary outline-none focus-visible:ring-2 focus-visible:ring-radius-accent/40"
       >
         <HugeiconsIcon icon={Add01Icon} size={18} className="text-radius-accent" />
         <span className="text-[13px] font-medium">Add Account</span>
@@ -349,7 +349,7 @@ function AppearancePanel({
             if (item.id !== currentTheme) onSetTheme(item.id);
           }}
           className={cn(
-            "flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left transition-colors",
+            "flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-radius-accent/40",
             item.id === currentTheme
               ? "bg-radius-accent/10 text-radius-accent"
               : "hover:bg-radius-bg-secondary text-radius-text-primary"
@@ -413,7 +413,7 @@ function HomePanel({
               onNavigate(cat.id as SettingsPage);
             }
           }}
-          className="flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-radius-bg-secondary group"
+          className="flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-radius-bg-secondary group outline-none focus-visible:ring-2 focus-visible:ring-radius-accent/40"
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-radius-bg-secondary/80 border border-radius-border-subtle/50">
             {cat.icon}
@@ -428,7 +428,7 @@ function HomePanel({
         <button
           type="button"
           onClick={onAbout}
-          className="flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-radius-bg-secondary group"
+          className="flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-radius-bg-secondary group outline-none focus-visible:ring-2 focus-visible:ring-radius-accent/40"
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-radius-bg-secondary/80 border border-radius-border-subtle/50">
             <HugeiconsIcon icon={InformationCircleIcon} size={18} className="text-radius-text-muted" />
@@ -464,29 +464,93 @@ export function SettingsDialog({
 }: SettingsDialogProps) {
   const [page, setPage] = React.useState<SettingsPage>("home");
   const { theme, themes, setTheme } = useTheme();
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const pageRef = React.useRef<SettingsPage>("home");
+
+  // Keep ref in sync for the escape handler
+  React.useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
 
   // Reset to home when opened
   React.useEffect(() => {
     if (open) setPage("home");
   }, [open]);
 
-  // Escape handling
+  // Focus first item when page changes
   React.useEffect(() => {
     if (!open) return;
-    const handleEscape = (e: KeyboardEvent) => {
+    const timer = setTimeout(() => {
+      const container = contentRef.current;
+      if (!container) return;
+      const first = container.querySelector<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      first?.focus();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [page, open]);
+
+  // Keyboard navigation + escape
+  React.useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const container = contentRef.current;
+      if (!container) return;
+
+      // ── Escape: back from submenu, close from home ──
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        if (page !== "home") {
+        e.stopImmediatePropagation();
+        if (pageRef.current !== "home") {
           setPage("home");
         } else {
           onClose();
         }
+        return;
+      }
+
+      // ── Arrow navigation ──
+      const FOCUSABLE_SELECTOR =
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+      const items = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+        (el) => !el.closest('[aria-hidden="true"]') && el.offsetParent !== null
+      );
+      const active = document.activeElement as HTMLElement | null;
+      const idx = active ? items.indexOf(active) : -1;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = items[(idx + 1) % items.length];
+        next?.focus();
+        return;
+      }
+
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prev = items[(idx - 1 + items.length) % items.length];
+        prev?.focus();
+        return;
+      }
+
+      if (e.key === "Home") {
+        e.preventDefault();
+        items[0]?.focus();
+        return;
+      }
+
+      if (e.key === "End") {
+        e.preventDefault();
+        items[items.length - 1]?.focus();
+        return;
       }
     };
-    document.addEventListener("keydown", handleEscape, { capture: true });
-    return () => document.removeEventListener("keydown", handleEscape, { capture: true });
-  }, [open, page, onClose]);
+
+    document.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () => document.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -503,7 +567,7 @@ export function SettingsDialog({
               <button
                 type="button"
                 onClick={() => setPage("home")}
-                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary hover:shadow-sm"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-radius-text-muted transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary hover:shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-radius-accent/40"
                 aria-label="Back"
               >
                 <HugeiconsIcon icon={ArrowLeft01Icon} size={14} />
@@ -513,7 +577,7 @@ export function SettingsDialog({
           </div>
 
           {/* Content */}
-          <div className="max-h-[60vh] overflow-y-auto">
+          <div ref={contentRef} className="max-h-[60vh] overflow-y-auto">
             {page === "home" && <HomePanel onNavigate={setPage} onAbout={onAbout} />}
             {page === "accounts" && (
               <AccountsPanel
