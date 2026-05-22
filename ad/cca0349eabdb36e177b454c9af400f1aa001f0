@@ -1,0 +1,31 @@
+src/mainview/components/ReaderView.tsx
+  s_c19124fdc0f991::t_097598a7a4c763 993
+src/components/settings-dialog.tsx
+  s_c19124fdc0f991::t_6d9133f04f7dba 1-15,17-32,34-374,383-408,416-426,442-462,464-516,518-540
+  s_c19124fdc0f991::t_6193ec51f4d8d9 16,33
+  s_c19124fdc0f991::t_2f9a68fd1cc029 375-382,409-415,427-441,463,517
+src/mainview/App.tsx
+  s_c19124fdc0f991::t_4ab225e265d137 19,132,899-903,906,1040,1103-1110
+  s_c19124fdc0f991::t_5cabbcc47fd555 1111
+src/components/cmd.tsx
+  s_c19124fdc0f991::t_67d6ea6797ae36 14,25,37,68,95,101,104,113-114,117-119,121,123,125,127-135,137-138,145,156,162,166,168
+  s_c19124fdc0f991::t_63aefebe2a0565 9
+src/components/home.tsx
+  s_c19124fdc0f991::t_109b782b2b162d 17,28,37,41,45,49,54-56,58,60,64,68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "adcca0349eabdb36e177b454c9af400f1aa001f0",
+  "prompts": {},
+  "sessions": {
+    "s_c19124fdc0f991": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e4f46-c467-7e1f-801c-a8d93d694dcd",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
