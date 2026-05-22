@@ -42,7 +42,10 @@ const downloadUrls = {
       <div class="max-w-5xl mx-auto flex items-center justify-between">
         <a href="#" class="nav-logo flex items-center gap-2.5 text-radius-text-primary group">
           <RadiusMark class="w-5 h-5 text-radius-accent transition-transform duration-300 group-hover:rotate-45" />
-          <span class="text-[13px] font-semibold tracking-tight font-mono">Radius</span>
+          <div class="flex items-center gap-2">
+            <span class="text-[13px] font-semibold tracking-tight font-mono">Radius</span>
+            <span class="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-radius-accent-subtle text-radius-text-secondary border border-radius-border-subtle/50 select-none">beta</span>
+          </div>
         </a>
         <a
           href="https://github.com/DeepanshuMishraa/radius"
@@ -62,8 +65,24 @@ const downloadUrls = {
     <main class="flex-1 flex flex-col justify-center pt-32 px-6">
       <div class="max-w-5xl mx-auto text-center w-full">
         <!-- Floating Brand Icon -->
-        <div class="hero-icon mb-8 inline-flex items-center justify-center p-4 rounded-full bg-radius-bg-primary/50 border border-radius-border-subtle shadow-sm">
+        <div class="hero-icon mb-6 inline-flex items-center justify-center p-4 rounded-full bg-radius-bg-primary/50 border border-radius-border-subtle shadow-sm">
           <RadiusMark class="w-10 h-10 text-radius-accent" />
+        </div>
+
+        <!-- Pill badge -->
+        <div class="mb-8">
+          <a 
+            href="https://github.com/DeepanshuMishraa/radius" 
+            target="_blank" 
+            rel="noopener"
+            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-radius-accent-subtle border border-radius-border-subtle hover:border-radius-border text-[11px] font-mono text-radius-text-secondary hover:text-radius-text-primary select-none transition-all duration-300 hover:scale-[1.02] shadow-sm hover:shadow-md"
+          >
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-radius-accent animate-pulse"></span>
+            <span>Now in Public Beta</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-60 transition-transform duration-300 group-hover:translate-x-0.5">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </a>
         </div>
 
         <!-- Typography Heading -->
@@ -99,7 +118,7 @@ const downloadUrls = {
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              <span id="primary-download-text" class="text-[13px] font-semibold tracking-wide">Download for Desktop</span>
+              <span id="primary-download-text" class="text-[13px] font-semibold tracking-wide">Download Beta for Desktop</span>
             </div>
             <span id="primary-download-subtext" class="text-[10px] opacity-80 font-mono mt-0.5 ml-6.5">Detecting system...</span>
           </button>
@@ -310,21 +329,21 @@ const downloadUrls = {
 
       // Dynamic Content Swapping
       if (detectedOS === "mac") {
-        if (downloadText) downloadText.textContent = "Download for macOS";
+        if (downloadText) downloadText.textContent = "Download Beta for macOS";
         if (downloadSubtext) downloadSubtext.textContent = "Apple Silicon & Intel";
         macIcon?.classList.remove("hidden");
         genericIcon?.classList.add("hidden");
       } else if (detectedOS === "windows") {
-        if (downloadText) downloadText.textContent = "Download for Windows";
+        if (downloadText) downloadText.textContent = "Download Beta for Windows";
         if (downloadSubtext) downloadSubtext.textContent = "64-bit installer";
         winIcon?.classList.remove("hidden");
         genericIcon?.classList.add("hidden");
       } else if (detectedOS === "linux") {
-        if (downloadText) downloadText.textContent = "Download for Linux";
+        if (downloadText) downloadText.textContent = "Download Beta for Linux";
         if (downloadSubtext) downloadSubtext.textContent = "x64 .tar.gz";
         // Linux keeps the default download/generic icon, no class swap needed
       } else {
-        if (downloadText) downloadText.textContent = "Download for Desktop";
+        if (downloadText) downloadText.textContent = "Download Beta for Desktop";
         if (downloadSubtext) downloadSubtext.textContent = "macOS, Windows, Linux";
       }
 

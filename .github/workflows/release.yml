@@ -41,7 +41,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build app
-        run: bun run build:stable
+        run: bun run build:beta
 
       - name: Rename artifact
         id: artifact

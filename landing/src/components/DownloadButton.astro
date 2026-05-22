@@ -11,7 +11,7 @@ const fallbackUrl = "https://github.com/DeepanshuMishraa/radius/releases/latest"
     class="download-btn group inline-flex items-center gap-2.5 px-7 py-3.5 text-[13px] font-medium text-radius-text-inverse bg-radius-accent rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radius-accent focus-visible:ring-offset-2 focus-visible:ring-offset-radius-bg-primary"
   >
     <span data-download-icon class="flex items-center justify-center w-4 h-4 text-radius-text-inverse/90"></span>
-    <span data-download-label>Download</span>
+    <span data-download-label>Download Beta</span>
     <svg
       width="14"
       height="14"
@@ -82,27 +82,27 @@ const fallbackUrl = "https://github.com/DeepanshuMishraa/radius/releases/latest"
 
   const downloadMap = {
     "mac-arm64": {
-      label: "Download for Mac (Apple Silicon)",
+      label: "Download Beta for Mac (Apple Silicon)",
       icon: appleIcon,
       href: `${releaseBaseUrl}/stable-macos-arm64-Radius.dmg`,
     },
     "mac-x64": {
-      label: "Download for Mac (Intel)",
+      label: "Download Beta for Mac (Intel)",
       icon: appleIcon,
       href: `${releaseBaseUrl}/stable-macos-x64-Radius.dmg`,
     },
     "mac-fallback": {
-      label: "Download for macOS",
+      label: "Download Beta for macOS",
       icon: appleIcon,
       href: `${releaseBaseUrl}/stable-macos-arm64-Radius.dmg`,
     },
     "windows-x64": {
-      label: "Download for Windows",
+      label: "Download Beta for Windows",
       icon: windowsIcon,
       href: `${releaseBaseUrl}/stable-win-x64-Radius-Setup.zip`,
     },
     "linux-x64": {
-      label: "Download for Linux",
+      label: "Download Beta for Linux",
       icon: linuxIcon,
       href: `${releaseBaseUrl}/stable-linux-x64-Radius-Setup.tar.gz`,
     },
@@ -148,7 +148,7 @@ const fallbackUrl = "https://github.com/DeepanshuMishraa/radius/releases/latest"
         applyPrimary();
       });
   } else {
-    if (label) label.textContent = "Download";
+    if (label) label.textContent = "Download Beta";
   }
 
   const altContainer = root?.querySelector("[data-alt-downloads]");
