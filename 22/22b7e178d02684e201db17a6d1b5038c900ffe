@@ -1,0 +1,21 @@
+src/mainview/components/ReaderView.tsx
+  s_c19124fdc0f991::t_4d686241f1e995 811,820,827,865,871
+src/components/settings-dialog.tsx
+  s_c19124fdc0f991::t_0019ad2a78bad9 18-25,248-249,251,253,255-259,262,265,269,272,276-280,282,288-299,309-317,319-320,323,329-346,349-419,421-455,457-478,480-488
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "2222b7e178d02684e201db17a6d1b5038c900ffe",
+  "prompts": {},
+  "sessions": {
+    "s_c19124fdc0f991": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e4f46-c467-7e1f-801c-a8d93d694dcd",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
