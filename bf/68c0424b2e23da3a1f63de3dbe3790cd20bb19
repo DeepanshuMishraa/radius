@@ -1,0 +1,23 @@
+landing/src/pages/index.astro
+  s_dbd413403c8696::t_d0fe5a476eaead 384
+  s_dbd413403c8696::t_84009598fb0636 9-12,292
+.github/workflows/release.yml
+  s_dbd413403c8696::t_d0fe5a476eaead 12,19,21,23,25,27,29,31,33,50,54-57,64,67
+  s_dbd413403c8696::t_84009598fb0636 20,24,28,32,60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "bf68c0424b2e23da3a1f63de3dbe3790cd20bb19",
+  "prompts": {},
+  "sessions": {
+    "s_dbd413403c8696": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e50af-2b38-7943-ab30-b629cbd545ee",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
