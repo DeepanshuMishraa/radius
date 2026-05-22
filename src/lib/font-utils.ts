@@ -16,8 +16,9 @@ const GENERIC_FONTS = new Set([
 ]);
 
 /**
- * Robustly checks if a font is installed on the user's system
- * using a side-by-side Canvas text metric comparison.
+ * Robustly checks if a font is installed on the user's system.
+ * Uses the Font Loading API when available, falling back to a Canvas
+ * text-metric comparison with tolerance for subpixel rounding.
  */
 export function isFontInstalled(fontName: string): boolean {
   if (typeof window === "undefined" || !fontName) return false;
@@ -30,42 +31,46 @@ export function isFontInstalled(fontName: string): boolean {
     return true;
   }
 
+  // Modern browsers: document.fonts.check is the most reliable synchronous
+  // method for detecting installed local fonts.
+  if (typeof document !== "undefined" && "fonts" in document) {
+    try {
+      if (document.fonts.check(`12px "${testName}"`)) return true;
+      if (document.fonts.check(`16px "${testName}"`)) return true;
+      if (document.fonts.check(`72px "${testName}"`)) return true;
+    } catch {
+      // Fall through to canvas method
+    }
+  }
+
+  // Canvas fallback for older engines or when fonts.check is unreliable.
   try {
     const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
     if (!context) return false;
 
-    // We use a varied string of characters to check differences in metrics.
-    const testString = "abcdefghijklmnopqrstuvwxyz0123456789";
+    // Use a large font size and varied string for maximum metric differentiation.
+    const testString =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+    const fontSize = 144;
 
-    // Step 1: Measure baseline widths of generic fonts
-    context.font = "72px sans-serif";
+    context.font = `${fontSize}px sans-serif`;
     const sansWidth = context.measureText(testString).width;
 
-    context.font = "72px serif";
-    const serifWidth = context.measureText(testString).width;
-
-    context.font = "72px monospace";
-    const monoWidth = context.measureText(testString).width;
-
-    // Step 2: Measure widths of requested font coupled with generic fallbacks
-    // If the font is not installed, the browser falls back to the generic font,
-    // making the measured width identical to the baseline fallback width.
-    context.font = `72px "${testName}", sans-serif`;
+    context.font = `${fontSize}px "${testName}", sans-serif`;
     const testSansWidth = context.measureText(testString).width;
 
-    context.font = `72px "${testName}", serif`;
+    // Also compare against serif to catch fonts that happen to match sans-serif metrics.
+    context.font = `${fontSize}px serif`;
+    const serifWidth = context.measureText(testString).width;
+
+    context.font = `${fontSize}px "${testName}", serif`;
     const testSerifWidth = context.measureText(testString).width;
 
-    context.font = `72px "${testName}", monospace`;
-    const testMonoWidth = context.measureText(testString).width;
-
-    // If the font is installed, it overrides the fallback. Thus, at least one test
-    // width will differ from the corresponding raw fallback width.
+    const EPSILON = 0.5;
     return (
-      testSansWidth !== sansWidth ||
-      testSerifWidth !== serifWidth ||
-      testMonoWidth !== monoWidth
+      Math.abs(testSansWidth - sansWidth) > EPSILON ||
+      Math.abs(testSerifWidth - serifWidth) > EPSILON
     );
   } catch (e) {
     console.warn("Font check failed:", e);
@@ -94,9 +99,13 @@ export function applyUISettings(settings: FontSettings) {
     root.style.setProperty("--font-family-display", `"${uiFont}", ui-sans-serif, system-ui, sans-serif`);
   }
 
-  if (settings.readerFont) {
-    const readerFont = settings.readerFont.trim();
-    root.style.setProperty("--font-family-reader", `"${readerFont}", ui-sans-serif, system-ui, sans-serif`);
+  if (settings.readerFont !== undefined) {
+    if (settings.readerFont) {
+      const readerFont = settings.readerFont.trim();
+      root.style.setProperty("--font-family-reader", `"${readerFont}", ui-sans-serif, system-ui, sans-serif`);
+    } else {
+      root.style.removeProperty("--font-family-reader");
+    }
   }
 
   if (settings.fontSize) {

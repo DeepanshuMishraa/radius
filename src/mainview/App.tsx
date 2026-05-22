@@ -18,6 +18,7 @@ import { AboutDialog } from "@/components/about";
 import { AddAccountDialog } from "@/components/add-account";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Cancel01Icon, Mail01Icon } from "@hugeicons/core-free-icons";
+import notifSoundUrl from "../../assets/notif.mp3";
 import { Toaster, toast } from "sonner";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { radiusRpc } from "./lib/rpc";
@@ -291,6 +292,15 @@ function App() {
 
   useEffect(() => {
     const handleNewMail = (incomingMessage: Message) => {
+      try {
+        const audio = new Audio(notifSoundUrl);
+        audio.play().catch(() => {
+          // Ignore autoplay policy rejections or decode errors.
+        });
+      } catch {
+        // Ignore audio initialization errors.
+      }
+
       const sender = parseAddressLabel(incomingMessage.from);
       toast.custom(
         (t) => (
