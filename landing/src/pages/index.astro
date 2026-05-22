@@ -1,1328 +1,426 @@
 ---
 import RadiusMark from "../components/RadiusMark.astro";
-import DownloadButton from "../components/DownloadButton.astro";
 import "../styles/global.css";
+
+const releaseBaseUrl = "https://github.com/DeepanshuMishraa/radius/releases/latest/download";
+const fallbackUrl = "https://github.com/DeepanshuMishraa/radius/releases/latest";
+
+const downloadUrls = {
+  macArm: `${releaseBaseUrl}/stable-macos-arm64-Radius.dmg`,
+  macIntel: `${releaseBaseUrl}/stable-macos-x64-Radius.dmg`,
+  winX64: `${releaseBaseUrl}/stable-win-x64-Radius-Setup.zip`,
+  linuxX64: `${releaseBaseUrl}/stable-linux-x64-Radius-Setup.tar.gz`,
+};
 ---
 
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta
-            name="description"
-            content="Radius — a minimal, fast, distraction-free desktop email client for Gmail. Read-only. Local cache. Dark mode. Zero clutter."
-        />
-        <meta name="theme-color" content="#e0dbd3" />
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <title>Radius — A quiet place for your email</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600;700&display=swap"
-            rel="stylesheet"
-        />
-    </head>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Radius — a minimal, fast, distraction-free desktop email client for Gmail. Read-only. Local cache. Zero clutter."
+    />
+    <meta name="theme-color" content="#e0dbd3" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Radius — A quiet place for your email</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
 
-    <body class="min-h-screen">
-        <!-- Navigation -->
-        <nav class="fixed top-0 left-0 right-0 z-50 px-6 py-4">
-            <div class="max-w-5xl mx-auto flex items-center justify-between">
-                <a
-                    href="#"
-                    class="nav-logo flex items-center gap-2.5 text-radius-text-primary"
-                >
-                    <RadiusMark class="w-5 h-5 text-radius-accent" />
-                    <span class="text-[13px] font-medium tracking-tight"
-                        >Radius</span
-                    >
-                </a>
-                <div class="flex items-center gap-6">
-                    <a
-                        href="#features"
-                        class="nav-link text-[12px] text-radius-text-secondary transition-colors duration-150"
-                        >Features</a
-                    >
-                    <a
-                        href="#how-it-works"
-                        class="nav-link text-[12px] text-radius-text-secondary transition-colors duration-150"
-                        >How it works</a
-                    >
-                    <a
-                        href="https://github.com/DeepanshuMishraa/radius"
-                        target="_blank"
-                        rel="noopener"
-                        class="nav-link text-[12px] text-radius-text-secondary transition-colors duration-150"
-                        >GitHub</a
-                    >
-                </div>
+  <body class="min-h-screen flex flex-col justify-between">
+    <!-- Header/Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 px-6 py-5 bg-radius-frame-bg/20 backdrop-blur-md border-b border-radius-border-subtle/10">
+      <div class="max-w-5xl mx-auto flex items-center justify-between">
+        <a href="#" class="nav-logo flex items-center gap-2.5 text-radius-text-primary group">
+          <RadiusMark class="w-5 h-5 text-radius-accent transition-transform duration-300 group-hover:rotate-45" />
+          <span class="text-[13px] font-semibold tracking-tight font-mono">Radius</span>
+        </a>
+        <a
+          href="https://github.com/DeepanshuMishraa/radius"
+          target="_blank"
+          rel="noopener"
+          class="nav-link flex items-center gap-1.5 text-[12px] text-radius-text-secondary hover:text-radius-text-primary transition-colors duration-200 font-mono"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+          </svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- Hero Content -->
+    <main class="flex-1 flex flex-col justify-center pt-32 px-6">
+      <div class="max-w-5xl mx-auto text-center w-full">
+        <!-- Floating Brand Icon -->
+        <div class="hero-icon mb-8 inline-flex items-center justify-center p-4 rounded-full bg-radius-bg-primary/50 border border-radius-border-subtle shadow-sm">
+          <RadiusMark class="w-10 h-10 text-radius-accent" />
+        </div>
+
+        <!-- Typography Heading -->
+        <h1 class="font-satoshi text-[42px] sm:text-[56px] md:text-[68px] font-semibold text-radius-text-primary leading-[1.08] tracking-tight mb-6 max-w-3xl mx-auto select-none">
+          A quiet place for your email.
+        </h1>
+
+        <!-- Short Tagline -->
+        <p class="text-[14px] sm:text-[16px] text-radius-text-secondary leading-relaxed max-w-lg mx-auto mb-10 font-mono">
+          A minimal, fast desktop client for Gmail. Cached locally. Zero clutter. Completely read-only.
+        </p>
+
+        <!-- OS Download & GitHub Buttons -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+          <!-- Dynamic OS Download Button -->
+          <button
+            type="button"
+            id="primary-download-btn"
+            class="download-btn w-full sm:w-auto group inline-flex flex-col items-start px-7 py-3.5 bg-radius-text-primary text-radius-bg-primary hover:opacity-95 rounded-xl shadow-sm focus:ring-2 focus:ring-radius-text-primary/30 outline-none cursor-pointer min-h-[58px] border border-radius-text-primary"
+          >
+            <div class="flex items-center gap-2.5">
+              <!-- macOS Icon (Default hidden) -->
+              <svg id="mac-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 814 1000" class="w-4 h-4 fill-current hidden">
+                <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57-155.5-127C46.7 790.7 0 663 0 541.8c0-194.4 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z" />
+              </svg>
+              <!-- Windows Icon (Default hidden) -->
+              <svg id="win-icon" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current hidden">
+                <path d="m0 12.402 35.687-4.86.016 34.423-35.67.203zm35.67 33.529.028 34.453L.028 75.48.026 45.7zm4.326-39.025L87.314 0v41.527l-47.318.376zm47.329 39.349-.011 41.34-47.318-6.678-.066-34.739z" />
+              </svg>
+              <!-- Generic/Linux Icon (Default) -->
+              <svg id="generic-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span id="primary-download-text" class="text-[13px] font-semibold tracking-wide">Download for Desktop</span>
             </div>
-        </nav>
+            <span id="primary-download-subtext" class="text-[10px] opacity-80 font-mono mt-0.5 ml-6.5">Detecting system...</span>
+          </button>
 
-        <!-- Hero -->
-        <section class="relative pt-10 pb-20 px-6">
-            <div class="max-w-5xl mx-auto">
-                <div
-                    class="hero-content flex flex-col items-center text-center"
-                >
-                    <!-- Mark -->
-                    <div class="hero-mark mb-10">
-                        <RadiusMark class="w-14 h-14 text-radius-accent" />
-                    </div>
+          <!-- Star us on GitHub Button -->
+          <a
+            href="https://github.com/DeepanshuMishraa/radius"
+            target="_blank"
+            rel="noopener"
+            class="download-btn w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3 bg-radius-bg-secondary hover:bg-radius-bg-tertiary text-radius-text-primary rounded-xl font-mono text-[12px] tracking-wide transition-all duration-200 border border-radius-border shadow-sm cursor-pointer min-h-[58px]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="text-radius-text-primary">
+              <path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.787 1.4 8.168L12 18.896l-7.334 3.857 1.4-8.168L.132 9.21l8.2-1.192z"/>
+            </svg>
+            <span>Star us on GitHub</span>
+          </a>
+        </div>
 
-                    <!-- Masthead -->
-                    <h1
-                        class="font-serif text-[52px] md:text-[72px] font-semibold text-radius-text-primary leading-[1.05] tracking-tight mb-6"
-                    >
-                        Radius
-                    </h1>
+        <!-- Centered, Cut-off App Preview Screen (Raw screenshot) -->
+        <div class="preview-container dark:shadow-[0_-20px_50px_-15px_rgba(0,0,0,0.12)]">
+          <picture>
+            <source srcset="/of-dark.png" media="(prefers-color-scheme: dark)" />
+            <img
+              src="/of.png"
+              alt="Radius Minimal Email Interface Screenshot"
+              class="w-full select-none"
+              loading="eager"
+              draggable="false"
+            />
+          </picture>
+        </div>
+      </div>
+    </main>
 
-                    <!-- Tagline -->
-                    <p
-                        class="hero-tagline text-[15px] md:text-[17px] text-radius-text-muted leading-relaxed tracking-wide mb-4 max-w-md"
-                    >
-                        A quiet place for your email.
-                    </p>
+    <!-- Footer -->
+    <footer class="px-6 py-10 border-t border-radius-border-subtle/40 bg-radius-bg-primary/20">
+      <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 font-mono">
+        <div class="flex items-center gap-2 text-radius-text-muted select-none">
+          <RadiusMark class="w-4 h-4" />
+          <span class="text-[11px]">Radius</span>
+          <span class="text-[10px] text-radius-border">&middot;</span>
+          <span class="text-[10px]">MIT License</span>
+        </div>
+        <div class="flex items-center gap-5">
+          <a href="/privacy" class="footer-link text-[11px] text-radius-text-muted hover:text-radius-text-secondary transition-colors duration-150">Privacy</a>
+          <a href="/terms" class="footer-link text-[11px] text-radius-text-muted hover:text-radius-text-secondary transition-colors duration-150">Terms</a>
+          <a href="https://github.com/DeepanshuMishraa/radius" target="_blank" rel="noopener" class="footer-link text-[11px] text-radius-text-muted hover:text-radius-text-secondary transition-colors duration-150">GitHub</a>
+        </div>
+      </div>
+    </footer>
 
-                    <p
-                        class="hero-body text-[13px] text-radius-text-secondary leading-[1.7] mb-8 max-w-sm text-balance"
-                    >
-                        A minimal, fast desktop client for Gmail. No clutter. No
-                        ads. No noise. Just your inbox, cached locally, ready
-                        the moment you open it.
-                    </p>
+    <!-- macOS Manual Setup Dialog Overlay -->
+    <dialog id="macos-dialog" closedby="any" class="w-full max-w-[28rem] bg-radius-bg-primary border border-radius-border rounded-2xl outline-none select-none text-left p-6 font-mono">
+      <div class="flex flex-col gap-4">
+        <!-- Dialog Header -->
+        <div class="flex items-start justify-between border-b border-radius-border-subtle/60 pb-3">
+          <div>
+            <h3 class="text-[13px] font-semibold text-radius-text-primary">Installing on macOS</h3>
+            <p class="text-[10px] text-radius-text-muted mt-0.5">Quarantine bypass for unsigned apps</p>
+          </div>
+          <button type="button" data-dialog-close class="text-radius-text-muted hover:text-radius-text-primary cursor-pointer transition-colors duration-150 p-1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
 
-                    <!-- Unsigned app notice -->
-                    <div
-                        class="unsigned-notice w-full max-w-[28rem] mb-10 text-left"
-                    >
-                        <div
-                            class="rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50 overflow-hidden"
-                        >
-                            <!-- Header -->
-                            <div
-                                class="flex items-center gap-2 px-4 py-3 border-b border-radius-border-subtle/60"
-                            >
-                                <svg
-                                    width="13"
-                                    height="13"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    class="text-radius-accent shrink-0"
-                                >
-                                    <path
-                                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                                    ></path>
-                                    <line x1="12" x2="12" y1="9" y2="13"></line>
-                                    <line x1="12" x2="12.01" y1="17" y2="17"
-                                    ></line>
-                                </svg>
-                                <p
-                                    class="text-[11px] text-radius-text-muted leading-relaxed"
-                                >
-                                    This app is not code-signed. First-time
-                                    install requires a quick manual step.
-                                </p>
-                            </div>
+        <!-- Automatic download notice -->
+        <div class="flex items-center gap-2 px-3 py-2 bg-radius-accent-subtle/30 rounded-lg text-radius-accent text-[10px]">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-radius-accent opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-radius-accent"></span>
+          </span>
+          <span>Download started automatically...</span>
+        </div>
 
-                            <!-- macOS -->
-                            <div
-                                class="px-4 py-3 border-b border-radius-border-subtle/40"
-                            >
-                                <div class="flex items-center gap-1.5 mb-2">
-                                    <svg
-                                        width="12"
-                                        height="12"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                        class="text-radius-text-muted/70"
-                                    >
-                                        <path
-                                            d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.21-1.98 1.07-3.11-1.05.05-2.31.7-3.06 1.55-.67.76-1.26 1.99-1.1 3.13 1.17.09 2.36-.66 3.09-1.57z"
-                                        ></path>
-                                    </svg>
-                                    <span
-                                        class="text-[11px] font-medium text-radius-text-primary"
-                                        >macOS</span
-                                    >
-                                </div>
-                                <div class="flex items-stretch gap-1.5">
-                                    <code
-                                        id="mac-cmd"
-                                        class="flex-1 min-w-0 text-[11px] font-mono text-radius-text-secondary bg-radius-bg-primary/70 rounded-md px-3 py-2 leading-relaxed break-all"
-                                    >
-                                        sudo xattr -rd com.apple.quarantine /Applications/Radius.app
-                                    </code>
-                                    <button
-                                        type="button"
-                                        data-copy-target="mac-cmd"
-                                        class="copy-btn shrink-0 inline-flex items-center justify-center w-9 rounded-md bg-radius-bg-primary/70 text-radius-text-muted hover:text-radius-text-primary hover:bg-radius-bg-primary transition-all duration-150"
-                                        aria-label="Copy command"
-                                    >
-                                        <svg
-                                            width="14"
-                                            height="14"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                        >
-                                            <rect
-                                                x="9"
-                                                y="9"
-                                                width="13"
-                                                height="13"
-                                                rx="2"
-                                                ry="2"></rect>
-                                            <path
-                                                d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-                                            ></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                                <p
-                                    class="mt-2 text-[10px] text-radius-text-muted/70 leading-relaxed"
-                                >
-                                    Paste into Terminal after dragging Radius to
-                                    Applications.
-                                </p>
-                            </div>
-
-                            <!-- Windows -->
-                            <div class="px-4 py-3">
-                                <div class="flex items-center gap-1.5 mb-1.5">
-                                    <svg
-                                        width="12"
-                                        height="12"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                        class="text-radius-text-muted/70"
-                                    >
-                                        <path
-                                            d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"
-                                        ></path>
-                                    </svg>
-                                    <span
-                                        class="text-[11px] font-medium text-radius-text-primary"
-                                        >Windows</span
-                                    >
-                                </div>
-                                <p
-                                    class="text-[11px] text-radius-text-secondary leading-relaxed"
-                                >
-                                    When SmartScreen appears, click <span
-                                        class="text-radius-text-primary font-medium"
-                                        >More info</span
-                                    > then <span
-                                        class="text-radius-text-primary font-medium"
-                                        >Run anyway</span
-                                    >.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Download -->
-                    <div class="hero-download">
-                        <DownloadButton />
-                    </div>
-
-                    <!-- Version note -->
-                    <p
-                        class="hero-version mt-6 text-[11px] text-radius-text-muted/60 tracking-wide"
-                    >
-                        macOS · Windows · Linux &mdash; Free and open source
-                        under MIT
-                    </p>
-                </div>
+        <!-- Quick instructions -->
+        <div class="space-y-4 text-[11px] text-radius-text-secondary leading-relaxed">
+          <div>
+            <span class="text-radius-accent font-semibold">Step 1:</span> Drag <code class="bg-radius-bg-secondary px-1.5 py-0.5 rounded text-radius-text-primary text-[10px]">Radius.app</code> to your <code class="bg-radius-bg-secondary px-1.5 py-0.5 rounded text-radius-text-primary text-[10px]">/Applications</code> folder.
+          </div>
+          <div>
+            <span class="text-radius-accent font-semibold">Step 2:</span> Paste this command into Terminal to clear the quarantine flag:
+            <div class="flex items-stretch gap-1.5 mt-2 bg-radius-bg-secondary rounded-lg border border-radius-border-subtle p-2">
+              <code id="mac-quarantine-cmd" class="flex-1 min-w-0 text-[10px] text-radius-text-primary leading-normal break-all select-all font-mono py-1">sudo xattr -rd com.apple.quarantine /Applications/Radius.app</code>
+              <button
+                type="button"
+                id="copy-mac-cmd"
+                class="shrink-0 p-1.5 rounded bg-radius-bg-primary hover:bg-radius-bg-secondary border border-radius-border-subtle/80 text-radius-text-muted hover:text-radius-text-primary transition-all duration-150 cursor-pointer"
+                aria-label="Copy terminal command"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
             </div>
-        </section>
+          </div>
+        </div>
 
-        <!-- App Preview -->
-        <section class="px-6 pb-24">
-            <div class="max-w-5xl mx-auto">
-                <div class="preview-frame">
-                    <img
-                        src="/hero.jpeg"
-                        alt="Radius email client showing the inbox and reader view"
-                        class="w-full rounded-[14px] border border-radius-border shadow-[0_2px_40px_-12px_rgba(0,0,0,0.12)]"
-                        loading="eager"
-                    />
-                </div>
-            </div>
-        </section>
+        <!-- Manual downloads list -->
+        <div class="border-t border-radius-border-subtle/50 pt-3">
+          <p class="text-[9px] text-radius-text-muted mb-2">Need a specific version?</p>
+          <div class="flex items-center gap-3 text-[10px]">
+            <a href={downloadUrls.macArm} class="text-radius-accent hover:underline flex items-center gap-1">
+              Apple Silicon
+            </a>
+            <span class="text-radius-border">&middot;</span>
+            <a href={downloadUrls.macIntel} class="text-radius-accent hover:underline flex items-center gap-1">
+              Intel Core
+            </a>
+          </div>
+        </div>
+      </div>
+    </dialog>
 
-        <!-- Features -->
-        <section id="features" class="px-6 py-24 bg-radius-bg-primary">
-            <div class="max-w-5xl mx-auto">
-                <div class="section-header text-center mb-16">
-                    <h2
-                        class="font-serif text-[32px] md:text-[40px] font-semibold text-radius-text-primary leading-[1.15] tracking-tight mb-4"
-                    >
-                        Built for focus
-                    </h2>
-                    <p
-                        class="text-[14px] text-radius-text-muted max-w-md mx-auto"
-                    >
-                        Every decision was made to remove friction. No tabs. No
-                        chat widgets. No promotions sidebar.
-                    </p>
-                </div>
+    <!-- Windows Manual Setup Dialog Overlay -->
+    <dialog id="windows-dialog" closedby="any" class="w-full max-w-[28rem] bg-radius-bg-primary border border-radius-border rounded-2xl outline-none select-none text-left p-6 font-mono">
+      <div class="flex flex-col gap-4">
+        <!-- Dialog Header -->
+        <div class="flex items-start justify-between border-b border-radius-border-subtle/60 pb-3">
+          <div>
+            <h3 class="text-[13px] font-semibold text-radius-text-primary">Installing on Windows</h3>
+            <p class="text-[10px] text-radius-text-muted mt-0.5">Windows SmartScreen instructions</p>
+          </div>
+          <button type="button" data-dialog-close class="text-radius-text-muted hover:text-radius-text-primary cursor-pointer transition-colors duration-150 p-1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
 
-                <div class="features-grid grid md:grid-cols-3 gap-8">
-                    <!-- Feature 1 -->
-                    <div
-                        class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50"
-                    >
-                        <div
-                            class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4"
-                        >
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                class="text-radius-accent"
-                            >
-                                <polyline points="13 2 13 9 20 9"></polyline>
-                                <path
-                                    d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"
-                                ></path>
-                            </svg>
-                        </div>
-                        <h3
-                            class="text-[14px] font-semibold text-radius-text-primary mb-2"
-                        >
-                            Local cache
-                        </h3>
-                        <p
-                            class="text-[13px] text-radius-text-secondary leading-relaxed"
-                        >
-                            Your inbox syncs to a local SQLite database. Open
-                            the app &mdash; your emails are already there. No
-                            spinners. No waiting.
-                        </p>
-                    </div>
+        <!-- Automatic download notice -->
+        <div class="flex items-center gap-2 px-3 py-2 bg-radius-accent-subtle/30 rounded-lg text-radius-accent text-[10px]">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-radius-accent opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-radius-accent"></span>
+          </span>
+          <span>Download started automatically...</span>
+        </div>
 
-                    <!-- Feature 2 -->
-                    <div
-                        class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50"
-                    >
-                        <div
-                            class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4"
-                        >
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                class="text-radius-accent"
-                            >
-                                <path
-                                    d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"
-                                ></path>
-                                <path
-                                    d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"
-                                ></path>
-                            </svg>
-                        </div>
-                        <h3
-                            class="text-[14px] font-semibold text-radius-text-primary mb-2"
-                        >
-                            Typographic reader
-                        </h3>
-                        <p
-                            class="text-[13px] text-radius-text-secondary leading-relaxed"
-                        >
-                            Emails render in a centered column with generous
-                            line height and serif typography. Finally, an email
-                            client that respects the craft of reading.
-                        </p>
-                    </div>
+        <!-- SmartScreen instructions -->
+        <div class="space-y-4 text-[11px] text-radius-text-secondary leading-relaxed">
+          <div>
+            <span class="text-radius-accent font-semibold">Step 1:</span> Extract the downloaded <code class="bg-radius-bg-secondary px-1.5 py-0.5 rounded text-radius-text-primary text-[10px]">.zip</code> folder.
+          </div>
+          <div>
+            <span class="text-radius-accent font-semibold">Step 2:</span> Open <code class="bg-radius-bg-secondary px-1.5 py-0.5 rounded text-radius-text-primary text-[10px]">Radius.exe</code>.
+          </div>
+          <div>
+            <span class="text-radius-accent font-semibold">Step 3:</span> When the blue <strong class="text-radius-text-primary">SmartScreen Defender</strong> warning pops up:
+            <ul class="list-disc list-inside ml-2 mt-1 space-y-1 text-radius-text-muted">
+              <li>Click <span class="text-radius-text-primary font-medium">More info</span></li>
+              <li>Click <span class="text-radius-text-primary font-medium">Run anyway</span></li>
+            </ul>
+          </div>
+        </div>
 
-                    <!-- Feature 3 -->
-                    <div
-                        class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50"
-                    >
-                        <div
-                            class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4"
-                        >
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                class="text-radius-accent"
-                            >
-                                <path
-                                    d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-                                ></path>
-                            </svg>
-                        </div>
-                        <h3
-                            class="text-[14px] font-semibold text-radius-text-primary mb-2"
-                        >
-                            Read-only by design
-                        </h3>
-                        <p
-                            class="text-[13px] text-radius-text-secondary leading-relaxed"
-                        >
-                            Radius only reads your inbox. No send, no delete, no
-                            archive. Your OAuth scope is minimal. Your trust is
-                            maximal.
-                        </p>
-                    </div>
+        <!-- Manual downloads link -->
+        <div class="border-t border-radius-border-subtle/50 pt-3">
+          <p class="text-[9px] text-radius-text-muted mb-2">Manual download link</p>
+          <a href={downloadUrls.winX64} class="text-radius-accent text-[10px] hover:underline flex items-center gap-1">
+            stable-win-x64-Radius-Setup.zip
+          </a>
+        </div>
+      </div>
+    </dialog>
 
-                    <!-- Feature 4 -->
-                    <div
-                        class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50"
-                    >
-                        <div
-                            class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4"
-                        >
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                class="text-radius-accent"
-                            >
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
-                        </div>
-                        <h3
-                            class="text-[14px] font-semibold text-radius-text-primary mb-2"
-                        >
-                            Always in sync
-                        </h3>
-                        <p
-                            class="text-[13px] text-radius-text-secondary leading-relaxed"
-                        >
-                            Background incremental sync via Gmail's history API.
-                            New emails appear without a manual refresh. The
-                            cache stays warm.
-                        </p>
-                    </div>
+    <script define:vars={{ downloadUrls }}>
+      // CPU Arch / OS detection helper
+      function detectAppleArch() {
+        const ua = navigator.userAgent.toLowerCase();
+        if (ua.includes("arm64") || ua.includes("aarch64")) return "arm";
+        if (navigator.platform === "MacIntel") {
+          // Fallback guess for modern Macs running translation but usually defaults to Apple Silicon nowadays
+          if (typeof navigator.userAgentData?.getHighEntropyValues === "function") {
+            return null;
+          }
+          return "arm";
+        }
+        return "intel";
+      }
 
-                    <!-- Feature 5 -->
-                    <div
-                        class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50"
-                    >
-                        <div
-                            class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4"
-                        >
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                class="text-radius-accent"
-                            >
-                                <rect
-                                    width="18"
-                                    height="11"
-                                    x="3"
-                                    y="11"
-                                    rx="2"
-                                    ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
-                        </div>
-                        <h3
-                            class="text-[14px] font-semibold text-radius-text-primary mb-2"
-                        >
-                            Secure by default
-                        </h3>
-                        <p
-                            class="text-[13px] text-radius-text-secondary leading-relaxed"
-                        >
-                            OAuth tokens live in your system keychain, not a
-                            config file. HTML email bodies are sanitized before
-                            they ever reach the renderer.
-                        </p>
-                    </div>
+      // Dynamic OS Detection on mount
+      const ua = navigator.userAgent.toLowerCase();
+      let detectedOS = "unknown";
 
-                    <!-- Feature 6 -->
-                    <div
-                        class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50"
-                    >
-                        <div
-                            class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4"
-                        >
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                class="text-radius-accent"
-                            >
-                                <path d="M18 20V10"></path>
-                                <path d="M12 20V4"></path>
-                                <path d="M6 20v-6"></path>
-                            </svg>
-                        </div>
-                        <h3
-                            class="text-[14px] font-semibold text-radius-text-primary mb-2"
-                        >
-                            120fps scrolling
-                        </h3>
-                        <p
-                            class="text-[13px] text-radius-text-secondary leading-relaxed"
-                        >
-                            Virtualized lists handle 10,000+ emails without
-                            breaking a sweat. Built with @tanstack/react-virtual
-                            and disciplined rendering.
-                        </p>
-                    </div>
+      if (ua.includes("mac")) {
+        detectedOS = "mac";
+      } else if (ua.includes("win")) {
+        detectedOS = "windows";
+      } else if (ua.includes("linux") && !ua.includes("android")) {
+        detectedOS = "linux";
+      }
 
-                    <!-- Feature 7 -->
-                    <div
-                        class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50"
-                    >
-                        <div
-                            class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4"
-                        >
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                class="text-radius-accent"
-                            >
-                                <path
-                                    d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-                                ></path>
-                            </svg>
-                        </div>
-                        <h3
-                            class="text-[14px] font-semibold text-radius-text-primary mb-2"
-                        >
-                            Dark mode
-                        </h3>
-                        <p
-                            class="text-[13px] text-radius-text-secondary leading-relaxed"
-                        >
-                            A carefully tuned dark theme with warm grays, not
-                            harsh blacks. Toggle via command palette or let your
-                            system decide.
-                        </p>
-                    </div>
+      // DOM References
+      const downloadBtn = document.getElementById("primary-download-btn");
+      const downloadText = document.getElementById("primary-download-text");
+      const downloadSubtext = document.getElementById("primary-download-subtext");
+      const macIcon = document.getElementById("mac-icon");
+      const winIcon = document.getElementById("win-icon");
+      const genericIcon = document.getElementById("generic-icon");
 
-                    <!-- Feature 8 -->
-                    <div
-                        class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50"
-                    >
-                        <div
-                            class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4"
-                        >
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                class="text-radius-accent"
-                            >
-                                <polyline points="4 17 10 11 4 5"></polyline>
-                                <line x1="12" x2="20" y1="19" y2="19"></line>
-                            </svg>
-                        </div>
-                        <h3
-                            class="text-[14px] font-semibold text-radius-text-primary mb-2"
-                        >
-                            Command palette
-                        </h3>
-                        <p
-                            class="text-[13px] text-radius-text-secondary leading-relaxed"
-                        >
-                            Hit Cmd+K to toggle theme, search emails, or jump to
-                            any action. Keyboard-first design for people who
-                            prefer typing to clicking.
-                        </p>
-                    </div>
+      const macDialog = document.getElementById("macos-dialog");
+      const winDialog = document.getElementById("windows-dialog");
 
-                    <!-- Feature 9 -->
-                    <div
-                        class="feature-card group p-6 rounded-xl border border-radius-border-subtle bg-radius-bg-secondary/50"
-                    >
-                        <div
-                            class="feature-icon w-8 h-8 rounded-lg bg-radius-accent-subtle flex items-center justify-center mb-4"
-                        >
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                class="text-radius-accent"
-                            >
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
-                            </svg>
-                        </div>
-                        <h3
-                            class="text-[14px] font-semibold text-radius-text-primary mb-2"
-                        >
-                            Instant search
-                        </h3>
-                        <p
-                            class="text-[13px] text-radius-text-secondary leading-relaxed"
-                        >
-                            Search across sender, subject, snippet, and full
-                            body text. Results appear as you type. No server
-                            round-trips &mdash; everything is local.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
+      // Dynamic Content Swapping
+      if (detectedOS === "mac") {
+        if (downloadText) downloadText.textContent = "Download for macOS";
+        if (downloadSubtext) downloadSubtext.textContent = "Apple Silicon & Intel";
+        macIcon?.classList.remove("hidden");
+        genericIcon?.classList.add("hidden");
+      } else if (detectedOS === "windows") {
+        if (downloadText) downloadText.textContent = "Download for Windows";
+        if (downloadSubtext) downloadSubtext.textContent = "64-bit installer";
+        winIcon?.classList.remove("hidden");
+        genericIcon?.classList.add("hidden");
+      } else if (detectedOS === "linux") {
+        if (downloadText) downloadText.textContent = "Download for Linux";
+        if (downloadSubtext) downloadSubtext.textContent = "x64 .tar.gz";
+        // Linux keeps the default download/generic icon, no class swap needed
+      } else {
+        if (downloadText) downloadText.textContent = "Download for Desktop";
+        if (downloadSubtext) downloadSubtext.textContent = "macOS, Windows, Linux";
+      }
 
-        <!-- How it works -->
-        <section id="how-it-works" class="px-6 py-24">
-            <div class="max-w-5xl mx-auto">
-                <div class="section-header text-center mb-16">
-                    <h2
-                        class="font-serif text-[32px] md:text-[40px] font-semibold text-radius-text-primary leading-[1.15] tracking-tight mb-4"
-                    >
-                        How it works
-                    </h2>
-                    <p
-                        class="text-[14px] text-radius-text-muted max-w-md mx-auto"
-                    >
-                        Three steps from install to inbox. No configuration
-                        files. No server to run.
-                    </p>
-                </div>
-
-                <div class="steps-grid grid md:grid-cols-3 gap-6">
-                    <div
-                        class="step-card relative p-6 rounded-xl bg-radius-bg-primary border border-radius-border-subtle"
-                    >
-                        <div
-                            class="step-badge absolute -top-3 left-6 px-2 py-0.5 bg-radius-frame-bg rounded text-[10px] font-medium text-radius-text-secondary"
-                        >
-                            01
-                        </div>
-                        <h3
-                            class="text-[14px] font-semibold text-radius-text-primary mb-2 mt-1"
-                        >
-                            Connect Gmail
-                        </h3>
-                        <p
-                            class="text-[13px] text-radius-text-secondary leading-relaxed"
-                        >
-                            One-click OAuth with PKCE. We request read-only
-                            access. You approve. That's it.
-                        </p>
-                    </div>
-
-                    <div
-                        class="step-card relative p-6 rounded-xl bg-radius-bg-primary border border-radius-border-subtle"
-                    >
-                        <div
-                            class="step-badge absolute -top-3 left-6 px-2 py-0.5 bg-radius-frame-bg rounded text-[10px] font-medium text-radius-text-secondary"
-                        >
-                            02
-                        </div>
-                        <h3
-                            class="text-[14px] font-semibold text-radius-text-primary mb-2 mt-1"
-                        >
-                            First sync
-                        </h3>
-                        <p
-                            class="text-[13px] text-radius-text-secondary leading-relaxed"
-                        >
-                            Radius fetches your inbox and stores it locally. A
-                            progress bar shows the way. For 3,000 emails,
-                            this takes under a minute.
-                        </p>
-                    </div>
-
-                    <div
-                        class="step-card relative p-6 rounded-xl bg-radius-bg-primary border border-radius-border-subtle"
-                    >
-                        <div
-                            class="step-badge absolute -top-3 left-6 px-2 py-0.5 bg-radius-frame-bg rounded text-[10px] font-medium text-radius-text-secondary"
-                        >
-                            03
-                        </div>
-                        <h3
-                            class="text-[14px] font-semibold text-radius-text-primary mb-2 mt-1"
-                        >
-                            Just read
-                        </h3>
-                        <p
-                            class="text-[13px] text-radius-text-secondary leading-relaxed"
-                        >
-                            From now on, Radius opens instantly. Background sync
-                            keeps you current. No waiting. No loading states.
-                            Just email.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Philosophy / Why -->
-        <section class="px-6 py-24 bg-radius-bg-primary">
-            <div class="max-w-3xl mx-auto text-center">
-                <RadiusMark class="w-8 h-8 text-radius-accent mx-auto mb-6" />
-                <blockquote
-                    class="font-serif text-[24px] md:text-[30px] font-medium text-radius-text-primary leading-[1.35] tracking-tight mb-6"
-                >
-                    &ldquo;Speed is the feature. Silence is the
-                    interface.&rdquo;
-                </blockquote>
-                <p
-                    class="text-[14px] text-radius-text-secondary leading-relaxed max-w-xl mx-auto mb-8"
-                >
-                    We built Radius because existing email clients treat your
-                    attention as inventory to be sold. Ads in the sidebar.
-                    Promotions in your primary tab. Chat widgets sliding over
-                    your draft. Every pixel is a negotiation.
-                </p>
-                <p
-                    class="text-[14px] text-radius-text-secondary leading-relaxed max-w-xl mx-auto"
-                >
-                    Radius does less, better. One account. One inbox. One
-                    beautiful reader. If you need a power tool, this isn't it.
-                    If you need a quiet place to read your email &mdash;
-                    welcome.
-                </p>
-            </div>
-        </section>
-
-        <!-- Tech stack / Open source -->
-        <section class="px-6 py-24">
-            <div class="max-w-5xl mx-auto">
-                <div class="grid md:grid-cols-2 gap-12 items-center">
-                    <div>
-                        <h2
-                            class="font-serif text-[28px] font-semibold text-radius-text-primary leading-[1.15] tracking-tight mb-4"
-                        >
-                            Open source, end to end
-                        </h2>
-                        <p
-                            class="text-[14px] text-radius-text-secondary leading-relaxed mb-6"
-                        >
-                            Radius is MIT licensed. The entire stack &mdash;
-                            from the sync engine to the renderer &mdash; is
-                            plain TypeScript. No hidden binaries. No telemetry.
-                            No dependencies you can't audit.
-                        </p>
-                        <div class="flex flex-wrap gap-2 mb-6">
-                            {
-                                [
-                                    "Electrobun",
-                                    "Bun",
-                                    "React",
-                                    "Tailwind CSS",
-                                    "SQLite",
-                                    "TypeScript",
-                                ].map((tech) => (
-                                    <span class="tech-tag px-2.5 py-1 text-[11px] text-radius-text-secondary bg-radius-bg-secondary border border-radius-border-subtle rounded-md">
-                                        {tech}
-                                    </span>
-                                ))
-                            }
-                        </div>
-                        <a
-                            href="https://github.com/DeepanshuMishraa/radius"
-                            target="_blank"
-                            rel="noopener"
-                            class="github-link inline-flex items-center gap-2 text-[13px] text-radius-accent transition-colors duration-150"
-                        >
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                            >
-                                <path
-                                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
-                                ></path>
-                            </svg>
-                            View source on GitHub
-                        </a>
-                    </div>
-
-                    <div
-                        class="specs-card p-6 rounded-xl bg-radius-bg-secondary border border-radius-border-subtle"
-                    >
-                        <div class="flex items-center gap-2 mb-4">
-                            <div class="w-2 h-2 rounded-full bg-radius-success">
-                            </div>
-                            <span
-                                class="text-[11px] text-radius-text-muted font-medium uppercase tracking-wide"
-                                >System requirements</span
-                            >
-                        </div>
-                        <div class="space-y-3">
-                            <div
-                                class="spec-row flex items-center justify-between py-2 border-b border-radius-border-subtle/50"
-                            >
-                                <span
-                                    class="text-[13px] text-radius-text-secondary"
-                                    >macOS</span
-                                >
-                                <span
-                                    class="text-[12px] text-radius-text-primary"
-                                    >12.0+ (Intel &amp; Apple Silicon)</span
-                                >
-                            </div>
-                            <div
-                                class="spec-row flex items-center justify-between py-2 border-b border-radius-border-subtle/50"
-                            >
-                                <span
-                                    class="text-[13px] text-radius-text-secondary"
-                                    >Windows</span
-                                >
-                                <span
-                                    class="text-[12px] text-radius-text-primary"
-                                    >10+ (64-bit)</span
-                                >
-                            </div>
-                            <div
-                                class="spec-row flex items-center justify-between py-2 border-b border-radius-border-subtle/50"
-                            >
-                                <span
-                                    class="text-[13px] text-radius-text-secondary"
-                                    >Linux</span
-                                >
-                                <span
-                                    class="text-[12px] text-radius-text-primary"
-                                    >x64 (tar.gz installer)</span
-                                >
-                            </div>
-                            <div
-                                class="spec-row flex items-center justify-between py-2"
-                            >
-                                <span
-                                    class="text-[13px] text-radius-text-secondary"
-                                    >Required</span
-                                >
-                                <span
-                                    class="text-[12px] text-radius-text-primary"
-                                    >Gmail account</span
-                                >
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- FAQ -->
-        <section class="px-6 py-24 bg-radius-bg-primary">
-            <div class="max-w-2xl mx-auto">
-                <h2
-                    class="font-serif text-[28px] font-semibold text-radius-text-primary leading-[1.15] tracking-tight mb-10 text-center"
-                >
-                    Questions
-                </h2>
-
-                <div class="faq-list space-y-1">
-                    {
-                        [
-                            {
-                                q: "Does Radius work with Outlook or other providers?",
-                                a: "Not yet. Radius is Gmail-only for v1.0. IMAP support is on the roadmap for a future release.",
-                            },
-                            {
-                                q: "Can I compose or send emails?",
-                                a: "No. Radius is intentionally read-only. It is designed for reading, not managing, your inbox. If you need to reply, your browser is one click away.",
-                            },
-                            {
-                                q: "Where is my data stored?",
-                                a: "Locally on your machine in a SQLite database. Nothing leaves your device except API calls to Gmail's servers.",
-                            },
-                            {
-                                q: "Is there a mobile app?",
-                                a: "No. Radius is a desktop application only. The focus is on a calm, full-screen reading experience that phones can't provide.",
-                            },
-                            {
-                                q: "Will you add AI features?",
-                                a: "No plans to. The product philosophy is subtraction, not addition.",
-                            },
-                            {
-                                q: "How do I report a bug or request a feature?",
-                                a: "Open an issue on GitHub. We read everything, even if we don't respond to every request.",
-                            },
-                        ].map((item) => (
-                            <details class="faq-item group rounded-lg bg-radius-bg-secondary/50 border border-radius-border-subtle open:border-radius-border">
-                                <summary class="faq-summary flex items-center justify-between cursor-pointer px-5 py-4 text-[13px] font-medium text-radius-text-primary select-none list-none">
-                                    {item.q}
-                                    <svg
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        class="faq-chevron text-radius-text-muted shrink-0 ml-4"
-                                    >
-                                        <polyline points="6 9 12 15 18 9" />
-                                    </svg>
-                                </summary>
-                                <div class="faq-answer px-5 pb-4 text-[13px] text-radius-text-secondary leading-relaxed">
-                                    {item.a}
-                                </div>
-                            </details>
-                        ))
-                    }
-                </div>
-            </div>
-        </section>
-
-        <!-- Bottom CTA -->
-        <section class="px-6 py-24">
-            <div class="max-w-xl mx-auto text-center">
-                <RadiusMark class="w-10 h-10 text-radius-accent mx-auto mb-6" />
-                <h2
-                    class="font-serif text-[28px] font-semibold text-radius-text-primary leading-[1.15] tracking-tight mb-4"
-                >
-                    Ready for a quieter inbox?
-                </h2>
-                <p class="text-[14px] text-radius-text-muted mb-8">
-                    Free. Open source. No account required.
-                </p>
-                <DownloadButton />
-            </div>
-        </section>
-
-        <!-- Footer -->
-        <footer class="px-6 py-8 border-t border-radius-border-subtle">
-            <div
-                class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4"
-            >
-                <div class="flex items-center gap-2 text-radius-text-muted">
-                    <RadiusMark class="w-4 h-4" />
-                    <span class="text-[12px]">Radius</span>
-                    <span class="text-[11px] text-radius-border">&middot;</span>
-                    <span class="text-[11px]">MIT License</span>
-                </div>
-                <div class="flex items-center gap-5">
-                    <a
-                        href="/privacy"
-                        class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150"
-                        >Privacy</a
-                    >
-                    <a
-                        href="/terms"
-                        class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150"
-                        >Terms</a
-                    >
-                    <a
-                        href="https://github.com/DeepanshuMishraa/radius"
-                        target="_blank"
-                        rel="noopener"
-                        class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150"
-                        >GitHub</a
-                    >
-                    <a
-                        href="https://github.com/DeepanshuMishraa/radius/releases"
-                        target="_blank"
-                        rel="noopener"
-                        class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150"
-                        >Releases</a
-                    >
-                    <a
-                        href="https://github.com/DeepanshuMishraa/radius/issues"
-                        target="_blank"
-                        rel="noopener"
-                        class="footer-link text-[12px] text-radius-text-muted transition-colors duration-150"
-                        >Issues</a
-                    >
-                </div>
-            </div>
-        </footer>
-
-        <!-- Entrance animations -->
-        <style is:global>
-            /* ============================================
-         Emil Kowalski Animation Principles
-         - ease-out as default (cubic-bezier(0.32, 0.72, 0, 1))
-         - max 300ms for UI transitions
-         - transform + opacity only
-         - scale(0.97) for button press feedback
-         - staggered children entrances
-         - reduced motion support
-         ============================================ */
-
-            :root {
-                --ease-out-expo: cubic-bezier(0.32, 0.72, 0, 1);
-                --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-                --duration-fast: 150ms;
-                --duration-normal: 200ms;
-                --duration-slow: 300ms;
-            }
-
-            /* --- Scroll-triggered entrance animations --- */
-            @keyframes fade-up {
-                from {
-                    opacity: 0;
-                    transform: translateY(16px);
+      // Primary click handler
+      downloadBtn?.addEventListener("click", () => {
+        if (detectedOS === "mac") {
+          macDialog?.showModal();
+          
+          // Auto resolve Apple Silicon vs Intel
+          const arch = detectAppleArch();
+          let targetUrl = downloadUrls.macArm; // Default
+          
+          if (arch === "intel") {
+            targetUrl = downloadUrls.macIntel;
+          } else if (arch === null) {
+            navigator.userAgentData?.getHighEntropyValues(["architecture"])
+              .then((hint) => {
+                if (hint?.architecture?.includes("x86")) {
+                  window.location.href = downloadUrls.macIntel;
+                } else {
+                  window.location.href = downloadUrls.macArm;
                 }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
+              })
+              .catch(() => {
+                window.location.href = downloadUrls.macArm;
+              });
+            return;
+          }
+          
+          window.location.href = targetUrl;
+        } else if (detectedOS === "windows") {
+          winDialog?.showModal();
+          window.location.href = downloadUrls.winX64;
+        } else if (detectedOS === "linux") {
+          window.location.href = downloadUrls.linuxX64;
+        } else {
+          // Fallback redirect to latest release
+          window.location.href = "https://github.com/DeepanshuMishraa/radius/releases/latest";
+        }
+      });
 
-            @keyframes fade-in {
-                from {
-                    opacity: 0;
-                }
-                to {
-                    opacity: 1;
-                }
-            }
+      // Dialog dismiss helpers (close buttons)
+      document.querySelectorAll("[data-dialog-close]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          btn.closest("dialog")?.close();
+        });
+      });
 
-            @keyframes scale-in {
-                from {
-                    opacity: 0;
-                    transform: scale(0.95);
-                }
-                to {
-                    opacity: 1;
-                    transform: scale(1);
-                }
-            }
-
-            /* Hero entrance sequence */
-            .hero-mark {
-                opacity: 0;
-                animation: fade-up 500ms var(--ease-out-expo) 100ms forwards;
-            }
-            .hero-content h1 {
-                opacity: 0;
-                animation: fade-up 500ms var(--ease-out-expo) 180ms forwards;
-            }
-            .hero-tagline {
-                opacity: 0;
-                animation: fade-up 500ms var(--ease-out-expo) 260ms forwards;
-            }
-            .hero-body {
-                opacity: 0;
-                animation: fade-up 500ms var(--ease-out-expo) 340ms forwards;
-            }
-            .hero-download {
-                opacity: 0;
-                animation: fade-up 500ms var(--ease-out-expo) 420ms forwards;
-            }
-            .hero-version {
-                opacity: 0;
-                animation: fade-up 500ms var(--ease-out-expo) 500ms forwards;
-            }
-
-            /* Preview image */
-            .preview-frame {
-                opacity: 0;
-                animation: scale-in 600ms var(--ease-out-expo) 600ms forwards;
-            }
-
-            /* Section headers */
-            .section-header {
-                opacity: 0;
-            }
-            .section-header.is-visible {
-                animation: fade-up 500ms var(--ease-out-expo) forwards;
-            }
-
-            /* Feature cards — staggered */
-            .feature-card {
-                opacity: 0;
-                transform: translateY(12px);
-                transition:
-                    border-color var(--duration-normal) var(--ease-out),
-                    transform var(--duration-normal) var(--ease-out);
-            }
-            .feature-card.is-visible {
-                animation: fade-up 400ms var(--ease-out-expo) forwards;
-            }
-
-            /* Stagger delays applied via JS or nth-child */
-            .features-grid .feature-card:nth-child(1) {
-                animation-delay: 0ms;
-            }
-            .features-grid .feature-card:nth-child(2) {
-                animation-delay: 50ms;
-            }
-            .features-grid .feature-card:nth-child(3) {
-                animation-delay: 100ms;
-            }
-            .features-grid .feature-card:nth-child(4) {
-                animation-delay: 150ms;
-            }
-            .features-grid .feature-card:nth-child(5) {
-                animation-delay: 200ms;
-            }
-            .features-grid .feature-card:nth-child(6) {
-                animation-delay: 250ms;
-            }
-            .features-grid .feature-card:nth-child(7) {
-                animation-delay: 300ms;
-            }
-            .features-grid .feature-card:nth-child(8) {
-                animation-delay: 350ms;
-            }
-            .features-grid .feature-card:nth-child(9) {
-                animation-delay: 400ms;
-            }
-
-            /* Feature card hover: icon lift */
-            .feature-card:hover {
-                border-color: var(--color-radius-border);
-            }
-            .feature-card:hover .feature-icon {
-                transform: translateY(-2px);
-            }
-            .feature-icon {
-                transition: transform var(--duration-normal) var(--ease-out);
-            }
-
-            /* Step cards */
-            .step-card {
-                opacity: 0;
-                transform: translateY(12px);
-            }
-            .step-card.is-visible {
-                animation: fade-up 400ms var(--ease-out-expo) forwards;
-            }
-            .steps-grid .step-card:nth-child(1) {
-                animation-delay: 0ms;
-            }
-            .steps-grid .step-card:nth-child(2) {
-                animation-delay: 80ms;
-            }
-            .steps-grid .step-card:nth-child(3) {
-                animation-delay: 160ms;
-            }
-
-            /* Tech tags */
-            .tech-tag {
-                transition:
-                    border-color var(--duration-fast) var(--ease-out),
-                    transform var(--duration-fast) var(--ease-out);
-            }
-            .tech-tag:hover {
-                border-color: var(--color-radius-border);
-                transform: translateY(-1px);
-            }
-
-            /* Spec rows */
-            .spec-row {
-                opacity: 0;
-                transform: translateX(-8px);
-            }
-            .spec-row.is-visible {
-                animation: fade-up 300ms var(--ease-out-expo) forwards;
-            }
-            .specs-card .spec-row:nth-child(2) {
-                animation-delay: 0ms;
-            }
-            .specs-card .spec-row:nth-child(3) {
-                animation-delay: 60ms;
-            }
-            .specs-card .spec-row:nth-child(4) {
-                animation-delay: 120ms;
-            }
-            .specs-card .spec-row:nth-child(5) {
-                animation-delay: 180ms;
-            }
-
-            /* GitHub link hover */
-            .github-link {
-                transition: color var(--duration-fast) var(--ease-out);
-            }
-            .github-link:hover {
-                color: var(--color-radius-accent-hover);
-            }
-
-            /* FAQ */
-            .faq-item {
-                transition: border-color var(--duration-fast) var(--ease-out);
-            }
-            .faq-summary {
-                transition: color var(--duration-fast) var(--ease-out);
-            }
-            .faq-summary:hover {
-                color: var(--color-radius-text-primary);
-            }
-            .faq-chevron {
-                transition: transform 200ms var(--ease-out-expo);
-            }
-            .faq-item[open] .faq-chevron {
-                transform: rotate(180deg);
-            }
-            .faq-answer {
-                animation: fade-in 200ms var(--ease-out);
-            }
-
-            /* Nav links */
-            .nav-link {
-                position: relative;
-                transition: color var(--duration-fast) var(--ease-out);
-            }
-            .nav-link:hover {
-                color: var(--color-radius-text-primary);
-            }
-            .nav-link::after {
-                content: "";
-                position: absolute;
-                bottom: -2px;
-                left: 0;
-                width: 100%;
-                height: 1px;
-                background: currentColor;
-                transform: scaleX(0);
-                transform-origin: left;
-                transition: transform 200ms var(--ease-out-expo);
-            }
-            .nav-link:hover::after {
-                transform: scaleX(1);
-            }
-
-            /* Footer links */
-            .footer-link {
-                transition: color var(--duration-fast) var(--ease-out);
-            }
-            .footer-link:hover {
-                color: var(--color-radius-text-secondary);
-            }
-
-            /* Copy button */
-            .copy-btn {
-                transition:
-                    background-color var(--duration-fast) var(--ease-out),
-                    color var(--duration-fast) var(--ease-out),
-                    transform 100ms var(--ease-out);
-            }
-            .copy-btn:active {
-                transform: scale(0.93);
-            }
-
-            /* Unsigned notice entrance */
-            .unsigned-notice {
-                opacity: 0;
-                animation: fade-up 500ms var(--ease-out-expo) 400ms forwards;
-            }
-
-            /* Responsive nav */
-            @media (max-width: 400px) {
-                nav .flex.items-center.gap-6 {
-                    gap: 1rem;
-                }
-                nav .nav-link {
-                    font-size: 11px;
-                }
-            }
-
-            /* Reduced motion */
-            @media (prefers-reduced-motion: reduce) {
-                .hero-mark,
-                .hero-content h1,
-                .hero-tagline,
-                .hero-body,
-                .hero-download,
-                .hero-version,
-                .unsigned-notice,
-                .preview-frame,
-                .section-header,
-                .feature-card,
-                .step-card,
-                .spec-row {
-                    animation: none;
-                    opacity: 1;
-                    transform: none;
-                }
-                .faq-chevron {
-                    transition: none;
-                }
-                .feature-icon,
-                .tech-tag,
-                .nav-link::after {
-                    transition: none;
-                }
-            }
-        </style>
-
-        <!-- Copy button -->
-        <script>
-            document.querySelectorAll("[data-copy-target]").forEach((btn) => {
-                btn.addEventListener("click", async () => {
-                    const targetId = btn.getAttribute("data-copy-target");
-                    const code = document
-                        .getElementById(targetId as string)
-                        ?.textContent?.trim();
-                    if (!code) return;
-
-                    try {
-                        await navigator.clipboard.writeText(code);
-                        const original = btn.innerHTML;
-                        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
-                        btn.classList.add("text-radius-success");
-                        setTimeout(() => {
-                            btn.innerHTML = original;
-                            btn.classList.remove("text-radius-success");
-                        }, 1500);
-                    } catch {
-                        // Fallback: select the text
-                        const el = document.getElementById(targetId as string);
-                        if (el) {
-                            const range = document.createRange();
-                            range.selectNode(el);
-                            window.getSelection()?.removeAllRanges();
-                            window.getSelection()?.addRange(range);
-                        }
-                    }
-                });
-            });
-        </script>
-
-        <!-- Intersection Observer for scroll-triggered animations -->
-        <script>
-            const observer = new IntersectionObserver(
-                (entries) => {
-                    entries.forEach((entry) => {
-                        if (entry.isIntersecting) {
-                            entry.target.classList.add("is-visible");
-                            observer.unobserve(entry.target);
-                        }
-                    });
-                },
-                { threshold: 0.1, rootMargin: "0px 0px -40px 0px" },
+      // Fallback click outside to close (light dismiss)
+      document.querySelectorAll("dialog").forEach((dialog) => {
+        if (!("closedBy" in HTMLDialogElement.prototype)) {
+          dialog.addEventListener("click", (event) => {
+            if (event.target !== dialog) return;
+            const rect = dialog.getBoundingClientRect();
+            const isInside = (
+              rect.top <= event.clientY &&
+              event.clientY <= rect.top + rect.height &&
+              rect.left <= event.clientX &&
+              event.clientX <= rect.left + rect.width
             );
+            if (!isInside) {
+              dialog.close();
+            }
+          });
+        }
+      });
 
-            document
-                .querySelectorAll(
-                    ".section-header, .feature-card, .step-card, .spec-row",
-                )
-                .forEach((el) => observer.observe(el));
-        </script>
-    </body>
+      // Terminal quarantine command copy helper
+      const copyBtn = document.getElementById("copy-mac-cmd");
+      copyBtn?.addEventListener("click", async () => {
+        const cmdEl = document.getElementById("mac-quarantine-cmd");
+        const code = cmdEl?.textContent?.trim();
+        if (!code) return;
+
+        try {
+          await navigator.clipboard.writeText(code);
+          const originalSvg = copyBtn.innerHTML;
+          copyBtn.innerHTML = `
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-radius-success">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          `;
+          setTimeout(() => {
+            copyBtn.innerHTML = originalSvg;
+          }, 1500);
+        } catch {
+          // Select manual fallback
+          const selection = window.getSelection();
+          const range = document.createRange();
+          if (cmdEl) {
+            range.selectNodeContents(cmdEl);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          }
+        }
+      });
+    </script>
+  </body>
 </html>

@@ -3,23 +3,23 @@
 /* stylelint-disable-next-line scss/at-rule-no-unknown */
 @theme {
   --color-radius-bg-primary: #ffffff;
-  --color-radius-bg-secondary: #f7f6f3;
-  --color-radius-bg-tertiary: #efebe5;
-  --color-radius-frame-bg: #e0dbd3;
-  --color-radius-text-primary: #292827;
-  --color-radius-text-secondary: #5c5a57;
-  --color-radius-text-muted: #99948e;
+  --color-radius-bg-secondary: #f9f9f9;
+  --color-radius-bg-tertiary: #f1f1f1;
+  --color-radius-frame-bg: #ffffff;
+  --color-radius-text-primary: #171717;
+  --color-radius-text-secondary: #525252;
+  --color-radius-text-muted: #8e8e8e;
   --color-radius-text-inverse: #ffffff;
-  --color-radius-accent: #c4785a;
-  --color-radius-accent-hover: #b56a4d;
-  --color-radius-accent-subtle: #f5e6e0;
-  --color-radius-border-subtle: #e5e0d9;
-  --color-radius-border: #d5d0c9;
-  --color-radius-success: #5a8c6f;
-  --color-radius-error: #c45a5a;
+  --color-radius-accent: #171717;
+  --color-radius-accent-hover: #262626;
+  --color-radius-accent-subtle: #f4f4f5;
+  --color-radius-border-subtle: #e5e5e5;
+  --color-radius-border: #d4d4d4;
+  --color-radius-success: #16a34a;
+  --color-radius-error: #dc2626;
 
   --font-family-sans: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
-  --font-family-serif: "Playfair Display", "Georgia", serif;
+  --font-family-satoshi: "Satoshi", "Inter", system-ui, -apple-system, sans-serif;
 
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
@@ -33,6 +33,25 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-fast: 150ms;
   --duration-normal: 200ms;
+  --duration-slow: 350ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-radius-bg-primary: #161615;
+    --color-radius-bg-secondary: #1f1e1d;
+    --color-radius-bg-tertiary: #282725;
+    --color-radius-frame-bg: #0f0f0e;
+    --color-radius-text-primary: #f2f1ee;
+    --color-radius-text-secondary: #bab6b0;
+    --color-radius-text-muted: #807c77;
+    --color-radius-text-inverse: #161615;
+    --color-radius-accent: #dd8966;
+    --color-radius-accent-hover: #e69a79;
+    --color-radius-accent-subtle: #2d1c15;
+    --color-radius-border-subtle: #242220;
+    --color-radius-border: #353330;
+  }
 }
 
 @layer base {
@@ -47,6 +66,7 @@
     background-color: var(--color-radius-frame-bg);
     color: var(--color-radius-text-primary);
     overflow-x: hidden;
+    transition: background-color var(--duration-slow) var(--ease-out);
   }
 
   ::selection {
@@ -56,8 +76,8 @@
 }
 
 @layer utilities {
-  .font-serif {
-    font-family: var(--font-family-serif);
+  .font-satoshi {
+    font-family: var(--font-family-satoshi);
   }
 
   .font-sans {
@@ -79,22 +99,9 @@
     transform 150ms var(--ease-out);
 }
 
-.download-btn:hover {
-  background-color: var(--color-radius-accent-hover);
-}
-
 /* Press feedback: scale to 0.97 */
 .download-btn:active {
   transform: scale(0.97);
-}
-
-/* Arrow hover lift */
-.download-arrow {
-  transition: transform var(--duration-normal) var(--ease-out);
-}
-
-.download-btn:hover .download-arrow {
-  transform: translateY(2px);
 }
 
 /* Alt OS link hover */
@@ -122,10 +129,81 @@ summary:focus-visible {
 }
 
 /* ============================================
-   Selection color consistency
+   Dialog/Modal Styles (Modern & Native)
    ============================================ */
 
-::selection {
-  background-color: var(--color-radius-accent-subtle);
-  color: var(--color-radius-text-primary);
+dialog {
+  opacity: 0;
+  transform: scale(0.96) translateY(8px);
+  transition:
+    opacity var(--duration-slow) var(--ease-out-expo),
+    transform var(--duration-slow) var(--ease-out-expo),
+    overlay var(--duration-slow) var(--ease-out-expo) allow-discrete,
+    display var(--duration-slow) var(--ease-out-expo) allow-discrete;
 }
+
+dialog[open] {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+@starting-style {
+  dialog[open] {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+}
+
+dialog::backdrop {
+  background-color: rgba(22, 22, 21, 0.4);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transition:
+    opacity var(--duration-slow) var(--ease-out-expo),
+    overlay var(--duration-slow) var(--ease-out-expo) allow-discrete,
+    display var(--duration-slow) var(--ease-out-expo) allow-discrete;
+}
+
+dialog[open]::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.65);
+  }
+}
+
+/* ============================================
+   App Screenshot Half-Preview Frame
+   ============================================ */
+
+.preview-container {
+  position: relative;
+  width: 100%;
+  max-width: 64rem; /* max-w-5xl */
+  margin: 0 auto;
+  overflow: hidden;
+  height: 380px; /* Cut off nicely */
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  transition: border-color var(--duration-slow) var(--ease-out);
+}
+
+.preview-container::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to bottom, transparent, var(--color-radius-frame-bg));
+  pointer-events: none;
+  transition: background var(--duration-slow) var(--ease-out);
+}
+
