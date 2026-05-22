@@ -6,9 +6,9 @@ import type { RadiusRPC } from "../shared/types";
 let updaterLock: Promise<unknown> = Promise.resolve();
 
 function withUpdaterLock<T>(fn: () => Promise<T>): Promise<T> {
-  const next = updaterLock.then(() => fn()).catch(() => fn());
-  updaterLock = next;
-  return next as Promise<T>;
+  const next = updaterLock.catch(() => undefined).then(() => fn());
+  updaterLock = next.catch(() => undefined);
+  return next;
 }
 
 export async function handleCheckForUpdate(

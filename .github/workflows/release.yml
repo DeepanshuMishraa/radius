@@ -16,19 +16,27 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            artifact_glob: artifacts/canary-macos-arm64-*.dmg
+            updater_manifest_glob: artifacts/canary-macos-arm64-update.json
+            updater_bundle_glob: artifacts/canary-macos-arm64-*.app.tar.zst
+            public_asset_glob: artifacts/canary-macos-arm64-*.dmg
             asset_name: radius-macos-apple-silicon.dmg
             label: macOS Apple Silicon
           - os: macos-15-intel
-            artifact_glob: artifacts/canary-macos-x64-*.dmg
+            updater_manifest_glob: artifacts/canary-macos-x64-update.json
+            updater_bundle_glob: artifacts/canary-macos-x64-*.app.tar.zst
+            public_asset_glob: artifacts/canary-macos-x64-*.dmg
             asset_name: radius-macos-intel.dmg
             label: macOS Intel
           - os: ubuntu-latest
-            artifact_glob: artifacts/canary-linux-x64-*.tar.gz
+            updater_manifest_glob: artifacts/canary-linux-x64-update.json
+            updater_bundle_glob: artifacts/canary-linux-x64-*.tar.zst
+            public_asset_glob: artifacts/canary-linux-x64-*.tar.gz
             asset_name: radius-linux-x64.tar.gz
             label: Linux x64
           - os: windows-latest
-            artifact_glob: artifacts/canary-win-x64-*.zip
+            updater_manifest_glob: artifacts/canary-win-x64-update.json
+            updater_bundle_glob: artifacts/canary-win-x64-*.tar.zst
+            public_asset_glob: artifacts/canary-win-x64-*.zip
             asset_name: radius-windows-x64.zip
             label: Windows x64
 
@@ -51,20 +59,40 @@ jobs:
         id: artifact
         shell: bash
         run: |
-          SRC=$(find artifacts -maxdepth 1 -type f -path "${{ matrix.artifact_glob }}" | head -n 1)
-          if [ -z "$SRC" ]; then
-            echo "Expected release artifact matching ${{ matrix.artifact_glob }} was not found"
+          UPDATE_MANIFEST=$(find artifacts -maxdepth 1 -type f -path "${{ matrix.updater_manifest_glob }}" | head -n 1)
+          UPDATE_BUNDLE=$(find artifacts -maxdepth 1 -type f -path "${{ matrix.updater_bundle_glob }}" | head -n 1)
+          PUBLIC_SRC=$(find artifacts -maxdepth 1 -type f -path "${{ matrix.public_asset_glob }}" | head -n 1)
+
+          if [ -z "$UPDATE_MANIFEST" ]; then
+            echo "Expected updater manifest matching ${{ matrix.updater_manifest_glob }} was not found"
+            exit 1
+          fi
+
+          if [ -z "$UPDATE_BUNDLE" ]; then
+            echo "Expected updater bundle matching ${{ matrix.updater_bundle_glob }} was not found"
+            exit 1
+          fi
+
+          if [ -z "$PUBLIC_SRC" ]; then
+            echo "Expected public asset matching ${{ matrix.public_asset_glob }} was not found"
             exit 1
           fi
 
           DST="artifacts/${{ matrix.asset_name }}"
-          cp "$SRC" "$DST"
-          echo "file=$DST" >> "$GITHUB_OUTPUT"
+          cp "$PUBLIC_SRC" "$DST"
+
+          {
+            echo "files<<EOF"
+            echo "$UPDATE_MANIFEST"
+            echo "$UPDATE_BUNDLE"
+            echo "$DST"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ steps.artifact.outputs.file }}
+          files: ${{ steps.artifact.outputs.files }}
           tag_name: ${{ github.event.release.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
