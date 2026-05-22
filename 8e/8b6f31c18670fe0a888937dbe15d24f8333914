@@ -1,0 +1,23 @@
+src/mainview/App.tsx
+  s_c19124fdc0f991::t_5aa6bc34d156ce 21,295-303
+src/lib/font-utils.ts
+  s_c19124fdc0f991::t_cc20f187e3e7c9 19-21,34-46,49,52-55,57,60,63-65,67-68,70,72-73,102-108
+src/vite-env.d.ts
+  s_c19124fdc0f991::t_4440ab94545887 2-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "8e8b6f31c18670fe0a888937dbe15d24f8333914",
+  "prompts": {},
+  "sessions": {
+    "s_c19124fdc0f991": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e4f46-c467-7e1f-801c-a8d93d694dcd",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
