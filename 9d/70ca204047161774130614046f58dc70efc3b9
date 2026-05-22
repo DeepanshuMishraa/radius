@@ -1,0 +1,25 @@
+landing/src/components/DownloadButton.astro
+  s_dbd413403c8696::t_1fc6c00ff98f5f 87,92,97,102,107
+.github/workflows/release.yml
+  s_dbd413403c8696::t_088f22dacedc3d 19-21,25-27,31-33,37-39,62-77,82-90,95
+landing/src/pages/index.astro
+  s_dbd413403c8696::t_a0d29250c00a67 286
+src/bun/updater.ts
+  s_dbd413403c8696::t_088f22dacedc3d 9-11,135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "9d70ca204047161774130614046f58dc70efc3b9",
+  "prompts": {},
+  "sessions": {
+    "s_dbd413403c8696": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e50af-2b38-7943-ab30-b629cbd545ee",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
