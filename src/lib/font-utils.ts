@@ -84,6 +84,8 @@ interface FontSettings {
   fontSize?: number;
 }
 
+export const UI_SETTINGS_EVENT = "radius:ui-settings-changed";
+
 /**
  * Instantly applies user customizations directly to CSS custom properties
  * on the document element.
@@ -114,4 +116,6 @@ export function applyUISettings(settings: FontSettings) {
     const zoom = settings.fontSize / baseFontSize;
     root.style.setProperty("--radius-app-zoom", zoom.toString());
   }
+
+  window.dispatchEvent(new CustomEvent(UI_SETTINGS_EVENT, { detail: settings }));
 }

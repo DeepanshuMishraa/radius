@@ -14,6 +14,7 @@ import {
   MailReply01Icon,
 } from "@hugeicons/core-free-icons";
 import { radiusRpc } from "../lib/rpc";
+import { UI_SETTINGS_EVENT } from "@/lib/font-utils";
 
 interface ReaderViewProps {
   message: Message | null;
@@ -464,6 +465,7 @@ function buildNewsletterSrcDoc(
     mutedText: string;
     border: string;
     accent: string;
+    readerFont: string;
   }
 ): string {
   const escapedFrameId = JSON.stringify(frameId);
@@ -484,12 +486,14 @@ function buildNewsletterSrcDoc(
         --radius-newsletter-muted: ${theme.mutedText};
         --radius-newsletter-border: ${theme.border};
         --radius-newsletter-accent: ${theme.accent};
+        --radius-newsletter-font: ${theme.readerFont};
       }
       html, body {
         margin: 0;
         padding: 0;
         background: var(--radius-newsletter-surface);
         color: var(--radius-newsletter-text);
+        font-family: var(--radius-newsletter-font);
         overflow-x: hidden;
       }
       * {
@@ -518,6 +522,13 @@ function buildNewsletterSrcDoc(
       .radius-email-root,
       .radius-email-inner {
         color: var(--radius-newsletter-text);
+        font-family: var(--radius-newsletter-font);
+      }
+      .radius-email-inner :is(body, table, tbody, thead, tfoot, tr, td, th, div, section, article, main, aside, p, span, li, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, font, a, strong, em, b, i) {
+        font-family: var(--radius-newsletter-font) !important;
+      }
+      .radius-email-inner :is(pre, code, kbd, samp) {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
       }
       body[data-radius-appearance="dark"] .radius-email-inner,
       body[data-radius-appearance="dark"] .radius-email-inner :is(body, table, tbody, thead, tfoot, tr, td, th, div, section, article, main, aside, p, span, li, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, font) {
@@ -549,6 +560,7 @@ function buildNewsletterSrcDoc(
       const frameId = ${escapedFrameId};
       const theme = ${escapedTheme};
       const IGNORED_TAGS = new Set(["IMG", "SVG", "PATH", "VIDEO", "SOURCE", "PICTURE", "CANVAS"]);
+      const CODE_TAGS = new Set(["PRE", "CODE", "KBD", "SAMP"]);
       const SURFACE_TAGS = new Set(["TABLE", "TBODY", "THEAD", "TFOOT", "TR", "TD", "TH", "DIV", "SECTION", "ARTICLE", "MAIN", "ASIDE"]);
 
       const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -610,6 +622,16 @@ function buildNewsletterSrcDoc(
         for (const element of root.querySelectorAll("*")) {
           if (!(element instanceof HTMLElement)) continue;
           if (IGNORED_TAGS.has(element.tagName)) continue;
+
+          if (CODE_TAGS.has(element.tagName)) {
+            element.style.setProperty(
+              "font-family",
+              "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+              "important"
+            );
+          } else {
+            element.style.setProperty("font-family", theme.readerFont, "important");
+          }
 
           const computed = window.getComputedStyle(element);
           const bg = parseColor(computed.backgroundColor);
@@ -721,6 +743,7 @@ function NewsletterFrame({
     mutedText: string;
     border: string;
     accent: string;
+    readerFont: string;
   };
 }) {
   const [height, setHeight] = useState(900);
@@ -989,6 +1012,18 @@ export const ReaderView = memo(function ReaderView({
   onDelete,
 }: ReaderViewProps) {
   const { theme, appearance, resolvedTheme } = useTheme();
+  const [readerFontFamily, setReaderFontFamily] = useState(() => {
+    if (typeof window === "undefined") {
+      return '"JetBrains Mono", ui-sans-serif, system-ui, sans-serif';
+    }
+
+    const computedStyles = window.getComputedStyle(document.documentElement);
+    return (
+      computedStyles.getPropertyValue("--font-family-reader").trim() ||
+      computedStyles.getPropertyValue("--font-family-sans").trim() ||
+      '"JetBrains Mono", ui-sans-serif, system-ui, sans-serif'
+    );
+  });
   
   const [textSize] = useState<"sm" | "md" | "lg">(() => {
     const saved = localStorage.getItem("radius.reader.textsize");
@@ -1027,8 +1062,31 @@ export const ReaderView = memo(function ReaderView({
       mutedText: variables["--radius-text-secondary"] ?? "#5c5a57",
       border: variables["--radius-border-subtle"] ?? "#e5e0d9",
       accent: variables["--radius-accent"] ?? "#c4785a",
+      readerFont: readerFontFamily,
     };
-  }, [appearance, resolvedTheme, theme]);
+  }, [appearance, readerFontFamily, resolvedTheme, theme]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const syncReaderFont = () => {
+      const computedStyles = window.getComputedStyle(document.documentElement);
+      setReaderFontFamily(
+        computedStyles.getPropertyValue("--font-family-reader").trim() ||
+          computedStyles.getPropertyValue("--font-family-sans").trim() ||
+          '"JetBrains Mono", ui-sans-serif, system-ui, sans-serif'
+      );
+    };
+
+    const handleSettingsChanged = () => {
+      syncReaderFont();
+    };
+
+    window.addEventListener(UI_SETTINGS_EVENT, handleSettingsChanged as EventListener);
+    return () => {
+      window.removeEventListener(UI_SETTINGS_EVENT, handleSettingsChanged as EventListener);
+    };
+  }, []);
   useEffect(() => {
     if (!message) return;
     const handler = (e: KeyboardEvent) => {
