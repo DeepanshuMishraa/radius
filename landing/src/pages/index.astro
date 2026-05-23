@@ -1,5 +1,6 @@
 ---
 import RadiusMark from "../components/RadiusMark.astro";
+import { MacOsIcon, WindowsIcon, LinuxIcon } from "../components/icons.tsx";
 import "../styles/global.css";
 
 const releaseBaseUrl = "https://github.com/DeepanshuMishraa/radius/releases/latest/download";
@@ -21,39 +22,45 @@ const downloadUrls = {
       name="description"
       content="Radius — a minimal, fast, distraction-free desktop email client for Gmail. Read-only. Local cache. Zero clutter."
     />
-    <meta name="theme-color" content="#e0dbd3" />
+    <meta name="theme-color" content="#0b0b0a" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>Radius — A quiet place for your email</title>
+    <title>Radius — The email reader for deep work</title>
+    
+    <!-- Satoshi & Newsreader fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap"
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700,900&display=swap"
       rel="stylesheet"
     />
     <link
-      href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500;1,6..72,600&family=Instrument+Sans:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
   </head>
 
-  <body class="min-h-screen flex flex-col justify-between">
+  <body class="min-h-screen flex flex-col justify-between dotted-bg selection:bg-radius-accent-subtle selection:text-radius-text-primary text-radius-text-primary">
     <!-- Header/Navigation -->
-    <nav class="fixed top-0 left-0 right-0 z-50 px-6 py-5 bg-radius-frame-bg/20 backdrop-blur-md border-b border-radius-border-subtle/10">
+    <nav class="fixed top-0 left-0 right-0 z-50 px-6 py-5 bg-radius-frame-bg/40 backdrop-blur-md transition-all duration-300">
       <div class="max-w-5xl mx-auto flex items-center justify-between">
         <a href="#" class="nav-logo flex items-center gap-2.5 text-radius-text-primary group">
-          <RadiusMark class="w-5 h-5 text-radius-accent transition-transform duration-300 group-hover:rotate-45" />
+          <RadiusMark class="w-5 h-5 text-radius-accent transition-transform duration-500 group-hover:rotate-[180deg]" />
           <div class="flex items-center gap-2">
-            <span class="text-[13px] font-semibold tracking-tight font-mono">Radius</span>
-            <span class="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-radius-accent-subtle text-radius-text-secondary border border-radius-border-subtle/50 select-none">beta</span>
+            <span class="text-[13px] font-semibold tracking-tight font-display">radius</span>
+            <span class="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-radius-accent-subtle text-radius-text-secondary border border-radius-border-subtle select-none">beta</span>
           </div>
         </a>
+        <div class="hidden md:flex items-center gap-8 font-mono text-[11px] uppercase tracking-wider">
+          <a href="#features" class="text-radius-text-secondary hover:text-radius-text-primary transition-colors">Features</a>
+          <a href="#download" class="text-radius-text-secondary hover:text-radius-text-primary transition-colors">Download</a>
+        </div>
         <a
           href="https://github.com/DeepanshuMishraa/radius"
           target="_blank"
           rel="noopener"
-          class="nav-link flex items-center gap-1.5 text-[12px] text-radius-text-secondary hover:text-radius-text-primary transition-colors duration-200 font-mono"
+          class="nav-link flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-radius-text-secondary hover:text-radius-text-primary transition-colors font-mono"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
           </svg>
           <span>GitHub</span>
@@ -61,125 +68,343 @@ const downloadUrls = {
       </div>
     </nav>
 
-    <!-- Hero Content -->
-    <main class="flex-1 flex flex-col justify-center pt-32 px-6">
-      <div class="max-w-5xl mx-auto text-center w-full">
-        <!-- Floating Brand Icon -->
-        <div class="hero-icon mb-6 inline-flex items-center justify-center p-4 rounded-full bg-radius-bg-primary/50 border border-radius-border-subtle shadow-sm">
-          <RadiusMark class="w-10 h-10 text-radius-accent" />
-        </div>
+    <!-- Main Content -->
+    <main class="flex-1 pt-32 px-6">
+      <div class="max-w-5xl mx-auto w-full">
+        
+        <!-- Hero Section -->
+        <section class="text-center mb-20 relative">
+          <!-- Small decorative top line -->
 
-        <!-- Pill badge -->
-        <div class="mb-8">
-          <a 
-            href="https://github.com/DeepanshuMishraa/radius" 
-            target="_blank" 
-            rel="noopener"
-            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-radius-accent-subtle border border-radius-border-subtle hover:border-radius-border text-[11px] font-mono text-radius-text-secondary hover:text-radius-text-primary select-none transition-all duration-300 hover:scale-[1.02] shadow-sm hover:shadow-md"
-          >
-            <span class="inline-block w-1.5 h-1.5 rounded-full bg-radius-accent animate-pulse"></span>
-            <span>Now in Public Beta</span>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-60 transition-transform duration-300 group-hover:translate-x-0.5">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </a>
-        </div>
+          <!-- Bold display heading matching slashtable precisely -->
+          <h1 class="font-display text-[48px] sm:text-[68px] md:text-[84px] font-bold text-radius-text-primary leading-[1.04] tracking-tight mb-8 select-none">
+            The email reader<span class="text-radius-accent font-sans font-bold">*</span> <br />
+            for <span class="font-serif italic font-normal text-radius-text-primary">deep work.</span>
+          </h1>
 
-        <!-- Typography Heading -->
-        <h1 class="font-satoshi text-[42px] sm:text-[56px] md:text-[68px] font-semibold text-radius-text-primary leading-[1.08] tracking-tight mb-6 max-w-3xl mx-auto select-none">
-          A quiet place for your email.
-        </h1>
+          <!-- Subheadline -->
+          <p class="text-[15px] sm:text-[17px] text-radius-text-secondary leading-relaxed max-w-lg mx-auto mb-10 font-sans">
+            You aren’t here to manage clutter. <br />
+            Use a calm space for reading.
+          </p>
 
-        <!-- Short Tagline -->
-        <p class="text-[14px] sm:text-[16px] text-radius-text-secondary leading-relaxed max-w-lg mx-auto mb-10 font-mono">
-          A minimal, fast desktop client for Gmail. Cached locally. Zero clutter. Completely read-only.
-        </p>
-
-        <!-- OS Download & GitHub Buttons -->
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-          <!-- Dynamic OS Download Button -->
-          <button
-            type="button"
-            id="primary-download-btn"
-            class="download-btn w-full sm:w-auto group inline-flex flex-col items-start px-7 py-3.5 bg-radius-text-primary text-radius-bg-primary hover:opacity-95 rounded-xl shadow-sm focus:ring-2 focus:ring-radius-text-primary/30 outline-none cursor-pointer min-h-[58px] border border-radius-text-primary"
-          >
-            <div class="flex items-center gap-2.5">
+          <!-- Buttons -->
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10 font-mono text-[11px] uppercase tracking-wider">
+            <button
+              type="button"
+              id="primary-download-btn"
+              class="download-btn w-full sm:w-auto px-6 py-4 bg-radius-accent hover:bg-radius-accent-hover text-[#ffffff] rounded-lg shadow-md cursor-pointer font-semibold flex items-center justify-center gap-2.5"
+            >
               <!-- macOS Icon (Default hidden) -->
-              <svg id="mac-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 814 1000" class="w-4 h-4 fill-current hidden">
-                <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57-155.5-127C46.7 790.7 0 663 0 541.8c0-194.4 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z" />
-              </svg>
+              <span id="mac-icon" class="w-3.5 h-3.5 flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full hidden" set:html={MacOsIcon()} />
               <!-- Windows Icon (Default hidden) -->
-              <svg id="win-icon" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current hidden">
-                <path d="m0 12.402 35.687-4.86.016 34.423-35.67.203zm35.67 33.529.028 34.453L.028 75.48.026 45.7zm4.326-39.025L87.314 0v41.527l-47.318.376zm47.329 39.349-.011 41.34-47.318-6.678-.066-34.739z" />
-              </svg>
+              <span id="win-icon" class="w-3.5 h-3.5 flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full hidden" set:html={WindowsIcon()} />
               <!-- Generic/Linux Icon (Default) -->
-              <svg id="generic-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              <span id="primary-download-text" class="text-[13px] font-semibold tracking-wide">Download Beta for Desktop</span>
-            </div>
-            <span id="primary-download-subtext" class="text-[10px] opacity-80 font-mono mt-0.5 ml-6.5">Detecting system...</span>
-          </button>
+              <span id="generic-icon" class="w-3.5 h-3.5 flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full hidden" set:html={LinuxIcon()} />
+              <span id="primary-download-text">Download Beta ›</span>
+            </button>
 
-          <!-- Star us on GitHub Button -->
-          <a
-            href="https://github.com/DeepanshuMishraa/radius"
-            target="_blank"
-            rel="noopener"
-            class="download-btn w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3 bg-radius-bg-secondary hover:bg-radius-bg-tertiary text-radius-text-primary rounded-xl font-mono text-[12px] tracking-wide transition-all duration-200 border border-radius-border shadow-sm cursor-pointer min-h-[58px]"
+            <a
+              href="#features"
+              class="download-btn w-full sm:w-auto px-6 py-4 border border-radius-border text-radius-text-secondary hover:text-radius-text-primary rounded-lg transition-colors font-semibold"
+            >
+              <span>See features ›</span>
+            </a>
+          </div>
+
+          <p class="text-[10px] font-mono tracking-widest text-radius-text-muted uppercase select-none">
+            macOS · Gmail · IMAP · Secure OAuth · SQLite Cache · Open Source
+          </p>
+        </section>
+
+        <!-- Interactive Drag-to-Compare Image Slider -->
+        <section class="mb-24 px-4 sm:px-8">
+          <div 
+            id="slider-container" 
+            class="slider-container relative w-full aspect-[16/10] overflow-hidden select-none"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="text-radius-text-primary">
-              <path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.787 1.4 8.168L12 18.896l-7.334 3.857 1.4-8.168L.132 9.21l8.2-1.192z"/>
-            </svg>
-            <span>Star us on GitHub</span>
-          </a>
-        </div>
-
-        <!-- Centered, Cut-off App Preview Screen (Raw screenshot) -->
-        <div class="preview-container dark:shadow-[0_-20px_50px_-15px_rgba(0,0,0,0.12)]">
-          <picture>
-            <source srcset="/of-dark.png" media="(prefers-color-scheme: dark)" />
-            <img
-              src="/of.png"
-              alt="Radius Minimal Email Interface Screenshot"
-              class="w-full select-none"
-              loading="eager"
+            <!-- Light Mode App screenshot (Base) -->
+            <img 
+              src="/of.png" 
+              alt="Radius Light Mode" 
+              class="absolute inset-0 w-full h-full object-cover pointer-events-none"
               draggable="false"
             />
-          </picture>
-        </div>
+
+            <!-- Dark Mode App screenshot (Clipped Overlay) -->
+            <div 
+              id="dark-overlay" 
+              class="absolute inset-0 w-1/2 overflow-hidden pointer-events-none border-r border-radius-accent"
+            >
+              <img 
+                src="/of-dark.png" 
+                alt="Radius Dark Mode" 
+                class="absolute inset-0 h-full object-cover max-w-none pointer-events-none"
+                id="dark-img"
+                draggable="false"
+              />
+            </div>
+
+            <!-- Draggable handle bar -->
+            <div 
+              id="slider-bar" 
+              class="slider-handle-bar absolute top-0 bottom-0 left-1/2 w-0.5 cursor-ew-resize select-none"
+            >
+              <div 
+                class="slider-handle-button w-8 h-8 rounded-full flex items-center justify-center shadow-2xl select-none"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m11 17-5-5 5-5m8 10 5-5-5-5"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Pillars Grid (Clean, Flat, Spaced) -->
+        <section id="features" class="border-t border-radius-border-subtle/50 pt-20 pb-20">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 font-mono text-left">
+            <div>
+              <span class="text-radius-accent text-[11px] block mb-3 font-semibold uppercase tracking-wider">01 · Read</span>
+              <h3 class="text-[13px] font-semibold text-radius-text-primary mb-2 uppercase tracking-wide">Typographic Reader</h3>
+              <p class="text-[12px] text-radius-text-secondary leading-relaxed font-sans">
+                Focused reading in a centered 680px column using Newsreader book serif. Generous, calm, designed for deep attention.
+              </p>
+            </div>
+            <div>
+              <span class="text-radius-accent text-[11px] block mb-3 font-semibold uppercase tracking-wider">02 · Write</span>
+              <h3 class="text-[13px] font-semibold text-radius-text-primary mb-2 uppercase tracking-wide">Typographic Composer</h3>
+              <p class="text-[12px] text-radius-text-secondary leading-relaxed font-sans">
+                Compose and send messages without distractions. A quiet, plain-text first writing canvas designed for focus.
+              </p>
+            </div>
+            <div>
+              <span class="text-radius-accent text-[11px] block mb-3 font-semibold uppercase tracking-wider">03 · Cache</span>
+              <h3 class="text-[13px] font-semibold text-radius-text-primary mb-2 uppercase tracking-wide">Zero-Lag Cache</h3>
+              <p class="text-[12px] text-radius-text-secondary leading-relaxed font-sans">
+                Bun's native SQLite caches your inbox locally, bypassing slow API latency. Browsing and scrolling feels instant.
+              </p>
+            </div>
+            <div>
+              <span class="text-radius-accent text-[11px] block mb-3 font-semibold uppercase tracking-wider">04 · Domains</span>
+              <h3 class="text-[13px] font-semibold text-radius-text-primary mb-2 uppercase tracking-wide">Gmail & IMAP Sync</h3>
+              <p class="text-[12px] text-radius-text-secondary leading-relaxed font-sans">
+                Connect your personal Gmail (OAuth2 PKCE) or custom business domains via local IMAP. Syncs automatically.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Detailed Feature Highlight Section 1: Typographic Reader -->
+        <section class="py-20 border-t border-radius-border-subtle/40 text-left">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+            <div>
+              <span class="font-mono text-radius-accent text-[11px] uppercase tracking-wider block mb-4">01 · Typographic Reader</span>
+              <h2 class="font-display text-[32px] md:text-[38px] font-bold text-radius-text-primary leading-tight mb-6">
+                Designed for comfortable reading, not scanning.
+              </h2>
+              <div class="space-y-4 text-[14px] text-radius-text-secondary leading-relaxed font-sans">
+                <p>
+                  Most modern email clients treat the reading pane as a crowded, generic container. Radius reverses this trend by turning the message reader into the hero view.
+                </p>
+                <p>
+                  Emails are rendered in a gorgeous, centered 680px column using book-like <span class="font-serif italic text-radius-text-primary">Newsreader</span> serif at 18px. Generous line heights allow your eyes to process text naturally without clutter.
+                </p>
+                <p>
+                  Additionally, our parsing engine automatically blocks hidden tracking pixels, strips analytical trackers, and sanitizes bloated HTML scripts locally to protect your deep focus.
+                </p>
+              </div>
+            </div>
+            
+            <!-- Graphic displaying tracker blocking details -->
+            <div class="border border-radius-border-subtle rounded-xl p-6 bg-radius-bg-secondary/40 font-mono text-[12px]">
+              <div class="flex items-center justify-between pb-3 border-b border-radius-border-subtle mb-4">
+                <span class="text-radius-text-secondary">Security Sandboxing</span>
+                <span class="text-radius-success text-[10px] uppercase font-semibold flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-radius-success inline-block"></span>
+                  Telemetry Blocked
+                </span>
+              </div>
+              <div class="space-y-2 text-[11px] font-mono text-radius-text-secondary">
+                <div class="flex justify-between">
+                  <span>Tracking Beacons Blocked:</span>
+                  <span class="text-radius-error line-through font-bold">Blocked</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>Analytics Redirects Sanitized:</span>
+                  <span class="text-radius-success font-bold">Clean Raw URLs</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>Cross-Site HTML Scripting:</span>
+                  <span class="text-radius-error line-through font-bold">Strips &lt;script&gt;</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Detailed Feature Highlight Section 2: Local Cache Caches latency -->
+        <section class="py-20 border-t border-radius-border-subtle/40 text-left">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+            <!-- Visual grid block representing sqlite structure -->
+            <div class="border border-radius-border-subtle rounded-xl p-6 bg-radius-bg-secondary/40 font-mono text-[12px] order-last md:order-first">
+              <div class="space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-radius-border-subtle">
+                  <span class="text-radius-text-primary font-bold">cache.db (SQLite)</span>
+                  <span class="text-radius-accent text-[10px] font-bold">WARM & INSTANT</span>
+                </div>
+                <div class="space-y-2 text-[11px] text-radius-text-secondary">
+                  <div class="flex justify-between">
+                    <span>Inbox Rendering speed:</span>
+                    <span class="text-radius-success font-bold">&lt; 100ms</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Virtual list performance:</span>
+                    <span class="text-radius-success font-bold">120 FPS</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Network Cache:</span>
+                    <span class="text-radius-text-muted">SQLite WAL Mode</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <span class="font-mono text-radius-accent text-[11px] uppercase tracking-wider block mb-4">02 · Pure Performance</span>
+              <h2 class="font-display text-[32px] md:text-[38px] font-bold text-radius-text-primary leading-tight mb-6">
+                Zero-lag, local-first cache.
+              </h2>
+              <div class="space-y-4 text-[14px] text-radius-text-secondary leading-relaxed font-sans">
+                <p>
+                  Google's Gmail API is notoriously slow. Radius completely hides this latency from the user through its local-first cache.
+                </p>
+                <p>
+                  Bun's built-in SQLite engine indexes your emails locally on your hard drive, allowing you to scroll through 10,000+ emails instantly at 120fps using list virtualization, even when entirely offline.
+                </p>
+                <p>
+                  On startup, an incremental sync lifecycle automatically catches up on new messages in the background, keeping your local database warm and up-to-date.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Detailed Feature Highlight Section 3: Clean Writing & IMAP -->
+        <section class="py-20 border-t border-radius-border-subtle/40 text-left mb-16">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+            <div>
+              <span class="font-mono text-radius-accent text-[11px] uppercase tracking-wider block mb-4">03 · Clean Composition & IMAP</span>
+              <h2 class="font-display text-[32px] md:text-[38px] font-bold text-radius-text-primary leading-tight mb-6">
+                A focused composer and multi-account IMAP.
+              </h2>
+              <div class="space-y-4 text-[14px] text-radius-text-secondary leading-relaxed font-sans">
+                <p>
+                  Writing should feel as calming as reading. Radius includes a dedicated, plain-text first typographic composer.
+                </p>
+                <p>
+                  The editor strips formatting tools, emojis picker overlays, and bloated signature buttons. What remains is a quiet canvas where you can write down your thoughts, auto-save drafts locally, and send when you are ready.
+                </p>
+                <p>
+                  To keep all your work in one place, Radius also supports native custom IMAP configurations alongside Gmail, allowing you to sync your corporate mailboxes and business domain addresses under a single local SQLite cache.
+                </p>
+              </div>
+            </div>
+            
+            <div class="border border-radius-border-subtle rounded-xl p-6 bg-radius-bg-secondary/40 font-mono text-[12px]">
+              <div class="pb-3 border-b border-radius-border-subtle mb-4">
+                <span class="text-radius-text-muted">Supported Protocols & Accounts</span>
+              </div>
+              <ul class="space-y-2.5 text-[11px] text-radius-text-secondary">
+                <li class="flex items-center justify-between">
+                  <span>Google Workspace & Gmail OAuth:</span>
+                  <span class="text-radius-success font-semibold">Fully Supported</span>
+                </li>
+                <li class="flex items-center justify-between">
+                  <span>Custom Business IMAP:</span>
+                  <span class="text-radius-success font-semibold">Fully Supported</span>
+                </li>
+                <li class="flex items-center justify-between">
+                  <span>Focused plain-text composition:</span>
+                  <span class="text-radius-success font-semibold">Enabled</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- Final Download CTA -->
+        <section id="download" class="border-t border-radius-border-subtle/50 pt-20 pb-24 text-center font-mono">
+          <div class="max-w-2xl mx-auto border border-radius-border rounded-2xl p-10 bg-radius-bg-secondary/30 relative overflow-hidden">
+            <RadiusMark class="w-10 h-10 text-radius-accent mx-auto mb-6" />
+            
+            <h2 class="font-display text-[26px] sm:text-[32px] font-bold text-radius-text-primary leading-tight mb-3">
+              radius.app
+            </h2>
+            <p class="text-[12px] text-radius-text-secondary max-w-sm mx-auto mb-8 leading-relaxed font-sans">
+              Drag to your Applications folder and experience a quiet, zero-lag place to read your email.
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-sm mx-auto font-mono text-[11px] uppercase tracking-wider">
+              <button
+                type="button"
+                id="footer-download-btn"
+                class="download-btn w-full sm:w-auto px-6 py-4 bg-radius-accent hover:bg-radius-accent-hover text-[#ffffff] rounded-lg shadow-md cursor-pointer font-semibold flex items-center justify-center gap-2.5 min-h-[54px]"
+              >
+                <!-- macOS Icon (Default hidden) -->
+                <span id="footer-mac-icon" class="w-3.5 h-3.5 flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full hidden" set:html={MacOsIcon()} />
+                <!-- Windows Icon (Default hidden) -->
+                <span id="footer-win-icon" class="w-3.5 h-3.5 flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full hidden" set:html={WindowsIcon()} />
+                <!-- Generic/Linux Icon (Default) -->
+                <span id="footer-generic-icon" class="w-3.5 h-3.5 flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full hidden" set:html={LinuxIcon()} />
+                <span id="footer-download-text" class="text-[12px] font-semibold">Download for macOS ›</span>
+              </button>
+              
+              <button 
+                type="button" 
+                id="alternative-download-trigger" 
+                class="download-btn w-full sm:w-auto px-6 py-4 border border-radius-border hover:bg-radius-bg-secondary text-radius-text-primary rounded-lg transition-colors cursor-pointer font-semibold flex items-center justify-center gap-2.5 min-h-[54px]"
+              >
+                <span>Other Platforms ›</span>
+              </button>
+            </div>
+            
+            <div class="mt-6 text-[10px] text-radius-text-muted">
+              Homebrew: <code class="bg-radius-accent-subtle px-1 py-0.5 rounded text-radius-text-primary font-mono lowercase">brew install radius</code>
+            </div>
+          </div>
+        </section>
+
       </div>
     </main>
 
     <!-- Footer -->
-    <footer class="px-6 py-10 border-t border-radius-border-subtle/40 bg-radius-bg-primary/20">
-      <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 font-mono">
+    <footer class="px-6 py-10 border-t border-radius-border-subtle bg-radius-bg-secondary/20">
+      <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 font-mono text-[11px]">
         <div class="flex items-center gap-2 text-radius-text-muted select-none">
           <RadiusMark class="w-4 h-4" />
-          <span class="text-[11px]">Radius</span>
+          <span>Radius Email</span>
           <span class="text-[10px] text-radius-border">&middot;</span>
-          <span class="text-[10px]">MIT License</span>
+          <span>MIT License</span>
         </div>
         <div class="flex items-center gap-5">
-          <a href="/privacy" class="footer-link text-[11px] text-radius-text-muted hover:text-radius-text-secondary transition-colors duration-150">Privacy</a>
-          <a href="/terms" class="footer-link text-[11px] text-radius-text-muted hover:text-radius-text-secondary transition-colors duration-150">Terms</a>
-          <a href="https://github.com/DeepanshuMishraa/radius" target="_blank" rel="noopener" class="footer-link text-[11px] text-radius-text-muted hover:text-radius-text-secondary transition-colors duration-150">GitHub</a>
+          <a href="/privacy" class="footer-link text-radius-text-muted hover:text-radius-text-secondary transition-colors">Privacy</a>
+          <a href="/terms" class="footer-link text-radius-text-muted hover:text-radius-text-secondary transition-colors">Terms</a>
+          <a href="https://github.com/DeepanshuMishraa/radius" target="_blank" rel="noopener" class="footer-link text-radius-text-muted hover:text-radius-text-secondary transition-colors">GitHub</a>
         </div>
       </div>
     </footer>
 
     <!-- macOS Manual Setup Dialog Overlay -->
-    <dialog id="macos-dialog" closedby="any" class="w-full max-w-[28rem] bg-radius-bg-primary border border-radius-border rounded-2xl outline-none select-none text-left p-6 font-mono">
+    <dialog id="macos-dialog" closedby="any" class="w-full max-w-[28rem] bg-radius-bg-primary border border-radius-border rounded-xl outline-none select-none text-left p-6 font-mono">
       <div class="flex flex-col gap-4">
         <!-- Dialog Header -->
-        <div class="flex items-start justify-between border-b border-radius-border-subtle/60 pb-3">
+        <div class="flex items-start justify-between border-b border-radius-border-subtle pb-3">
           <div>
             <h3 class="text-[13px] font-semibold text-radius-text-primary">Installing on macOS</h3>
             <p class="text-[10px] text-radius-text-muted mt-0.5">Quarantine bypass for unsigned apps</p>
           </div>
-          <button type="button" data-dialog-close class="text-radius-text-muted hover:text-radius-text-primary cursor-pointer transition-colors duration-150 p-1">
+          <button type="button" data-dialog-close class="text-radius-text-muted hover:text-radius-text-primary cursor-pointer transition-colors p-1">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -188,33 +413,29 @@ const downloadUrls = {
         </div>
 
         <!-- Download Buttons Section -->
-        <div class="flex flex-col gap-2 pb-1 border-b border-radius-border-subtle/50">
+        <div class="flex flex-col gap-2 pb-1 border-b border-radius-border-subtle">
           <span class="text-[10px] text-radius-text-muted">Choose your Mac processor to download:</span>
-          <div class="grid grid-cols-2 gap-3 mt-1">
+          <div class="grid grid-cols-2 gap-3 mt-1 text-[11px] uppercase tracking-wider">
             <button
               type="button"
               id="mac-download-arm"
-              class="download-btn group inline-flex flex-col items-center justify-center p-3.5 bg-radius-text-primary text-radius-bg-primary border border-radius-text-primary cursor-pointer text-center rounded-xl"
+              class="download-btn group inline-flex flex-col items-center justify-center p-3.5 bg-radius-accent text-[#ffffff] border border-radius-accent cursor-pointer text-center rounded-lg"
             >
               <div class="flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 814 1000" class="w-3.5 h-3.5 fill-current">
-                  <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57-155.5-127C46.7 790.7 0 663 0 541.8c0-194.4 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z" />
-                </svg>
-                <span class="text-[11px] font-semibold">Apple Silicon</span>
+                <span class="font-semibold">Apple Silicon</span>
               </div>
-              <span class="subtext text-[9px] opacity-70 mt-0.5">M1 / M2 / M3</span>
+              <span class="subtext text-[9px] opacity-75 mt-0.5 font-sans lowercase">M1 / M2 / M3 / M4</span>
             </button>
             
             <button
               type="button"
               id="mac-download-intel"
-              class="download-btn group inline-flex flex-col items-center justify-center p-3.5 bg-radius-bg-secondary text-radius-text-primary hover:bg-radius-bg-tertiary border border-radius-border cursor-pointer text-center rounded-xl"
+              class="download-btn group inline-flex flex-col items-center justify-center p-3.5 bg-radius-bg-secondary text-radius-text-primary hover:bg-radius-bg-tertiary border border-radius-border cursor-pointer text-center rounded-lg"
             >
               <div class="flex items-center gap-1.5">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 15h3M1 9h3M1 15h3"/></svg>
-                <span class="text-[11px] font-semibold">Intel Chip</span>
+                <span class="font-semibold">Intel Chip</span>
               </div>
-              <span class="subtext text-[9px] text-radius-text-muted mt-0.5">Core i5 / i7 / i9</span>
+              <span class="subtext text-[9px] text-radius-text-muted mt-0.5 font-sans lowercase">Core i5 / i7 / i9</span>
             </button>
           </div>
         </div>
@@ -222,16 +443,16 @@ const downloadUrls = {
         <!-- Quick instructions -->
         <div class="space-y-4 text-[11px] text-radius-text-secondary leading-relaxed pt-1">
           <div>
-            <span class="text-radius-accent font-semibold">Step 1:</span> Drag <code class="bg-radius-bg-secondary px-1.5 py-0.5 rounded text-radius-text-primary text-[10px]">Radius-canary.app</code> to your <code class="bg-radius-bg-secondary px-1.5 py-0.5 rounded text-radius-text-primary text-[10px]">/Applications</code> folder.
+            <span class="text-radius-accent font-semibold">Step 1:</span> Drag <code class="bg-radius-bg-secondary px-1.5 py-0.5 rounded text-radius-text-primary text-[10px]">Radius.app</code> to your <code class="bg-radius-bg-secondary px-1.5 py-0.5 rounded text-radius-text-primary text-[10px]">/Applications</code> folder.
           </div>
           <div>
             <span class="text-radius-accent font-semibold">Step 2:</span> Paste this command into Terminal to clear the quarantine flag:
             <div class="flex items-stretch gap-1.5 mt-2 bg-radius-bg-secondary rounded-lg border border-radius-border-subtle p-2">
-              <code id="mac-quarantine-cmd" class="flex-1 min-w-0 text-[10px] text-radius-text-primary leading-normal break-all select-all font-mono py-1">sudo xattr -rd com.apple.quarantine /Applications/Radius-canary.app</code>
+              <code id="mac-quarantine-cmd" class="flex-1 min-w-0 text-[10px] text-radius-text-primary leading-normal break-all select-all font-mono py-1">sudo xattr -rd com.apple.quarantine /Applications/Radius.app</code>
               <button
                 type="button"
                 id="copy-mac-cmd"
-                class="shrink-0 p-1.5 rounded bg-radius-bg-primary hover:bg-radius-bg-secondary border border-radius-border-subtle/80 text-radius-text-muted hover:text-radius-text-primary transition-all duration-150 cursor-pointer"
+                class="shrink-0 p-1.5 rounded bg-radius-bg-primary hover:bg-radius-bg-secondary border border-radius-border-subtle text-radius-text-muted hover:text-radius-text-primary transition-all cursor-pointer"
                 aria-label="Copy terminal command"
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -245,16 +466,16 @@ const downloadUrls = {
       </div>
     </dialog>
 
-    <!-- Windows Manual Setup Dialog Overlay -->
-    <dialog id="windows-dialog" closedby="any" class="w-full max-w-[28rem] bg-radius-bg-primary border border-radius-border rounded-2xl outline-none select-none text-left p-6 font-mono">
+    <!-- Windows / Linux manual chooser Dialog -->
+    <dialog id="windows-dialog" closedby="any" class="w-full max-w-[28rem] bg-radius-bg-primary border border-radius-border rounded-xl outline-none select-none text-left p-6 font-mono">
       <div class="flex flex-col gap-4">
         <!-- Dialog Header -->
-        <div class="flex items-start justify-between border-b border-radius-border-subtle/60 pb-3">
+        <div class="flex items-start justify-between border-b border-radius-border-subtle pb-3">
           <div>
-            <h3 class="text-[13px] font-semibold text-radius-text-primary">Installing on Windows</h3>
-            <p class="text-[10px] text-radius-text-muted mt-0.5">Windows SmartScreen instructions</p>
+            <h3 class="text-[13px] font-semibold text-radius-text-primary">Download Other Platforms</h3>
+            <p class="text-[10px] text-radius-text-muted mt-0.5">Windows & Linux downloads</p>
           </div>
-          <button type="button" data-dialog-close class="text-radius-text-muted hover:text-radius-text-primary cursor-pointer transition-colors duration-150 p-1">
+          <button type="button" data-dialog-close class="text-radius-text-muted hover:text-radius-text-primary cursor-pointer transition-colors p-1">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -262,56 +483,34 @@ const downloadUrls = {
           </button>
         </div>
 
-        <!-- Download Button Section -->
-        <div class="flex flex-col gap-2 pb-1 border-b border-radius-border-subtle/50">
-          <span class="text-[10px] text-radius-text-muted">Click the button below to download:</span>
+        <!-- Download Section -->
+        <div class="flex flex-col gap-3 font-mono text-[11px] uppercase tracking-wider">
           <button
             type="button"
             id="win-download-x64"
-            class="download-btn group w-full mt-1 flex items-center justify-center gap-2.5 py-3.5 bg-radius-text-primary text-radius-bg-primary hover:opacity-95 rounded-xl border border-radius-text-primary cursor-pointer text-center"
+            class="download-btn w-full flex items-center justify-center gap-2.5 py-3.5 bg-radius-accent text-[#ffffff] rounded-lg border border-radius-accent cursor-pointer text-center font-semibold"
           >
-            <svg viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current">
-              <path d="m0 12.402 35.687-4.86.016 34.423-35.67.203zm35.67 33.529.028 34.453L.028 75.48.026 45.7zm4.326-39.025L87.314 0v41.527l-47.318.376zm47.329 39.349-.011 41.34-47.318-6.678-.066-34.739z" />
-            </svg>
-            <span class="text-[12px] font-semibold">Download for Windows (64-bit)</span>
+            <span class="text-[11px]">Download for Windows (64-bit)</span>
+          </button>
+
+          <button
+            type="button"
+            id="linux-download-x64"
+            class="download-btn w-full flex items-center justify-center gap-2.5 py-3.5 bg-radius-bg-secondary text-radius-text-primary hover:bg-radius-bg-tertiary rounded-lg border border-radius-border cursor-pointer text-center font-semibold"
+          >
+            <span class="text-[11px]">Download for Linux (x64)</span>
           </button>
         </div>
 
-        <!-- SmartScreen instructions -->
-        <div class="space-y-4 text-[11px] text-radius-text-secondary leading-relaxed pt-1">
-          <div>
-            <span class="text-radius-accent font-semibold">Step 1:</span> Extract the downloaded <code class="bg-radius-bg-secondary px-1.5 py-0.5 rounded text-radius-text-primary text-[10px]">.zip</code> folder.
-          </div>
-          <div>
-            <span class="text-radius-accent font-semibold">Step 2:</span> Open <code class="bg-radius-bg-secondary px-1.5 py-0.5 rounded text-radius-text-primary text-[10px]">Radius.exe</code>.
-          </div>
-          <div>
-            <span class="text-radius-accent font-semibold">Step 3:</span> When the blue <strong class="text-radius-text-primary">SmartScreen Defender</strong> warning pops up:
-            <ul class="list-disc list-inside ml-2 mt-1 space-y-1 text-radius-text-muted">
-              <li>Click <span class="text-radius-text-primary font-medium">More info</span></li>
-              <li>Click <span class="text-radius-text-primary font-medium">Run anyway</span></li>
-            </ul>
-          </div>
+        <!-- Installation hint -->
+        <div class="text-[10px] text-radius-text-muted leading-relaxed pt-2">
+          Windows: extract the zip and click SmartScreen "More info" › "Run anyway" if requested.
         </div>
       </div>
     </dialog>
 
     <script define:vars={{ downloadUrls, fallbackUrl }}>
-      // CPU Arch / OS detection helper
-      function detectAppleArch() {
-        const ua = navigator.userAgent.toLowerCase();
-        if (ua.includes("arm64") || ua.includes("aarch64")) return "arm";
-        if (navigator.platform === "MacIntel") {
-          // Fallback guess for modern Macs running translation but usually defaults to Apple Silicon nowadays
-          if (typeof navigator.userAgentData?.getHighEntropyValues === "function") {
-            return null;
-          }
-          return "arm";
-        }
-        return "intel";
-      }
-
-      // Dynamic OS Detection on mount
+      // OS Detection
       const ua = navigator.userAgent.toLowerCase();
       let detectedOS = "unknown";
 
@@ -322,11 +521,10 @@ const downloadUrls = {
       } else if (ua.includes("linux") && !ua.includes("android")) {
         detectedOS = "linux";
       }
-      
+
       // DOM References
       const downloadBtn = document.getElementById("primary-download-btn");
       const downloadText = document.getElementById("primary-download-text");
-      const downloadSubtext = document.getElementById("primary-download-subtext");
       const macIcon = document.getElementById("mac-icon");
       const winIcon = document.getElementById("win-icon");
       const genericIcon = document.getElementById("generic-icon");
@@ -337,84 +535,63 @@ const downloadUrls = {
       const macArmBtn = document.getElementById("mac-download-arm");
       const macIntelBtn = document.getElementById("mac-download-intel");
       const winDownloadBtn = document.getElementById("win-download-x64");
+      const linuxDownloadBtn = document.getElementById("linux-download-x64");
 
-      // Dynamic Content Swapping
+      const footerDownloadBtn = document.getElementById("footer-download-btn");
+      const footerDownloadText = document.getElementById("footer-download-text");
+      const footerMacIcon = document.getElementById("footer-mac-icon");
+      const footerWinIcon = document.getElementById("footer-win-icon");
+      const footerGenericIcon = document.getElementById("footer-generic-icon");
+      const altDownloadTrigger = document.getElementById("alternative-download-trigger");
+
+      // Dynamic Setup for Buttons
       if (detectedOS === "mac") {
-        if (downloadText) downloadText.textContent = "Download Beta for macOS";
-        if (downloadSubtext) downloadSubtext.textContent = "Apple Silicon & Intel";
+        if (downloadText) downloadText.textContent = "Download Beta for macOS ›";
+        if (footerDownloadText) footerDownloadText.textContent = "Download for macOS ›";
         macIcon?.classList.remove("hidden");
-        genericIcon?.classList.add("hidden");
+        footerMacIcon?.classList.remove("hidden");
       } else if (detectedOS === "windows") {
-        if (downloadText) downloadText.textContent = "Download Beta for Windows";
-        if (downloadSubtext) downloadSubtext.textContent = "64-bit installer";
+        if (downloadText) downloadText.textContent = "Download Beta for Windows ›";
+        if (footerDownloadText) footerDownloadText.textContent = "Download for Windows ›";
         winIcon?.classList.remove("hidden");
-        genericIcon?.classList.add("hidden");
+        footerWinIcon?.classList.remove("hidden");
       } else if (detectedOS === "linux") {
-        if (downloadText) downloadText.textContent = "Download Beta for Linux";
-        if (downloadSubtext) downloadSubtext.textContent = "x64 .tar.gz";
-        // Linux keeps the default download/generic icon, no class swap needed
+        if (downloadText) downloadText.textContent = "Download Beta for Linux ›";
+        if (footerDownloadText) footerDownloadText.textContent = "Download for Linux ›";
+        genericIcon?.classList.remove("hidden");
+        footerGenericIcon?.classList.remove("hidden");
       } else {
-        if (downloadText) downloadText.textContent = "Download Beta for Desktop";
-        if (downloadSubtext) downloadSubtext.textContent = "macOS, Windows, Linux";
+        if (downloadText) downloadText.textContent = "Download Beta for Desktop ›";
+        if (footerDownloadText) footerDownloadText.textContent = "Download for Desktop ›";
+        genericIcon?.classList.remove("hidden");
+        footerGenericIcon?.classList.remove("hidden");
       }
 
-      // Button styling helper to dynamically set dynamic active/primary states
-      function setPrimaryButton(btn) {
-        if (!btn) return;
-        btn.className = "download-btn group inline-flex flex-col items-center justify-center p-3.5 bg-radius-text-primary text-radius-bg-primary border border-radius-text-primary cursor-pointer text-center rounded-xl";
-        const subtext = btn.querySelector(".subtext");
-        if (subtext) subtext.className = "subtext text-[9px] opacity-70 mt-0.5";
-      }
-
-      function setSecondaryButton(btn) {
-        if (!btn) return;
-        btn.className = "download-btn group inline-flex flex-col items-center justify-center p-3.5 bg-radius-bg-secondary text-radius-text-primary hover:bg-radius-bg-tertiary border border-radius-border cursor-pointer text-center rounded-xl";
-        const subtext = btn.querySelector(".subtext");
-        if (subtext) subtext.className = "subtext text-[9px] text-radius-text-muted mt-0.5";
-      }
-
-      // Highlight correct Mac button on load
-      const detectedArch = detectAppleArch();
-      if (detectedArch === "intel") {
-        setPrimaryButton(macIntelBtn);
-        setSecondaryButton(macArmBtn);
-      } else if (detectedArch === "arm") {
-        setPrimaryButton(macArmBtn);
-        setSecondaryButton(macIntelBtn);
-      } else {
-        // null or unknown, check high entropy values if available
-        navigator.userAgentData?.getHighEntropyValues(["architecture"])
-          .then((hint) => {
-            if (hint?.architecture?.includes("x86")) {
-              setPrimaryButton(macIntelBtn);
-              setSecondaryButton(macArmBtn);
-            } else {
-              setPrimaryButton(macArmBtn);
-              setSecondaryButton(macIntelBtn);
-            }
-          })
-          .catch(() => {
-            // Default to Apple Silicon
-            setPrimaryButton(macArmBtn);
-            setSecondaryButton(macIntelBtn);
-          });
-      }
-
-      // Primary click handler for the hero button
+      // Action Handlers
       downloadBtn?.addEventListener("click", () => {
         if (detectedOS === "mac") {
           macDialog?.showModal();
-        } else if (detectedOS === "windows") {
+        } else if (detectedOS === "windows" || detectedOS === "linux" || detectedOS === "unknown") {
           winDialog?.showModal();
-        } else if (detectedOS === "linux") {
-          window.location.href = downloadUrls.linuxX64;
-        } else {
-          // Fallback redirect to latest release
-          window.location.href = fallbackUrl;
         }
       });
 
-      // Dialog download button handlers
+      footerDownloadBtn?.addEventListener("click", () => {
+        if (detectedOS === "mac") {
+          macDialog?.showModal();
+        } else if (detectedOS === "windows" || detectedOS === "linux" || detectedOS === "unknown") {
+          winDialog?.showModal();
+        }
+      });
+
+      altDownloadTrigger?.addEventListener("click", () => {
+        if (detectedOS === "mac") {
+          winDialog?.showModal();
+        } else {
+          macDialog?.showModal();
+        }
+      });
+
       macArmBtn?.addEventListener("click", () => {
         window.location.href = downloadUrls.macArm;
       });
@@ -427,33 +604,27 @@ const downloadUrls = {
         window.location.href = downloadUrls.winX64;
       });
 
-      // Dialog dismiss helpers (close buttons)
+      linuxDownloadBtn?.addEventListener("click", () => {
+        window.location.href = downloadUrls.linuxX64;
+      });
+
+      // Dialog Dismiss
       document.querySelectorAll("[data-dialog-close]").forEach((btn) => {
         btn.addEventListener("click", () => {
           btn.closest("dialog")?.close();
         });
       });
 
-      // Fallback click outside to close (light dismiss)
+      // Light Dismiss (click backdrop to close)
       document.querySelectorAll("dialog").forEach((dialog) => {
-        if (!("closedBy" in HTMLDialogElement.prototype)) {
-          dialog.addEventListener("click", (event) => {
-            if (event.target !== dialog) return;
-            const rect = dialog.getBoundingClientRect();
-            const isInside = (
-              rect.top <= event.clientY &&
-              event.clientY <= rect.top + rect.height &&
-              rect.left <= event.clientX &&
-              event.clientX <= rect.left + rect.width
-            );
-            if (!isInside) {
-              dialog.close();
-            }
-          });
-        }
+        dialog.addEventListener("click", (event) => {
+          if (event.target === dialog) {
+            dialog.close();
+          }
+        });
       });
 
-      // Terminal quarantine command copy helper
+      // Quarantine command copy
       const copyBtn = document.getElementById("copy-mac-cmd");
       copyBtn?.addEventListener("click", async () => {
         const cmdEl = document.getElementById("mac-quarantine-cmd");
@@ -464,7 +635,7 @@ const downloadUrls = {
           await navigator.clipboard.writeText(code);
           const originalSvg = copyBtn.innerHTML;
           copyBtn.innerHTML = `
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-radius-success">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5a8c6f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
           `;
@@ -472,7 +643,7 @@ const downloadUrls = {
             copyBtn.innerHTML = originalSvg;
           }, 1500);
         } catch {
-          // Select manual fallback
+          // fallback select
           const selection = window.getSelection();
           const range = document.createRange();
           if (cmdEl) {
@@ -482,6 +653,64 @@ const downloadUrls = {
           }
         }
       });
+
+      // ========================================================
+      // INTERACTIVE DRAGGABLE IMAGE COMPARISON SLIDER
+      // ========================================================
+      const sliderContainer = document.getElementById("slider-container");
+      const darkOverlay = document.getElementById("dark-overlay");
+      const darkImg = document.getElementById("dark-img");
+      const sliderBar = document.getElementById("slider-bar");
+
+      let isDragging = false;
+
+      function resizeOverlayImg() {
+        if (sliderContainer && darkImg) {
+          darkImg.style.width = sliderContainer.clientWidth + "px";
+        }
+      }
+
+      // Initial size setup
+      resizeOverlayImg();
+      window.addEventListener("resize", resizeOverlayImg);
+
+      function getPercent(clientX) {
+        const rect = sliderContainer.getBoundingClientRect();
+        const position = clientX - rect.left;
+        let percent = (position / rect.width) * 100;
+        if (percent < 0) percent = 0;
+        if (percent > 100) percent = 100;
+        return percent;
+      }
+
+      function slide(clientX) {
+        const percent = getPercent(clientX);
+        darkOverlay.style.width = percent + "%";
+        sliderBar.style.left = percent + "%";
+      }
+
+      // Pointer event handlers (supports both mouse and touch elegantly)
+      function onPointerDown(e) {
+        isDragging = true;
+        slide(e.clientX);
+        sliderContainer.setPointerCapture(e.pointerId);
+      }
+
+      function onPointerMove(e) {
+        if (!isDragging) return;
+        slide(e.clientX);
+      }
+
+      function onPointerUp(e) {
+        if (!isDragging) return;
+        isDragging = false;
+        sliderContainer.releasePointerCapture(e.pointerId);
+      }
+
+      sliderContainer?.addEventListener("pointerdown", onPointerDown);
+      sliderContainer?.addEventListener("pointermove", onPointerMove);
+      sliderContainer?.addEventListener("pointerup", onPointerUp);
+      sliderContainer?.addEventListener("pointercancel", onPointerUp);
     </script>
   </body>
 </html>
