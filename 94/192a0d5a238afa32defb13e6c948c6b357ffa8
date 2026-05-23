@@ -1,0 +1,27 @@
+README.md
+  s_90cff9caf80596::t_9be093f9503886 12-30
+Casks/radius.rb
+  s_90cff9caf80596::t_f0c61f8ca96c14 18
+  s_90cff9caf80596::t_ccd17caae55c3d 20
+  s_90cff9caf80596::t_990ebcea1e1e22 10
+  s_90cff9caf80596::t_d54006a00ff470 2-8
+landing/src/pages/index.astro
+  s_90cff9caf80596::t_22a9e1a4d76db6 675-698
+  s_90cff9caf80596::t_516799c2d93182 372-391
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "94192a0d5a238afa32defb13e6c948c6b357ffa8",
+  "prompts": {},
+  "sessions": {
+    "s_90cff9caf80596": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1aa23967dffeVjdDRQJxB6i1EK",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
