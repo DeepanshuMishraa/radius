@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import type { EmailProviderType, ImapSettings } from "../shared/types";
 
 const DB_DIR = join(homedir(), "Library", "Application Support", "Radius");
 const ACCOUNTS_FILE = join(DB_DIR, "accounts.json");
@@ -9,6 +10,8 @@ export interface Account {
   email: string;
   name: string;
   addedAt: number;
+  provider: EmailProviderType;
+  imapSettings?: ImapSettings;
 }
 
 interface AccountsData {
@@ -22,7 +25,10 @@ async function readAccounts(): Promise<AccountsData> {
     const parsed = JSON.parse(raw) as AccountsData;
     return {
       activeAccount: parsed.activeAccount ?? null,
-      accounts: Array.isArray(parsed.accounts) ? parsed.accounts : [],
+      accounts: Array.isArray(parsed.accounts) ? parsed.accounts.map((a) => ({
+        ...a,
+        provider: a.provider ?? "gmail",
+      })) : [],
     };
   } catch {
     return { activeAccount: null, accounts: [] };
@@ -66,4 +72,9 @@ export async function removeAccount(email: string): Promise<void> {
     data.activeAccount = data.accounts[0]?.email ?? null;
   }
   await writeAccounts(data);
+}
+
+export async function getAccount(email: string): Promise<Account | undefined> {
+  const data = await readAccounts();
+  return data.accounts.find((a) => a.email === email);
 }

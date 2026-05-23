@@ -2,6 +2,7 @@ import type { RadiusRPC } from "../shared/types";
 import { getInboxMessages, searchInboxMessages, getMessageById, updateMessageBodies, getSyncState, setMessageReadState, getComposeContactRows, getComposeSessionRecipientRows, searchComposeContacts, upsertComposeContacts, getMailboxMessages as getStoredMailboxMessages } from "./db";
 import { getAccountEmail, getValidAccessToken } from "./auth";
 import { getMessage as getGmailMessage, extractBodies, getAttachment, modifyMessageLabels, GmailAPIError, parseHeaders, classifyMessageNature, isReadFromLabels } from "./gmail";
+import { getProvider } from "./provider";
 import {
   createComposeSession,
   createReplyForwardSession,
@@ -109,17 +110,24 @@ export async function handleGetMessage(params: { id: string }) {
   // On-demand body + attachment fetch only when we have no stored body at all.
   if (msg && msg.bodyHtml == null && msg.bodyText == null) {
     try {
-      const accessToken = await getValidAccessToken();
-      const gmailMsg = await getGmailMessage(accessToken, id);
-      const bodies = await extractBodies(
-        gmailMsg.payload,
-        accessToken,
-        id,
-      );
+      const email = getAccountEmail();
+      const provider = email ? getProvider(email) : undefined;
+      if (provider) {
+        const fetched = await provider.getMessage(id);
+        const bodies = await provider.extractBodies(fetched);
+        if (bodies.html != null || bodies.text != null) {
+          await updateMessageBodies(id, bodies.text, bodies.html);
+          msg = await getMessageById(id);
+        }
+      } else {
+        const accessToken = await getValidAccessToken();
+        const gmailMsg = await getGmailMessage(accessToken, id);
+        const bodies = await extractBodies(gmailMsg.payload, accessToken, id);
 
-      if (bodies.html != null || bodies.text != null) {
-        await updateMessageBodies(id, bodies.text, bodies.html);
-        msg = await getMessageById(id);
+        if (bodies.html != null || bodies.text != null) {
+          await updateMessageBodies(id, bodies.text, bodies.html);
+          msg = await getMessageById(id);
+        }
       }
     } catch (err) {
       console.error(`Failed to fetch body for message ${id}:`, err);
@@ -128,6 +136,18 @@ export async function handleGetMessage(params: { id: string }) {
 
   if (!msg) {
     try {
+      const email = getAccountEmail();
+      const provider = email ? getProvider(email) : undefined;
+      if (provider) {
+        const fetched = await provider.getMessage(id);
+        const normalized = normalizeMessageRecord({
+          ...fetched,
+          historyId: fetched.internalDate,
+          internalDate: parseInt(fetched.internalDate, 10),
+          attachments: JSON.stringify(fetched.attachments),
+        });
+        return normalized as RadiusRPC["bun"]["requests"]["getMessage"]["response"];
+      }
       const accessToken = await getValidAccessToken();
       const gmailMsg = await getGmailMessage(accessToken, id);
       const bodies = await extractBodies(gmailMsg.payload, accessToken, id);
@@ -277,10 +297,17 @@ export async function handleMarkMessageRead(params: { id: string }): Promise<{
     }
 
     await setMessageReadState(id, true);
-    const accessToken = await getValidAccessToken();
-    await modifyMessageLabels(accessToken, id, {
-      removeLabelIds: ["UNREAD"],
-    });
+
+    const email = getAccountEmail();
+    const provider = email ? getProvider(email) : null;
+    if (provider) {
+      await provider.markAsRead(id);
+    } else {
+      const accessToken = await getValidAccessToken();
+      await modifyMessageLabels(accessToken, id, {
+        removeLabelIds: ["UNREAD"],
+      });
+    }
     return { success: true, localStateApplied: true };
   } catch (err) {
     console.error("markMessageRead error:", err);
@@ -309,6 +336,12 @@ export async function handleMarkMessageRead(params: { id: string }): Promise<{
 
 export async function handleDownloadAttachment(params: { messageId: string; attachmentId: string }) {
   try {
+    const email = getAccountEmail();
+    const provider = email ? getProvider(email) : null;
+    if (provider) {
+      const data = await provider.getAttachment(params.messageId, params.attachmentId);
+      return { success: true, data };
+    }
     const accessToken = await getValidAccessToken();
     const data = await getAttachment(accessToken, params.messageId, params.attachmentId);
     return {

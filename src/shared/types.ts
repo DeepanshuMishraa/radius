@@ -14,6 +14,21 @@ export type EmailCategory =
   | "regular";
 
 export type SyncMode = "recent" | "all";
+export type EmailProviderType = "gmail" | "imap";
+
+export interface ImapSettings {
+  host: string;
+  port: number;
+  useTls: boolean;
+}
+
+export interface Account {
+  email: string;
+  name: string;
+  addedAt: number;
+  provider: EmailProviderType;
+  imapSettings?: ImapSettings;
+}
 
 export interface UpdateInfo {
   version: string;
@@ -360,7 +375,7 @@ export type RadiusRPC = {
       getAccounts: {
         params: {};
         response: {
-          accounts: Array<{ email: string; name: string; addedAt: number }>;
+          accounts: Array<{ email: string; name: string; addedAt: number; provider: EmailProviderType; imapSettings?: ImapSettings }>;
           activeAccount: string | null;
         };
       };
@@ -374,6 +389,14 @@ export type RadiusRPC = {
       };
       resyncAccount: {
         params: {};
+        response: { success: boolean; error?: string };
+      };
+      addImapAccount: {
+        params: { email: string; password: string; imapSettings: ImapSettings };
+        response: { success: boolean; error?: string };
+      };
+      testImapConnection: {
+        params: { email: string; password: string; imapSettings: ImapSettings };
         response: { success: boolean; error?: string };
       };
       downloadAttachment: {

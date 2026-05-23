@@ -1,4 +1,4 @@
-import { getValidAccessToken } from "./auth";
+import type { SyncMode } from "../shared/types";
 import {
   insertMessages,
   updateSyncState,
@@ -7,13 +7,18 @@ import {
   getMessageCount,
   listMessageIds,
   upsertMessageMetadata,
+  upsertImapFolderSync,
+  getImapFolderSync,
+  type InsertMessageInput,
 } from "./db";
+import { getProvider } from "./provider";
+import { getAccount } from "./accounts";
 import {
   listMessages,
   getMessage,
   getMessageMetadata,
   getHistory,
-  extractBodies,
+  extractBodies as gmailExtractBodies,
   parseHeaders,
   classifyMessageNature,
   isReadFromLabels,
@@ -21,7 +26,7 @@ import {
   HistoryGapError,
   type GmailMessage,
 } from "./gmail";
-import type { SyncMode } from "../shared/types";
+import type { FetchedMessage, EmailProvider } from "./provider";
 
 async function withRetry<T>(
   fn: () => Promise<T>,
@@ -120,33 +125,6 @@ async function withSyncLock<T>(fn: () => Promise<T>): Promise<T | "locked"> {
   }
 }
 
-async function fetchMessagesPool(
-  ids: string[],
-  accessToken: string,
-  concurrency: number,
-  fetcher: (accessToken: string, messageId: string) => Promise<GmailMessage> = getMessage,
-  expectedGen?: number
-): Promise<GmailMessage[]> {
-  const results: GmailMessage[] = [];
-  let index = 0;
-
-  async function worker(): Promise<void> {
-    while (index < ids.length) {
-      if (expectedGen !== undefined) checkSyncCancelled(expectedGen);
-      const id = ids[index++];
-      try {
-        const msg = await withRetry(() => fetcher(accessToken, id));
-        results.push(msg);
-      } catch (err) {
-        console.error(`Failed to fetch message ${id}:`, err);
-      }
-    }
-  }
-
-  await Promise.all(Array.from({ length: concurrency }, () => worker()));
-  return results;
-}
-
 function getMailboxFlags(labelIds: string[] | undefined) {
   const labels = new Set((labelIds ?? []).map((label) => label.toUpperCase()));
   return {
@@ -180,42 +158,55 @@ function toStoredMessageMetadata(msg: GmailMessage) {
   };
 }
 
-interface SyncRunOptions {
-  phase: SyncPhase;
-  limit?: number;
-  startPageToken?: string;
-  totalEstimate?: number;
-  processedBeforeStart?: number;
-  latestHistoryId?: string;
-  onProgress?: ProgressCallback;
+function fetchedMessageToInsert(msg: FetchedMessage): InsertMessageInput {
+  return {
+    id: msg.id,
+    threadId: msg.threadId,
+    historyId: msg.internalDate,
+    internalDate: parseInt(msg.internalDate, 10),
+    from: msg.from,
+    to: msg.to,
+    subject: msg.subject,
+    snippet: msg.snippet,
+    bodyText: msg.bodyText,
+    bodyHtml: msg.bodyHtml,
+    attachments: msg.attachments,
+    category: msg.category,
+    isRead: msg.isRead,
+    isInbox: msg.isInbox,
+    isSent: msg.isSent,
+    isDraft: msg.isDraft,
+    isTrash: msg.isTrash,
+  };
 }
 
-interface SyncRunResult {
-  processed: number;
-  totalEstimate: number;
-  nextPageToken?: string;
-  latestHistoryId?: string;
-}
+// ── Gmail-specific sync ──
 
-interface DeferredFullSyncResult {
-  ran: boolean;
-  completed: boolean;
-  nextRunInMs?: number;
-}
+async function fetchMessagesPool(
+  ids: string[],
+  accessToken: string,
+  concurrency: number,
+  fetcher: (accessToken: string, messageId: string) => Promise<GmailMessage> = getMessage,
+  expectedGen?: number
+): Promise<GmailMessage[]> {
+  const results: GmailMessage[] = [];
+  let index = 0;
 
-async function pushSyncProgress(
-  phase: SyncPhase,
-  progress: SyncProgress,
-  latestHistoryId?: string
-): Promise<void> {
-  await updateSyncState({
-    status: "syncing",
-    phase,
-    progressCurrent: progress.current,
-    progressTotal: progress.total,
-    historyId: latestHistoryId,
-    error: null,
-  });
+  async function worker(): Promise<void> {
+    while (index < ids.length) {
+      if (expectedGen !== undefined) checkSyncCancelled(expectedGen);
+      const id = ids[index++];
+      try {
+        const msg = await withRetry(() => fetcher(accessToken, id));
+        results.push(msg);
+      } catch (err) {
+        console.error(`Failed to fetch message ${id}:`, err);
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  return results;
 }
 
 async function runSyncPass({
@@ -226,8 +217,17 @@ async function runSyncPass({
   processedBeforeStart = 0,
   latestHistoryId,
   onProgress,
-}: SyncRunOptions): Promise<SyncRunResult> {
+}: {
+  phase: SyncPhase;
+  limit?: number;
+  startPageToken?: string;
+  totalEstimate?: number;
+  processedBeforeStart?: number;
+  latestHistoryId?: string;
+  onProgress?: ProgressCallback;
+}) {
   const gen = getCurrentSyncGeneration();
+  const { getValidAccessToken } = await import("./auth");
   const accessToken = await getValidAccessToken();
   const firstPage =
     totalEstimate === undefined
@@ -247,14 +247,14 @@ async function runSyncPass({
   let pageToken = startPageToken;
   let processed = processedBeforeStart;
 
-  await pushSyncProgress(
+  await updateSyncState({
+    status: "syncing",
     phase,
-    {
-      current: processed,
-      total: Math.max(progressTotal, processed + (startPageToken ? 1 : 0)),
-    },
-    latestHistoryId
-  );
+    progressCurrent: processed,
+    progressTotal: Math.max(progressTotal, processed + (startPageToken ? 1 : 0)),
+    historyId: latestHistoryId ?? undefined,
+    error: null,
+  });
 
   do {
     checkSyncCancelled(gen);
@@ -266,7 +266,6 @@ async function runSyncPass({
       })
     );
 
-    // Gmail's resultSizeEstimate is often wrong (low). Update if a later page reveals more.
     if (page.resultSizeEstimate && page.resultSizeEstimate > resolvedTotalEstimate) {
       resolvedTotalEstimate = page.resultSizeEstimate;
       progressTotal =
@@ -309,7 +308,14 @@ async function runSyncPass({
         current: processed,
         total: Math.max(progressTotal, processed + (hasMore ? 1 : 0)),
       };
-      await pushSyncProgress(phase, progress, latestHistoryId);
+      await updateSyncState({
+        status: "syncing",
+        phase,
+        progressCurrent: progress.current,
+        progressTotal: progress.total,
+        historyId: latestHistoryId,
+        error: null,
+      });
       onProgress?.(progress);
     }
 
@@ -327,6 +333,73 @@ async function runSyncPass({
   };
 }
 
+async function flushInsertBuffer(
+  messages: GmailMessage[],
+  accessToken: string
+): Promise<void> {
+  const toInsert = await Promise.all(
+    messages.map(async (msg) => {
+      const bodies = await gmailExtractBodies(msg.payload, accessToken, msg.id);
+      const headers = parseHeaders(msg.payload.headers ?? []);
+
+      return {
+        id: msg.id,
+        threadId: msg.threadId,
+        historyId: msg.historyId,
+        internalDate: parseInt(msg.internalDate, 10),
+        from: headers["from"] ?? "",
+        to: headers["to"] ?? "",
+        subject: headers["subject"] ?? "",
+        snippet: msg.snippet,
+        bodyText: bodies.text,
+        bodyHtml: bodies.html,
+        attachments: bodies.attachments,
+        category: classifyMessageNature({
+          labelIds: msg.labelIds,
+          from: headers["from"],
+          subject: headers["subject"],
+          snippet: msg.snippet,
+          bodyText: bodies.text,
+        }),
+        isRead: isReadFromLabels(msg.labelIds),
+        ...getMailboxFlags(msg.labelIds),
+      };
+    })
+  );
+
+  await insertMessages(toInsert);
+}
+
+// ── Provider-based sync dispatcher ──
+
+async function getProviderForAccount(email: string | null): Promise<EmailProvider | null> {
+  if (!email) return null;
+
+  const cached = getProvider(email);
+  if (cached) return cached;
+
+  const account = await getAccount(email);
+  if (!account) return null;
+
+  if (account.provider === "gmail") {
+    const { GmailProvider } = await import("./gmail-provider");
+    const provider = new GmailProvider(email);
+    const { registerProvider } = await import("./provider");
+    registerProvider(email, provider);
+    return provider;
+  }
+
+  if (account.provider === "imap") {
+    const { ImapProvider } = await import("./imap-provider");
+    const provider = new ImapProvider(email);
+    const { registerProvider } = await import("./provider");
+    registerProvider(email, provider);
+    return provider;
+  }
+
+  return null;
+}
+
 export async function doFullSync(
   onProgress?: ProgressCallback
 ): Promise<void> {
@@ -338,6 +411,15 @@ async function runInitialAndBackgroundSyncUnlocked(
   syncMode: SyncMode,
   onProgress?: ProgressCallback
 ): Promise<void> {
+  const { getAccountEmail } = await import("./auth");
+  const email = getAccountEmail();
+  const provider = await getProviderForAccount(email);
+
+  if (provider && provider.type === "imap") {
+    await runImapInitialSync(provider, onProgress);
+    return;
+  }
+
   await updateSyncState({
     syncMode,
     status: "syncing",
@@ -442,76 +524,163 @@ export async function runInitialAndBackgroundSync(
   }
 }
 
-export async function continueDeferredFullSyncIfDue(): Promise<DeferredFullSyncResult> {
-  const state = await getSyncState();
-  if (!state.backgroundSyncPending || !state.backgroundSyncCursor) {
-    return { ran: false, completed: true };
-  }
+// ── IMAP sync ──
 
-  const lastBatchAt = state.backgroundSyncLastBatchAt ?? 0;
-  const elapsedMs = Date.now() - lastBatchAt;
-  if (elapsedMs < DEFERRED_FULL_SYNC_INTERVAL_MS) {
-    return {
-      ran: false,
-      completed: false,
-      nextRunInMs: DEFERRED_FULL_SYNC_INTERVAL_MS - elapsedMs,
-    };
-  }
+async function runImapInitialSync(
+  provider: EmailProvider,
+  onProgress?: ProgressCallback
+): Promise<void> {
+  await updateSyncState({
+    syncMode: "recent",
+    status: "syncing",
+    phase: "initial",
+    progressCurrent: 0,
+    progressTotal: 100,
+    initialSyncCompletedAt: null,
+    fullSyncCompletedAt: null,
+    error: null,
+  });
 
-  const result = await withSyncLock(async () => {
+  try {
+    if (!("listFolders" in provider) || !("fetchFolderMessages" in provider)) {
+      throw new Error("Provider does not support folder listing");
+    }
+
+    const imapProvider = provider as import("./imap-provider").ImapProvider;
+    const folders = await imapProvider.listFolders();
+
+    const primaryFolders = folders.filter((f) =>
+      ["inbox", "sent"].includes(f.kind)
+    );
+    const otherFolders = folders.filter((f) =>
+      !["inbox", "sent"].includes(f.kind)
+    );
+    const orderedFolders = [...primaryFolders, ...otherFolders];
+    const progressTotal = orderedFolders.length || 1;
+
     await updateSyncState({
-      syncMode: "all",
+      status: "syncing",
+      phase: "initial",
+      progressCurrent: 0,
+      progressTotal,
+      error: null,
+    });
+
+    let totalMessages = 0;
+
+    for (let i = 0; i < orderedFolders.length; i++) {
+      const f = orderedFolders[i];
+      const messages = await imapProvider.fetchFolderMessages(f.kind as any);
+
+      const toInsert = messages.map(fetchedMessageToInsert);
+      if (toInsert.length > 0) {
+        await insertMessages(toInsert);
+        totalMessages += toInsert.length;
+      }
+
+      await updateSyncState({
+        status: "syncing",
+        phase: "initial",
+        progressCurrent: i + 1,
+        progressTotal,
+        error: null,
+      });
+      onProgress?.({ current: i + 1, total: progressTotal });
+    }
+
+    const completedAt = Date.now();
+    await updateSyncState({
+      lastSyncAt: completedAt,
+      initialSyncCompletedAt: completedAt,
+      fullSyncCompletedAt: completedAt,
+      status: "idle",
+      phase: null,
+      progressCurrent: progressTotal,
+      progressTotal,
+      error: null,
+      metadataSchemaVersion: CURRENT_METADATA_SCHEMA_VERSION,
+    });
+
+    console.log(`IMAP initial sync complete: ${totalMessages} messages from ${orderedFolders.length} folders`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await updateSyncState({
+      status: "error",
+      phase: null,
+      error: message,
+    });
+    throw err;
+  }
+}
+
+export async function doImapIncrementalSync(): Promise<{
+  newMessages: number;
+  hadGap: boolean;
+}> {
+  const { getAccountEmail } = await import("./auth");
+  const email = getAccountEmail();
+  const provider = await getProviderForAccount(email);
+
+  if (!provider || provider.type !== "imap") {
+    return { newMessages: 0, hadGap: false };
+  }
+
+  const lockResult = await withSyncLock(async () => {
+    const gen = getCurrentSyncGeneration();
+    await updateSyncState({
       status: "syncing",
       phase: "background",
-      progressCurrent: state.backgroundSyncProcessed,
-      progressTotal: state.backgroundSyncTotal,
+      progressCurrent: null,
+      progressTotal: null,
       error: null,
     });
 
     try {
-      const backgroundResult = await runSyncPass({
-        phase: "background",
-        limit: DEFERRED_FULL_SYNC_BATCH_TARGET,
-        startPageToken: state.backgroundSyncCursor ?? undefined,
-        totalEstimate: state.backgroundSyncTotal ?? undefined,
-        processedBeforeStart: state.backgroundSyncProcessed,
-        latestHistoryId: state.historyId ?? undefined,
-      });
-      const completed =
-        backgroundResult.nextPageToken === undefined ||
-        backgroundResult.processed >= backgroundResult.totalEstimate;
-      const completedAt = Date.now();
+      const imapProvider = provider as import("./imap-provider").ImapProvider;
+      const folders = await imapProvider.listFolders();
+
+      let newCount = 0;
+
+      for (const f of folders) {
+        checkSyncCancelled(gen);
+        const folderSync = await getImapFolderSync(f.path);
+
+        const messages = await imapProvider.fetchFolderMessages(f.kind as any);
+        const existingCount = folderSync ? folderSync.uidNext : 0;
+
+        const newMessages = messages.filter((m) => {
+          const uid = parseInt(m.id.split(":").pop() ?? "0", 10);
+          return uid > existingCount;
+        });
+
+        if (newMessages.length > 0) {
+          const toInsert = newMessages.map(fetchedMessageToInsert);
+          await insertMessages(toInsert);
+          newCount += toInsert.length;
+        }
+
+        if (messages.length > 0) {
+          const maxUid = Math.max(
+            ...messages.map((m) => parseInt(m.id.split(":").pop() ?? "0", 10))
+          );
+          await upsertImapFolderSync(f.path, {
+            uidValidity: 1,
+            uidNext: maxUid,
+            lastSyncAt: Date.now(),
+          });
+        }
+      }
 
       await updateSyncState({
-        historyId: backgroundResult.latestHistoryId,
-        lastSyncAt: completedAt,
-        fullSyncCompletedAt: completed ? completedAt : null,
-        backgroundSyncCursor: backgroundResult.nextPageToken ?? null,
-        backgroundSyncTotal: backgroundResult.totalEstimate,
-        backgroundSyncProcessed: backgroundResult.processed,
-        backgroundSyncPending: !completed,
-        backgroundSyncLastBatchAt: completedAt,
-        metadataSchemaVersion: CURRENT_METADATA_SCHEMA_VERSION,
-        progressCurrent: backgroundResult.processed,
-        progressTotal: backgroundResult.totalEstimate,
+        lastSyncAt: Date.now(),
         status: "idle",
         phase: null,
+        progressCurrent: null,
+        progressTotal: null,
         error: null,
       });
 
-      if (completed) {
-        console.log(`Full sync complete: ${backgroundResult.processed} messages`);
-      } else {
-        console.log(
-          `Deferred full sync advanced to ${backgroundResult.processed}/${backgroundResult.totalEstimate}`
-        );
-      }
-
-      return {
-        ran: true,
-        completed,
-        nextRunInMs: completed ? undefined : DEFERRED_FULL_SYNC_INTERVAL_MS,
-      };
+      return { newMessages: newCount, hadGap: false };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await updateSyncState({ status: "error", phase: null, error: message });
@@ -519,18 +688,29 @@ export async function continueDeferredFullSyncIfDue(): Promise<DeferredFullSyncR
     }
   });
 
-  if (result === "locked") {
-    return { ran: false, completed: false };
+  if (lockResult === "locked") {
+    return { newMessages: 0, hadGap: false };
   }
 
-  return result;
+  return lockResult;
 }
+
+// ── Gmail incremental sync (unchanged architecture) ──
 
 export async function doIncrementalSync(): Promise<{
   newMessages: number;
   hadGap: boolean;
   messages: GmailMessage[];
 }> {
+  const { getAccountEmail } = await import("./auth");
+  const email = getAccountEmail();
+  const provider = await getProviderForAccount(email);
+
+  if (provider && provider.type === "imap") {
+    const result = await doImapIncrementalSync();
+    return { ...result, messages: [] };
+  }
+
   const state = await getSyncState();
   if (!state.historyId) {
     if (state.status === "syncing") {
@@ -552,6 +732,7 @@ export async function doIncrementalSync(): Promise<{
     });
 
     try {
+      const { getValidAccessToken } = await import("./auth");
       const accessToken = await getValidAccessToken();
       let hadGap = false;
       let newCount = 0;
@@ -680,6 +861,94 @@ export async function doIncrementalSync(): Promise<{
   };
 }
 
+export async function continueDeferredFullSyncIfDue(): Promise<{
+  ran: boolean;
+  completed: boolean;
+  nextRunInMs?: number;
+}> {
+  const state = await getSyncState();
+  if (!state.backgroundSyncPending || !state.backgroundSyncCursor) {
+    return { ran: false, completed: true };
+  }
+
+  const lastBatchAt = state.backgroundSyncLastBatchAt ?? 0;
+  const elapsedMs = Date.now() - lastBatchAt;
+  if (elapsedMs < DEFERRED_FULL_SYNC_INTERVAL_MS) {
+    return {
+      ran: false,
+      completed: false,
+      nextRunInMs: DEFERRED_FULL_SYNC_INTERVAL_MS - elapsedMs,
+    };
+  }
+
+  const result = await withSyncLock(async () => {
+    await updateSyncState({
+      syncMode: "all",
+      status: "syncing",
+      phase: "background",
+      progressCurrent: state.backgroundSyncProcessed,
+      progressTotal: state.backgroundSyncTotal,
+      error: null,
+    });
+
+    try {
+      const backgroundResult = await runSyncPass({
+        phase: "background",
+        limit: DEFERRED_FULL_SYNC_BATCH_TARGET,
+        startPageToken: state.backgroundSyncCursor ?? undefined,
+        totalEstimate: state.backgroundSyncTotal ?? undefined,
+        processedBeforeStart: state.backgroundSyncProcessed,
+        latestHistoryId: state.historyId ?? undefined,
+      });
+      const completed =
+        backgroundResult.nextPageToken === undefined ||
+        backgroundResult.processed >= backgroundResult.totalEstimate;
+      const completedAt = Date.now();
+
+      await updateSyncState({
+        historyId: backgroundResult.latestHistoryId,
+        lastSyncAt: completedAt,
+        fullSyncCompletedAt: completed ? completedAt : null,
+        backgroundSyncCursor: backgroundResult.nextPageToken ?? null,
+        backgroundSyncTotal: backgroundResult.totalEstimate,
+        backgroundSyncProcessed: backgroundResult.processed,
+        backgroundSyncPending: !completed,
+        backgroundSyncLastBatchAt: completedAt,
+        metadataSchemaVersion: CURRENT_METADATA_SCHEMA_VERSION,
+        progressCurrent: backgroundResult.processed,
+        progressTotal: backgroundResult.totalEstimate,
+        status: "idle",
+        phase: null,
+        error: null,
+      });
+
+      if (completed) {
+        console.log(`Full sync complete: ${backgroundResult.processed} messages`);
+      } else {
+        console.log(
+          `Deferred full sync advanced to ${backgroundResult.processed}/${backgroundResult.totalEstimate}`
+        );
+      }
+
+      return {
+        ran: true,
+        completed,
+        nextRunInMs: completed ? undefined : DEFERRED_FULL_SYNC_INTERVAL_MS,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await updateSyncState({ status: "error", phase: null, error: message });
+      throw err;
+    }
+  });
+
+  if (result === "locked") {
+    return { ran: false, completed: false };
+  }
+
+  return result;
+}
+
 export async function runMessageMetadataBackfillIfNeeded(): Promise<void> {
   const state = await getSyncState();
   if (state.metadataSchemaVersion >= CURRENT_METADATA_SCHEMA_VERSION) {
@@ -705,6 +974,7 @@ export async function runMessageMetadataBackfillIfNeeded(): Promise<void> {
     });
 
     try {
+      const { getValidAccessToken } = await import("./auth");
       const accessToken = await getValidAccessToken();
       let processed = 0;
 
@@ -761,43 +1031,6 @@ export async function runMessageMetadataBackfillIfNeeded(): Promise<void> {
   }
 }
 
-async function flushInsertBuffer(
-  messages: GmailMessage[],
-  accessToken: string
-): Promise<void> {
-  const toInsert = await Promise.all(
-    messages.map(async (msg) => {
-      const bodies = await extractBodies(msg.payload, accessToken, msg.id);
-      const headers = parseHeaders(msg.payload.headers ?? []);
-
-      return {
-        id: msg.id,
-        threadId: msg.threadId,
-        historyId: msg.historyId,
-        internalDate: parseInt(msg.internalDate, 10),
-        from: headers["from"] ?? "",
-        to: headers["to"] ?? "",
-        subject: headers["subject"] ?? "",
-        snippet: msg.snippet,
-        bodyText: bodies.text,
-        bodyHtml: bodies.html,
-        attachments: bodies.attachments,
-        category: classifyMessageNature({
-          labelIds: msg.labelIds,
-          from: headers["from"],
-          subject: headers["subject"],
-          snippet: msg.snippet,
-          bodyText: bodies.text,
-        }),
-        isRead: isReadFromLabels(msg.labelIds),
-        ...getMailboxFlags(msg.labelIds),
-      };
-    })
-  );
-
-  await insertMessages(toInsert);
-}
-
 export async function startIncrementalSyncPolling(
   _onNewMail?: (message: GmailMessage) => void
 ): Promise<() => void> {
@@ -839,3 +1072,5 @@ export async function startIncrementalSyncPolling(
     running = false;
   };
 }
+
+export { getMailboxFlags };

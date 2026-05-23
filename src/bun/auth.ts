@@ -191,31 +191,7 @@ export async function refreshAccessToken(
 }
 
 // Keychain storage via macOS security CLI
-export function storeRefreshToken(token: string, email?: string): Promise<void> {
-  const service = email ? `gmail-refresh-token-${email}` : "gmail-refresh-token";
-  return new Promise((resolve, reject) => {
-    const child = spawn("security", [
-      "add-generic-password",
-      "-a",
-      "radius",
-      "-s",
-      service,
-      "-w",
-      token,
-      "-U",
-    ]);
-
-    child.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`security add-generic-password exited ${code}`));
-    });
-
-    child.on("error", (err) => reject(err));
-  });
-}
-
-export function getRefreshToken(email?: string): Promise<string | null> {
-  const service = email ? `gmail-refresh-token-${email}` : "gmail-refresh-token";
+function securityGetPassword(service: string): Promise<string | null> {
   return new Promise((resolve, reject) => {
     const child = spawn("security", [
       "find-generic-password",
@@ -251,21 +227,29 @@ export function getRefreshToken(email?: string): Promise<string | null> {
   });
 }
 
-export async function getRefreshTokenForActiveAccount(): Promise<string | null> {
-  if (currentAccountEmail) {
-    const scoped = await getRefreshToken(currentAccountEmail);
-    if (scoped) return scoped;
-  }
-  return getRefreshToken();
+function securityAddPassword(service: string, password: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn("security", [
+      "add-generic-password",
+      "-a",
+      "radius",
+      "-s",
+      service,
+      "-w",
+      password,
+      "-U",
+    ]);
+
+    child.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`security add-generic-password exited ${code}`));
+    });
+
+    child.on("error", (err) => reject(err));
+  });
 }
 
-export function deleteRefreshToken(email?: string): Promise<void> {
-  const service = email ? `gmail-refresh-token-${email}` : "gmail-refresh-token";
-  if (email) {
-    tokenCache.delete(email);
-  } else {
-    tokenCache.delete("__default__");
-  }
+function securityDeletePassword(service: string): Promise<void> {
   return new Promise((resolve) => {
     const child = spawn("security", [
       "delete-generic-password",
@@ -285,16 +269,58 @@ export function deleteRefreshToken(email?: string): Promise<void> {
       if (code === 0 || stderr.includes("The specified item could not be found")) {
         resolve();
       } else {
-        console.warn(`Failed to delete refresh token for ${email ?? "legacy"}: ${stderr}`);
+        console.warn(`Failed to delete Keychain item ${service}: ${stderr}`);
         resolve();
       }
     });
 
     child.on("error", (err) => {
-      console.warn(`Failed to delete refresh token for ${email ?? "legacy"}:`, err);
+      console.warn(`Failed to delete Keychain item ${service}:`, err);
       resolve();
     });
   });
+}
+
+// Gmail refresh tokens
+export function storeRefreshToken(token: string, email?: string): Promise<void> {
+  const service = email ? `gmail-refresh-token-${email}` : "gmail-refresh-token";
+  return securityAddPassword(service, token);
+}
+
+export function getRefreshToken(email?: string): Promise<string | null> {
+  const service = email ? `gmail-refresh-token-${email}` : "gmail-refresh-token";
+  return securityGetPassword(service);
+}
+
+export async function getRefreshTokenForActiveAccount(): Promise<string | null> {
+  if (currentAccountEmail) {
+    const scoped = await getRefreshToken(currentAccountEmail);
+    if (scoped) return scoped;
+  }
+  return getRefreshToken();
+}
+
+export function deleteRefreshToken(email?: string): Promise<void> {
+  const service = email ? `gmail-refresh-token-${email}` : "gmail-refresh-token";
+  if (email) {
+    tokenCache.delete(email);
+  } else {
+    tokenCache.delete("__default__");
+  }
+  return securityDeletePassword(service);
+}
+
+// IMAP password storage
+export function storeImapPassword(email: string, password: string): Promise<void> {
+  return securityAddPassword(`imap-password-${email}`, password);
+}
+
+export function getImapPassword(email: string): Promise<string | null> {
+  return securityGetPassword(`imap-password-${email}`);
+}
+
+export function deleteImapPassword(email: string): Promise<void> {
+  return securityDeletePassword(`imap-password-${email}`);
 }
 
 export { generateCodeVerifier, sha256 };
