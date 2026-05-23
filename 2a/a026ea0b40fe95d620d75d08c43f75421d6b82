@@ -1,0 +1,57 @@
+src/components/cmd.tsx
+  s_f21fb42c158651::t_f0b231b5566c95 17,30
+  s_f21fb42c158651::t_6433c01885e9fd 151
+  s_f21fb42c158651::t_9fe3e0c3ca5e4a 165
+src/bun/imap-provider.ts
+  s_f21fb42c158651::t_aaea92ff74d438 144,257
+src/bun/imap.ts
+  s_f21fb42c158651::t_60ce2f5bc40774 164-165
+  s_f21fb42c158651::t_93c61152833778 161
+src/components/mailboxes.tsx
+  s_f21fb42c158651::t_9e32908478c670 8,12,15-41
+src/mainview/hooks/useInbox.ts
+  s_f21fb42c158651::t_9533d2242c61c7 309-310
+  s_f21fb42c158651::t_5ab801f632839e 370-390
+  s_f21fb42c158651::t_387690d3e0d185 3
+src/mainview/App.tsx
+  s_f21fb42c158651::t_2a39c4d1e0e690 31
+  s_f21fb42c158651::t_80ed4987baaea0 892-914
+  s_f21fb42c158651::t_a04d7685253298 1040-1042
+  s_f21fb42c158651::t_2093e32c168726 1056
+  s_f21fb42c158651::t_b491cac1719210 146
+  s_f21fb42c158651::t_01592e1acf452e 975-976
+  s_f21fb42c158651::t_1289ac204011ab 1122-1123
+src/mainview/components/ReaderView.tsx
+  s_f21fb42c158651::t_96eff48c704b2c 293-297,316-326
+src/components/settings-dialog.tsx
+  s_f21fb42c158651::t_dc1a62bcf84284 7
+  s_f21fb42c158651::t_66739ec9b45d4f 565,567
+src/components/home.tsx
+  s_f21fb42c158651::t_4313af9ad728ec 14,26,39-44
+src/mainview/components/Onboarding.tsx
+  s_f21fb42c158651::t_d1ce5d32f2e170 8
+  s_f21fb42c158651::t_b7fd69c63e3f39 58
+  s_f21fb42c158651::t_15c4abdf558e2d 1-2,9,23-24,28-29,33-34,45-46,50-57,60-73,84,88-106,115-150,152-160,162-186,189-205,213-214,221-222,227,236-238
+  s_f21fb42c158651::t_07c6f351437567 208,215-220,226,229-235
+src/components/add-account.tsx
+  s_f21fb42c158651::t_bdcd09bbbeb6bf 12
+  s_f21fb42c158651::t_7b22da2b275b0a 159,162-167,173,175-180
+  s_f21fb42c158651::t_2bd565e09de103 1,4,13,17-18,20-27,29,32-46,51-52,54,59-66,68-74,78-158,160-161,168-169,174
+  s_f21fb42c158651::t_753e0fa9c933dd 28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "2aa026ea0b40fe95d620d75d08c43f75421d6b82",
+  "prompts": {},
+  "sessions": {
+    "s_f21fb42c158651": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1acc7e1f6ffeEAxrTmtWtGhuzd",
+        "model": "deepseek-v4-flash-free"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
