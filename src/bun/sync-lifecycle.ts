@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import type { SyncMode } from "../shared/types";
+import type { SyncMode, ImapSettings } from "../shared/types";
 import {
   updateSyncState,
   getSyncState,
@@ -7,6 +7,7 @@ import {
   deleteAccountDb,
   clearMessages,
   resetSyncState,
+  clearImapFolderSync,
 } from "./db";
 import {
   buildAuthURL,
@@ -21,6 +22,7 @@ import {
   getProfile,
   setAccountEmail,
   deleteRefreshToken,
+  deleteImapPassword,
 } from "./auth";
 import {
   runInitialAndBackgroundSync,
@@ -37,7 +39,9 @@ import {
   setActiveAccount,
   addAccount,
   removeAccount,
+  getAccount,
 } from "./accounts";
+import { registerProvider, removeProvider } from "./provider";
 
 let codeVerifier: string | null = null;
 let authServer: ReturnType<typeof Bun.serve> | null = null;
@@ -134,6 +138,23 @@ function waitForSyncLockRelease(maxWaitMs = 10000): Promise<void> {
 }
 
 async function startSyncForAccount() {
+  const account = await getActiveAccount();
+  if (!account) return;
+
+  const accountInfo = await getAccount(account);
+  if (accountInfo?.provider === "imap") {
+    await runInitialAndBackgroundSync("recent")
+      .then(() => {
+        console.log("📥 IMAP sync complete");
+      })
+      .catch((err) => {
+        console.error("❌ IMAP initial sync failed:", err);
+      });
+
+    stopPolling = await startIncrementalSyncPolling();
+    return;
+  }
+
   const state = await getSyncState();
 
   if (state.initialSyncCompletedAt) {
@@ -215,7 +236,7 @@ async function handleOAuthCallback(
       console.log(`💾 Refresh token stored in Keychain for ${email}`);
     }
 
-    await addAccount({ email, name: email.split("@")[0], addedAt: Date.now() });
+    await addAccount({ email, name: email.split("@")[0], addedAt: Date.now(), provider: "gmail" });
     await setActiveAccount(email);
     await switchDbAccount(email);
     setAccountEmail(email);
@@ -424,6 +445,7 @@ export async function handleGetAccounts() {
           email: profile.emailAddress,
           name: profile.emailAddress.split("@")[0],
           addedAt: Date.now(),
+          provider: "gmail" as const,
         };
         await addAccount(account);
         if (!active) {
@@ -451,9 +473,17 @@ export async function handleSwitchAccount(params: { email: string | null }) {
     setAccountEmail(email);
 
     if (email) {
-      const refreshToken = await getRefreshToken(email);
-      if (refreshToken) {
+      const account = await getAccount(email);
+      if (account?.provider === "imap") {
+        const { ImapProvider } = await import("./imap-provider");
+        const provider = new ImapProvider(email);
+        registerProvider(email, provider);
         await startSyncForAccount();
+      } else {
+        const refreshToken = await getRefreshToken(email);
+        if (refreshToken) {
+          await startSyncForAccount();
+        }
       }
     }
 
@@ -471,11 +501,18 @@ export async function handleRemoveAccount(params: { email: string }) {
     stopAllSync();
     await waitForSyncLockRelease();
 
-    await deleteRefreshToken(email);
+    const account = await getAccount(email);
+    if (account?.provider === "imap") {
+      await deleteImapPassword(email);
+    } else {
+      await deleteRefreshToken(email);
+    }
+
     await removeAccount(email);
+    removeProvider(email);
 
     const remaining = await getAccounts();
-    if (remaining.length === 0) {
+    if (remaining.length === 0 && account?.provider !== "imap") {
       await deleteRefreshToken();
     }
 
@@ -485,10 +522,7 @@ export async function handleRemoveAccount(params: { email: string }) {
     setAccountEmail(active);
 
     if (active) {
-      const refreshToken = await getRefreshToken(active);
-      if (refreshToken) {
-        await startSyncForAccount();
-      }
+      await startSyncForAccount();
     }
 
     return { success: true };
@@ -499,11 +533,103 @@ export async function handleRemoveAccount(params: { email: string }) {
   }
 }
 
+export async function handleAddImapAccount(params: {
+  email: string;
+  password: string;
+  imapSettings: ImapSettings;
+}) {
+  try {
+    const { ImapProvider } = await import("./imap-provider");
+    const provider = new ImapProvider(params.email);
+
+    const testResult = await provider.testConnection(params.password, params.imapSettings);
+    if (!testResult.success) {
+      return { success: false, error: testResult.error ?? "IMAP connection failed" };
+    }
+
+    await provider.setPassword(params.password, params.imapSettings);
+    registerProvider(params.email, provider);
+
+    const name = params.email.split("@")[0];
+    await addAccount({
+      email: params.email,
+      name,
+      addedAt: Date.now(),
+      provider: "imap",
+      imapSettings: params.imapSettings,
+    });
+    await setActiveAccount(params.email);
+    await switchDbAccount(params.email);
+    setAccountEmail(params.email);
+
+    await updateSyncState({
+      syncMode: "recent",
+      status: "syncing",
+      phase: "initial",
+      lastSyncAt: Date.now(),
+      error: null,
+    });
+
+    runInitialAndBackgroundSync("recent")
+      .then(() => {
+        console.log(`✅ IMAP sync complete for ${params.email}`);
+      })
+      .catch((err) => {
+        console.error("❌ IMAP sync failed:", err);
+      });
+
+    stopPolling = await startIncrementalSyncPolling();
+
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("❌ Add IMAP account failed:", message);
+    return { success: false, error: message };
+  }
+}
+
+export async function handleTestImapConnection(params: {
+  email: string;
+  password: string;
+  imapSettings: ImapSettings;
+}) {
+  try {
+    const { testConnection } = await import("./imap");
+    return testConnection({
+      host: params.imapSettings.host,
+      port: params.imapSettings.port,
+      useTls: params.imapSettings.useTls,
+      email: params.email,
+      password: params.password,
+    });
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
 export async function startExistingUserSync() {
   const active = await getActiveAccount();
   if (active) {
     await switchDbAccount(active);
     setAccountEmail(active);
+  }
+
+  const account = active ? await getAccount(active) : null;
+  if (account?.provider === "imap") {
+    const { ImapProvider } = await import("./imap-provider");
+    const provider = new ImapProvider(active!);
+    registerProvider(active!, provider);
+
+    runInitialAndBackgroundSync("recent")
+      .then(() => {
+        console.log("📥 IMAP sync complete");
+      })
+      .catch((err) => {
+        console.error("❌ IMAP initial sync failed:", err);
+      });
+
+    stopPolling = await startIncrementalSyncPolling();
+    return;
   }
 
   const state = await getSyncState();
@@ -565,6 +691,27 @@ export async function handleResyncAccount() {
     stopAllSync();
     await waitForSyncLockRelease();
 
+    const { getAccountEmail } = await import("./auth");
+    const email = getAccountEmail();
+    const account = email ? await getAccount(email) : null;
+
+    if (account?.provider === "imap") {
+      await clearMessages();
+      await resetSyncState();
+      await clearImapFolderSync();
+
+      runInitialAndBackgroundSync("recent")
+        .then(() => {
+          console.log("📥 IMAP resync complete");
+        })
+        .catch((err) => {
+          console.error("❌ IMAP resync failed:", err);
+        });
+
+      stopPolling = await startIncrementalSyncPolling();
+      return { success: true };
+    }
+
     const refreshToken = await getRefreshTokenForActiveAccount();
     if (!refreshToken) {
       return { success: false, error: "No refresh token found — please authenticate first" };
@@ -609,6 +756,11 @@ export async function tryResumeSyncFromRefreshToken() {
   if (active) {
     await switchDbAccount(active);
     setAccountEmail(active);
+  }
+
+  const account = active ? await getAccount(active) : null;
+  if (account?.provider === "imap") {
+    return;
   }
 
   const state = await getSyncState();

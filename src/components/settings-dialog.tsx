@@ -4,10 +4,10 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowLeft01Icon,
   UserCircleIcon,
+  Mail01Icon,
   Settings01Icon,
   Sun01Icon,
   Add01Icon,
-  Tick01Icon,
   Delete01Icon,
   Moon01Icon,
   SolarSystem01Icon,
@@ -561,9 +561,9 @@ export function SettingsDialog({
                       data-checked={account.email === activeAccount}
                     >
                       <HugeiconsIcon
-                        icon={UserCircleIcon}
+                        icon={account.provider === "imap" ? Mail01Icon : UserCircleIcon}
                         size={16}
-                        className="text-radius-text-muted"
+                        className={account.provider === "imap" ? "text-radius-text-secondary" : "text-radius-text-muted"}
                       />
                       <span>{account.email}</span>
                       <button
@@ -579,9 +579,7 @@ export function SettingsDialog({
                       >
                         <HugeiconsIcon icon={Delete01Icon} size={14} />
                       </button>
-                      {account.email === activeAccount && (
-                        <HugeiconsIcon icon={Tick01Icon} size={14} className="text-radius-accent" />
-                      )}
+
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -617,9 +615,7 @@ export function SettingsDialog({
                       className="text-radius-text-muted"
                     />
                     <span>{item.name}</span>
-                    {item.id === theme && (
-                      <HugeiconsIcon icon={Tick01Icon} size={14} className="ml-auto text-radius-accent" />
-                    )}
+
                   </CommandItem>
                 ))}
               </CommandGroup>

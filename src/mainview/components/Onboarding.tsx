@@ -1,9 +1,12 @@
-import type { SyncMode } from "../../shared/types";
+import { useState } from "react";
+import type { ImapSettings, SyncMode } from "../../shared/types";
 
 interface OnboardingProps {
   onConnect: (mode: SyncMode) => void;
   selectedMode: SyncMode | null;
   onSelectMode: (mode: SyncMode) => void;
+  onConnectImap?: (email: string, password: string, imapSettings: ImapSettings) => Promise<void>;
+  onTestImapConnection?: (email: string, password: string, imapSettings: ImapSettings) => Promise<{ success: boolean; error?: string }>;
   error?: string;
   onRetry?: () => void;
 }
@@ -16,33 +19,19 @@ function RadiusMark({ className }: { className?: string }) {
       className={className}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Outer ring — subtle, breathing */}
       <circle
-        cx="24"
-        cy="24"
-        r="22"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeOpacity="0.12"
+        cx="24" cy="24" r="22"
+        stroke="currentColor" strokeWidth="1" strokeOpacity="0.12"
         className="onboarding-ring-outer"
       />
-      {/* Inner ring */}
       <circle
-        cx="24"
-        cy="24"
-        r="16"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeOpacity="0.2"
+        cx="24" cy="24" r="16"
+        stroke="currentColor" strokeWidth="1" strokeOpacity="0.2"
         className="onboarding-ring-inner"
       />
-      {/* Core dot */}
       <circle
-        cx="24"
-        cy="24"
-        r="3"
-        fill="currentColor"
-        fillOpacity="0.9"
+        cx="24" cy="24" r="3"
+        fill="currentColor" fillOpacity="0.9"
         className="onboarding-dot"
       />
     </svg>
@@ -53,30 +42,68 @@ export function Onboarding({
   onConnect,
   selectedMode,
   onSelectMode,
+  onConnectImap,
+  onTestImapConnection,
   error,
   onRetry,
 }: OnboardingProps) {
-  const isReadyToConnect = selectedMode !== null;
+  const [providerTab, setProviderTab] = useState<"gmail" | "imap">("gmail");
+  const [imapHost, setImapHost] = useState("");
+  const [imapPort, setImapPort] = useState("993");
+  const [imapUseTls, setImapUseTls] = useState(true);
+  const [imapEmail, setImapEmail] = useState("");
+  const [imapPassword, setImapPassword] = useState("");
+  const [imapTestResult, setImapTestResult] = useState<{ success: boolean; error?: string } | null>(null);
+  const [imapTesting, setImapTesting] = useState(false);
+  const [imapConnecting, setImapConnecting] = useState(false);
+
+  const isReadyToConnect = providerTab === "imap"
+    ? Boolean(imapEmail && imapPassword && imapHost)
+    : selectedMode !== null;
+
+  const handleTestImap = async () => {
+    if (!onTestImapConnection || !imapEmail || !imapPassword || !imapHost) return;
+    setImapTesting(true);
+    setImapTestResult(null);
+    const result = await onTestImapConnection(imapEmail, imapPassword, {
+      host: imapHost, port: parseInt(imapPort, 10), useTls: imapUseTls,
+    });
+    setImapTestResult(result);
+    setImapTesting(false);
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-full bg-radius-bg-primary px-6 onboarding-enter">
       <div className="flex w-full max-w-[520px] flex-col items-center text-center">
-        {/* Mark */}
         <div className="relative mb-12">
           <RadiusMark className="w-12 h-12 text-radius-accent" />
         </div>
-
-        {/* Masthead */}
         <h1 className="font-[family-name:var(--font-family-serif)] text-[42px] font-semibold text-radius-text-primary leading-none tracking-tight mb-5">
           Radius
         </h1>
-
-        {/* Tagline — one breath */}
-        <p className="font-[family-name:var(--font-family-sans)] text-[14px] text-radius-text-muted leading-relaxed tracking-wide mb-14">
+        <p className="font-[family-name:var(--font-family-sans)] text-[14px] text-radius-text-muted leading-relaxed tracking-wide mb-8">
           A quiet place for your email.
         </p>
 
-        {/* Error — minimal inline */}
+        <div className="flex gap-1 mb-8 p-0.5 rounded-full bg-radius-bg-secondary/50 border border-radius-border-subtle">
+          <button type="button" onClick={() => setProviderTab("gmail")}
+            className={`px-5 py-1.5 text-[12px] font-medium rounded-full transition-all font-[family-name:var(--font-family-sans)] ${
+              providerTab === "gmail"
+                ? "bg-radius-bg-primary text-radius-text-primary shadow-sm"
+                : "text-radius-text-muted hover:text-radius-text-primary"
+            }`}>
+            Gmail
+          </button>
+          <button type="button" onClick={() => setProviderTab("imap")}
+            className={`px-5 py-1.5 text-[12px] font-medium rounded-full transition-all font-[family-name:var(--font-family-sans)] ${
+              providerTab === "imap"
+                ? "bg-radius-bg-primary text-radius-text-primary shadow-sm"
+                : "text-radius-text-muted hover:text-radius-text-primary"
+            }`}>
+            IMAP / Work Email
+          </button>
+        </div>
+
         {error && (
           <div className="mb-8 text-center">
             <p className="text-[12px] text-radius-error font-[family-name:var(--font-family-sans)]">
@@ -85,119 +112,139 @@ export function Onboarding({
           </div>
         )}
 
-        <div className="mb-8 grid w-full gap-3 text-left">
-          <button
-            type="button"
-            onClick={() => onSelectMode("recent")}
-            className={`rounded-[24px] border px-5 py-4 transition-colors duration-200 ${
-              selectedMode === "recent"
-                ? "border-radius-accent bg-radius-bg-secondary"
-                : "border-radius-border-subtle bg-radius-bg-primary hover:bg-radius-bg-secondary/60"
-            }`}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-                  Fetch 3,000 emails
-                </p>
-                <p className="mt-1 text-[11px] leading-[1.55] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-                  Clean migration. Fastest setup. Radius brings in your latest 3,000 emails and gets you reading quickly.
-                </p>
+        {providerTab === "gmail" ? (
+          <div className="mb-8 grid w-full gap-3 text-left">
+            <button type="button" onClick={() => onSelectMode("recent")}
+              className={`rounded-[24px] border px-5 py-4 transition-colors duration-200 ${
+                selectedMode === "recent"
+                  ? "border-radius-accent bg-radius-bg-secondary"
+                  : "border-radius-border-subtle bg-radius-bg-primary hover:bg-radius-bg-secondary/60"
+              }`}>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">Fetch 3,000 emails</p>
+                  <p className="mt-1 text-[11px] leading-[1.55] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                    Clean migration. Fastest setup. Radius brings in your latest 3,000 emails and gets you reading quickly.
+                  </p>
+                </div>
+                <span className={`mt-1 inline-flex h-4 w-4 shrink-0 rounded-full border ${
+                  selectedMode === "recent" ? "border-radius-accent bg-radius-accent" : "border-radius-border-subtle"
+                }`} />
               </div>
-              <span
-                className={`mt-1 inline-flex h-4 w-4 shrink-0 rounded-full border ${
-                  selectedMode === "recent"
-                    ? "border-radius-accent bg-radius-accent"
-                    : "border-radius-border-subtle"
-                }`}
-              />
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectMode("all")}
-            className={`rounded-[24px] border px-5 py-4 transition-colors duration-200 ${
-              selectedMode === "all"
-                ? "border-radius-accent bg-radius-bg-secondary"
-                : "border-radius-border-subtle bg-radius-bg-primary hover:bg-radius-bg-secondary/60"
-            }`}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">
-                  Fetch all emails
-                </p>
-                <p className="mt-1 text-[11px] leading-[1.55] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
-                  Takes longer. Radius fetches your first 3,000 upfront, then keeps pulling older mail in batches while the app is open.
-                </p>
+            </button>
+            <button type="button" onClick={() => onSelectMode("all")}
+              className={`rounded-[24px] border px-5 py-4 transition-colors duration-200 ${
+                selectedMode === "all"
+                  ? "border-radius-accent bg-radius-bg-secondary"
+                  : "border-radius-border-subtle bg-radius-bg-primary hover:bg-radius-bg-secondary/60"
+              }`}>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[13px] font-medium text-radius-text-primary font-[family-name:var(--font-family-sans)]">Fetch all emails</p>
+                  <p className="mt-1 text-[11px] leading-[1.55] text-radius-text-muted font-[family-name:var(--font-family-sans)]">
+                    Takes longer. Radius fetches your first 3,000 upfront, then keeps pulling older mail in batches while the app is open.
+                  </p>
+                </div>
+                <span className={`mt-1 inline-flex h-4 w-4 shrink-0 rounded-full border ${
+                  selectedMode === "all" ? "border-radius-accent bg-radius-accent" : "border-radius-border-subtle"
+                }`} />
               </div>
-              <span
-                className={`mt-1 inline-flex h-4 w-4 shrink-0 rounded-full border ${
-                  selectedMode === "all"
-                    ? "border-radius-accent bg-radius-accent"
-                    : "border-radius-border-subtle"
-                }`}
-              />
+            </button>
+          </div>
+        ) : (
+          <div className="mb-6 w-full text-left space-y-4">
+            <div>
+              <label className="text-[11px] font-medium text-radius-text-muted font-[family-name:var(--font-family-sans)]">Email</label>
+              <input type="email" value={imapEmail} onChange={(e) => setImapEmail(e.target.value)}
+                placeholder="you@company.com"
+                className="mt-1 w-full rounded-xl border border-radius-border-subtle bg-radius-bg-primary px-4 py-2.5 text-[13px] text-radius-text-primary placeholder:text-radius-text-muted/50 outline-none focus:border-radius-accent font-[family-name:var(--font-family-sans)]" />
             </div>
-          </button>
-        </div>
+            <div>
+              <label className="text-[11px] font-medium text-radius-text-muted font-[family-name:var(--font-family-sans)]">Password</label>
+              <input type="password" value={imapPassword} onChange={(e) => setImapPassword(e.target.value)}
+                placeholder="App password or mailbox password"
+                className="mt-1 w-full rounded-xl border border-radius-border-subtle bg-radius-bg-primary px-4 py-2.5 text-[13px] text-radius-text-primary placeholder:text-radius-text-muted/50 outline-none focus:border-radius-accent font-[family-name:var(--font-family-sans)]" />
+            </div>
+            <div>
+              <label className="text-[11px] font-medium text-radius-text-muted font-[family-name:var(--font-family-sans)]">IMAP Server</label>
+              <input type="text" value={imapHost} onChange={(e) => setImapHost(e.target.value)}
+                placeholder="imap.company.com"
+                className="mt-1 w-full rounded-xl border border-radius-border-subtle bg-radius-bg-primary px-4 py-2.5 text-[13px] text-radius-text-primary placeholder:text-radius-text-muted/50 outline-none focus:border-radius-accent font-[family-name:var(--font-family-sans)]" />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="text-[11px] font-medium text-radius-text-muted font-[family-name:var(--font-family-sans)]">Port</label>
+                <input type="number" value={imapPort} onChange={(e) => setImapPort(e.target.value)}
+                  placeholder="993"
+                  className="mt-1 w-full rounded-xl border border-radius-border-subtle bg-radius-bg-primary px-4 py-2.5 text-[13px] text-radius-text-primary placeholder:text-radius-text-muted/50 outline-none focus:border-radius-accent font-[family-name:var(--font-family-sans)]" />
+              </div>
+              <div className="flex items-end pb-2.5">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input type="checkbox" checked={imapUseTls} onChange={(e) => setImapUseTls(e.target.checked)}
+                    className="h-4 w-4 rounded border-radius-border-subtle text-radius-accent focus:ring-radius-accent" />
+                  <span className="text-[12px] text-radius-text-muted font-[family-name:var(--font-family-sans)]">Use SSL/TLS</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
 
-        {/* Action */}
+        {providerTab === "imap" && (
+          <>
+            <button type="button" onClick={handleTestImap}
+              disabled={imapTesting || !imapHost || !imapEmail || !imapPassword}
+              className="mb-3 w-full rounded-full border border-radius-border-subtle px-4 py-2 text-[12px] font-medium text-radius-text-secondary transition-colors hover:bg-radius-bg-secondary hover:text-radius-text-primary disabled:cursor-not-allowed disabled:opacity-50 font-[family-name:var(--font-family-sans)]">
+              {imapTesting ? "Testing..." : "Test Connection"}
+            </button>
+            {imapTestResult && (
+              <p className={`mb-3 text-center text-[11px] font-[family-name:var(--font-family-sans)] ${imapTestResult.success ? "text-radius-success" : "text-radius-error"}`}>
+                {imapTestResult.success ? "Connection successful" : imapTestResult.error || "Connection failed"}
+              </p>
+            )}
+          </>
+        )}
+
         <button
-          onClick={() => {
+          onClick={async () => {
             if (onRetry) {
               onRetry();
               return;
             }
-            if (selectedMode) {
+            if (providerTab === "imap") {
+              if (onConnectImap && imapEmail && imapPassword && imapHost) {
+                setImapConnecting(true);
+                try {
+                  await onConnectImap(imapEmail, imapPassword, { host: imapHost, port: parseInt(imapPort, 10), useTls: imapUseTls });
+                } finally {
+                  setImapConnecting(false);
+                }
+              }
+            } else if (selectedMode) {
               onConnect(selectedMode);
             }
           }}
-          disabled={!isReadyToConnect}
-          className="
-            group
-            relative
-            px-8 py-3
-            text-[13px] font-medium
-            text-radius-text-inverse
-            bg-radius-accent
-            hover:bg-radius-accent-hover
-            rounded-full
-            transition-all duration-200 ease-out
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radius-accent focus-visible:ring-offset-2 focus-visible:ring-offset-radius-bg-primary
-            font-[family-name:var(--font-family-sans)]
-            active:scale-[0.97]
-            disabled:bg-radius-bg-secondary disabled:text-radius-text-muted disabled:hover:bg-radius-bg-secondary disabled:cursor-not-allowed disabled:active:scale-100
-          "
-        >
+          disabled={!isReadyToConnect || imapConnecting}
+          className="group relative px-8 py-3 text-[13px] font-medium text-radius-text-inverse bg-radius-accent hover:bg-radius-accent-hover rounded-full transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-radius-accent focus-visible:ring-offset-2 focus-visible:ring-offset-radius-bg-primary font-[family-name:var(--font-family-sans)] active:scale-[0.97] disabled:bg-radius-bg-secondary disabled:text-radius-text-muted disabled:hover:bg-radius-bg-secondary disabled:cursor-not-allowed disabled:active:scale-100">
           <span className="relative z-10 flex items-center gap-2">
-            {error ? "Try Again" : "Connect Gmail"}
-            {!error && (
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="opacity-70 group-hover:translate-x-0.5 transition-transform duration-200"
-              >
-                <path d="M5 12h14" />
-                <path d="m12 5 7 7-7 7" />
+            {imapConnecting ? (
+              <>
+                <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Connecting...
+              </>
+            ) : error ? "Try Again" : providerTab === "imap" ? "Connect IMAP Account" : "Connect Gmail"}
+            {!error && !imapConnecting && (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                className="opacity-70 group-hover:translate-x-0.5 transition-transform duration-200">
+                <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
               </svg>
             )}
           </span>
         </button>
 
-        {/* Footnote — almost invisible */}
         <p className="mt-10 text-[10px] text-radius-text-muted/60 tracking-wide font-[family-name:var(--font-family-sans)]">
           Read-only. We never touch your mail. Full migrations continue gently in the background.
         </p>
       </div>
-
       <style>{`
         @keyframes onboarding-enter {
           from {

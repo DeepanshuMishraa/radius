@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 type Page = "home" | "mailboxes";
 
 interface CommandKProps {
+  provider: "gmail" | "imap";
   onSearchEmails: () => void;
   onComposeEmail: () => void;
   onCheckForUpdates: () => void;
@@ -26,6 +27,7 @@ interface CommandKProps {
 }
 
 export function CommandK({
+  provider,
   onSearchEmails,
   onComposeEmail,
   onCheckForUpdates,
@@ -146,6 +148,7 @@ export function CommandK({
               <div className="p-1.5">
                 {page === "home" ? (
                   <Home
+                    provider={provider}
                     onOpenMailroom={() => {
                       setPage("mailboxes");
                       setSearch("");
@@ -159,7 +162,7 @@ export function CommandK({
                     onReconnect={onReconnect}
                   />
                 ) : (
-                  <Mailboxes onSelectMailbox={onShowMailbox} />
+                  <Mailboxes provider={provider} onSelectMailbox={onShowMailbox} />
                 )}
               </div>
             </CommandList>

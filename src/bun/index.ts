@@ -63,6 +63,8 @@ import {
   handleGetAccounts,
   handleSwitchAccount,
   handleRemoveAccount,
+  handleAddImapAccount,
+  handleTestImapConnection,
 } from "./sync-lifecycle";
 import {
   handleApplyUpdate,
@@ -117,6 +119,8 @@ async function createMainWindow() {
         switchAccount: handleSwitchAccount,
         removeAccount: handleRemoveAccount,
         resyncAccount: handleResyncAccount,
+        addImapAccount: handleAddImapAccount,
+        testImapConnection: handleTestImapConnection,
         downloadAttachment: handleDownloadAttachment,
         previewAttachment: handlePreviewAttachment,
 

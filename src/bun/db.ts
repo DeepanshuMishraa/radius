@@ -224,6 +224,13 @@ export async function createSchema(): Promise<void> {
 
     CREATE INDEX IF NOT EXISTS idx_compose_contacts_rank
       ON compose_contacts(account_email, frequency DESC, last_used_at DESC);
+
+    CREATE TABLE IF NOT EXISTS imap_folder_sync (
+      folder TEXT PRIMARY KEY,
+      uid_validity INTEGER NOT NULL DEFAULT 0,
+      uid_next INTEGER NOT NULL DEFAULT 0,
+      last_sync_at INTEGER
+    );
   `);
 
   const syncStateColumns = db.query(
@@ -257,6 +264,9 @@ export async function createSchema(): Promise<void> {
   }
   if (!existingMessageColumns.has("is_trash")) {
     db.exec("ALTER TABLE messages ADD COLUMN is_trash INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!existingMessageColumns.has("folder")) {
+    db.exec("ALTER TABLE messages ADD COLUMN folder TEXT DEFAULT NULL");
   }
   const composeSessionColumns = db.query(
     `SELECT name FROM pragma_table_info('compose_sessions')`
@@ -372,7 +382,7 @@ function buildFtsQuery(query: string): string {
     .join(" AND ");
 }
 
-export async function insertMessage(message: {
+export interface InsertMessageInput {
   id: string;
   threadId: string;
   historyId: string;
@@ -390,12 +400,15 @@ export async function insertMessage(message: {
   isSent: boolean;
   isDraft: boolean;
   isTrash: boolean;
-}): Promise<void> {
+  folder?: string | null;
+}
+
+export async function insertMessage(message: InsertMessageInput): Promise<void> {
   const db = await getDb();
   db.run(
     `INSERT OR REPLACE INTO messages
-     (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read, is_inbox, is_sent, is_draft, is_trash)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read, is_inbox, is_sent, is_draft, is_trash, folder)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       message.id,
       message.threadId,
@@ -414,31 +427,14 @@ export async function insertMessage(message: {
       message.isSent ? 1 : 0,
       message.isDraft ? 1 : 0,
       message.isTrash ? 1 : 0,
+      message.folder ?? null,
     ]
   );
   upsertMessageSearchIndex(db, message.id);
 }
 
 export async function insertMessages(
-  messages: Array<{
-    id: string;
-    threadId: string;
-    historyId: string;
-    internalDate: number;
-    from: string;
-    to: string;
-    subject: string;
-    snippet: string;
-    bodyText: string | null;
-    bodyHtml: string | null;
-  attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }>;
-  category: string;
-  isRead: boolean;
-  isInbox: boolean;
-  isSent: boolean;
-  isDraft: boolean;
-  isTrash: boolean;
-  }>
+  messages: Array<InsertMessageInput>
 ): Promise<void> {
   const db = await getDb();
   db.exec("BEGIN TRANSACTION");
@@ -446,8 +442,8 @@ export async function insertMessages(
     for (const message of messages) {
       db.run(
         `INSERT OR REPLACE INTO messages
-         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read, is_inbox, is_sent, is_draft, is_trash)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read, is_inbox, is_sent, is_draft, is_trash, folder)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           message.id,
           message.threadId,
@@ -466,6 +462,7 @@ export async function insertMessages(
           message.isSent ? 1 : 0,
           message.isDraft ? 1 : 0,
           message.isTrash ? 1 : 0,
+          message.folder ?? null,
         ]
       );
       upsertMessageSearchIndex(db, message.id);
@@ -963,6 +960,58 @@ export async function resetSyncState(): Promise<void> {
     progress_total = NULL,
     error = NULL
   WHERE id = 1`);
+}
+
+export async function getImapFolderSync(
+  folder: string
+): Promise<{ uidValidity: number; uidNext: number; lastSyncAt: number | null } | null> {
+  const db = await getDb();
+  const row = db
+    .query(
+      `SELECT uid_validity, uid_next, last_sync_at
+       FROM imap_folder_sync
+       WHERE folder = ?`
+    )
+    .get(folder) as { uid_validity: number; uid_next: number; last_sync_at: number | null } | null;
+  if (!row) return null;
+  return {
+    uidValidity: row.uid_validity,
+    uidNext: row.uid_next,
+    lastSyncAt: row.last_sync_at,
+  };
+}
+
+export async function upsertImapFolderSync(
+  folder: string,
+  state: { uidValidity: number; uidNext: number; lastSyncAt?: number }
+): Promise<void> {
+  const db = await getDb();
+  db.run(
+    `INSERT INTO imap_folder_sync (folder, uid_validity, uid_next, last_sync_at)
+     VALUES (?, ?, ?, COALESCE(?, ?))
+     ON CONFLICT(folder) DO UPDATE SET
+       uid_validity = excluded.uid_validity,
+       uid_next = excluded.uid_next,
+       last_sync_at = COALESCE(excluded.last_sync_at, imap_folder_sync.last_sync_at)`,
+    [folder, state.uidValidity, state.uidNext, state.lastSyncAt ?? null, Date.now()]
+  );
+}
+
+export async function getImapFolderSyncStates(): Promise<
+  Array<{ folder: string; uidValidity: number; uidNext: number }>
+> {
+  const db = await getDb();
+  return db
+    .query(
+      `SELECT folder, uid_validity as uidValidity, uid_next as uidNext
+       FROM imap_folder_sync`
+    )
+    .all() as Array<{ folder: string; uidValidity: number; uidNext: number }>;
+}
+
+export async function clearImapFolderSync(): Promise<void> {
+  const db = await getDb();
+  db.run("DELETE FROM imap_folder_sync");
 }
 
 export async function getComposeContactRows(): Promise<

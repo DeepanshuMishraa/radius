@@ -290,6 +290,11 @@ function ActionBarWidget({
   onDelete?: () => void;
 }) {
   if (!visible) return null;
+  if (!onReply && !onForward && !onDelete) return null;
+
+  const showDivider = (onReply || onForward) && onDelete;
+  const replyCount = [onReply, onForward, onDelete].filter(Boolean).length;
+  if (replyCount === 0) return null;
 
   return (
     <div
@@ -308,15 +313,17 @@ function ActionBarWidget({
         WebkitAppRegion: "no-drag",
       } as CSSProperties}
     >
-      <ActionButton icon={<HugeiconsIcon icon={MailReply01Icon} size={16} />} tooltip="Reply" onClick={onReply} />
-      <ActionButton icon={<HugeiconsIcon icon={Forward02Icon} size={16} />} tooltip="Forward" onClick={onForward} />
-      <div className="w-[1px] h-3.5 bg-radius-border-subtle/75" />
-      <ActionButton 
-        icon={<HugeiconsIcon icon={Delete01Icon} size={16} />} 
-        tooltip="Delete" 
-        onClick={onDelete} 
-        className="hover:text-red-500 hover:bg-red-500/10" 
-      />
+      {onReply && <ActionButton icon={<HugeiconsIcon icon={MailReply01Icon} size={16} />} tooltip="Reply" onClick={onReply} />}
+      {onForward && <ActionButton icon={<HugeiconsIcon icon={Forward02Icon} size={16} />} tooltip="Forward" onClick={onForward} />}
+      {showDivider && <div className="w-[1px] h-3.5 bg-radius-border-subtle/75" />}
+      {onDelete && 
+        <ActionButton 
+          icon={<HugeiconsIcon icon={Delete01Icon} size={16} />} 
+          tooltip="Delete" 
+          onClick={onDelete} 
+          className="hover:text-red-500 hover:bg-red-500/10" 
+        />
+      }
     </div>
   );
 }
