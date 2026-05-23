@@ -9,6 +9,25 @@ A minimal, fast desktop email client for Gmail. Built with [Electrobun](https://
 - Incremental catch-up on every launch — fetches new emails automatically
 - Clean reader view with smooth sidebar transitions
 
+## Installation
+
+### Homebrew (recommended)
+
+```bash
+brew tap DeepanshuMishraa/radius https://github.com/DeepanshuMishraa/radius
+brew install --cask radius
+```
+
+If the name is ambiguous, use the fully qualified name:
+
+```bash
+brew install --cask DeepanshuMishraa/radius/radius
+```
+
+### Manual
+
+Download the latest release for your platform from the [releases page](https://github.com/DeepanshuMishraa/radius/releases).
+
 ## Requirements
 
 - macOS
