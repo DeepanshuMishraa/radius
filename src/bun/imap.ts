@@ -158,8 +158,10 @@ export async function fetchMessageUids(
     if (opts?.sinceUid && opts.sinceUid > 0) {
       searchQuery = `UID ${opts.sinceUid + 1}:*`;
     } else {
-      searchQuery = "ALL";
+      searchQuery = "1:*";
     }
+
+    if (!client.mailbox || !client.mailbox.exists) return [];
 
     const messages: number[] = [];
     for await (const msg of client.fetch(searchQuery, { uid: true })) {

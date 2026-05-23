@@ -28,6 +28,7 @@ import type {
   ComposeContactSuggestion,
   PendingDeleteStatusMessage,
   ComposeStatusMessage,
+  ImapSettings,
   LocalReleaseInfo,
   SyncMode,
   UpdateInfo,
@@ -142,7 +143,7 @@ function App() {
   const [composeSuggestions, setComposeSuggestions] = useState<ComposeContactSuggestion[]>([]);
 
   const { isAuthenticated, startOAuth } = useAuth();
-  const { accounts, activeAccount, refresh: refreshAccounts, removeAccount } = useAccounts();
+  const { accounts, activeAccount, refresh: refreshAccounts, removeAccount, addImapAccount, testImapConnection } = useAccounts();
   const syncStatus = useSyncStatus();
 
   useEffect(() => {
@@ -888,6 +889,29 @@ function App() {
     [startOAuth]
   );
 
+  const handleAddImapAccount = useCallback(
+    async (email: string, password: string, imapSettings: ImapSettings) => {
+      setAddAccountOpen(false);
+      try {
+        const result = await addImapAccount(email, password, imapSettings);
+        if (!result.success) {
+          toast.error(result.error ?? "Failed to add IMAP account");
+        }
+      } catch (err) {
+        console.error("Add IMAP account error:", err);
+        toast.error("Failed to add IMAP account");
+      }
+    },
+    [addImapAccount]
+  );
+
+  const handleTestImapConnection = useCallback(
+    async (email: string, password: string, imapSettings: ImapSettings) => {
+      return await testImapConnection(email, password, imapSettings);
+    },
+    [testImapConnection]
+  );
+
   const handleCloseAddAccount = useCallback(() => {
     setAddAccountOpen(false);
     setAddAccountMode(null);
@@ -948,6 +972,8 @@ function App() {
           onConnect={handleConnect}
           selectedMode={selectedSyncMode}
           onSelectMode={setSelectedSyncMode}
+          onConnectImap={handleAddImapAccount}
+          onTestImapConnection={handleTestImapConnection}
           error={syncStatus.status === "error" ? syncStatus.error : undefined}
         />
       </div>
@@ -1011,9 +1037,9 @@ function App() {
           onOpenSidebar={handleOpenSidebar}
           onPrev={handlePrevMessage}
           onNext={handleNextMessage}
-          onReply={handleReply}
-          onForward={handleForward}
-          onDelete={handleDelete}
+          onReply={activeAccountRecord?.provider === "imap" ? undefined : handleReply}
+          onForward={activeAccountRecord?.provider === "imap" ? undefined : handleForward}
+          onDelete={activeAccountRecord?.provider === "imap" ? undefined : handleDelete}
         />
       </main>
       <Dialog open={cmdOpen} onOpenChange={setCmdOpen} modal={false}>
@@ -1027,6 +1053,7 @@ function App() {
             Search for commands and actions in Radius.
           </DialogDescription>
           <CommandK
+            provider={activeAccountRecord?.provider ?? "gmail"}
             onSearchEmails={handleOpenSearch}
             onComposeEmail={handleOpenCompose}
             onCheckForUpdates={handleCheckForUpdates}
@@ -1092,6 +1119,8 @@ function App() {
         onConnect={handleConnectNewAccount}
         selectedMode={addAccountMode}
         onSelectMode={setAddAccountMode}
+        onConnectImap={handleAddImapAccount}
+        onTestImapConnection={handleTestImapConnection}
       />
       <AboutDialog
         open={aboutOpen}

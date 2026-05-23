@@ -4,6 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowLeft01Icon,
   UserCircleIcon,
+  Mail01Icon,
   Settings01Icon,
   Sun01Icon,
   Add01Icon,
@@ -561,9 +562,9 @@ export function SettingsDialog({
                       data-checked={account.email === activeAccount}
                     >
                       <HugeiconsIcon
-                        icon={UserCircleIcon}
+                        icon={account.provider === "imap" ? Mail01Icon : UserCircleIcon}
                         size={16}
-                        className="text-radius-text-muted"
+                        className={account.provider === "imap" ? "text-radius-text-secondary" : "text-radius-text-muted"}
                       />
                       <span>{account.email}</span>
                       <button

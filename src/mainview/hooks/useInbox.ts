@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { radiusRpc } from "../lib/rpc";
-import type { SyncMode } from "../../shared/types";
+import type { EmailProviderType, ImapSettings, SyncMode } from "../../shared/types";
 
 export type EmailCategory =
   | "important"
@@ -306,6 +306,8 @@ export interface Account {
   email: string;
   name: string;
   addedAt: number;
+  provider: EmailProviderType;
+  imapSettings?: ImapSettings;
 }
 
 export function useAccounts() {
@@ -365,5 +367,25 @@ export function useAccounts() {
     return () => clearInterval(interval);
   }, [fetchAccounts]);
 
-  return { accounts, activeAccount, loading, refresh: fetchAccounts, switchAccount, removeAccount };
+  const addImapAccount = useCallback(async (email: string, password: string, imapSettings: ImapSettings) => {
+    try {
+      const result = await radiusRpc.request.addImapAccount({ email, password, imapSettings });
+      return result;
+    } catch (err) {
+      console.error("Failed to add IMAP account:", err);
+      return { success: false, error: "Failed to add IMAP account" };
+    }
+  }, []);
+
+  const testImapConnection = useCallback(async (email: string, password: string, imapSettings: ImapSettings) => {
+    try {
+      const result = await radiusRpc.request.testImapConnection({ email, password, imapSettings });
+      return result;
+    } catch (err) {
+      console.error("Failed to test IMAP connection:", err);
+      return { success: false, error: "Failed to test IMAP connection" };
+    }
+  }, []);
+
+  return { accounts, activeAccount, loading, refresh: fetchAccounts, switchAccount, removeAccount, addImapAccount, testImapConnection };
 }

@@ -141,7 +141,7 @@ export class ImapProvider implements EmailProvider {
       const body = await fetchMessageBody(client, inbox.path, parsed.uid);
 
       const from = msg.envelope.from ? formatAddresses(msg.envelope.from) : "";
-      const to = msg.envelope.to ? formatAddresses(msg.envelope.to) : "";
+      const to = msg.envelope.to ? formatAddresses(msg.envelope.to) : this.email;
       const subject = decodeRfc2047(msg.envelope.subject || "");
       const snippet = (body.text || body.html || "").slice(0, 200);
 
@@ -254,7 +254,7 @@ export class ImapProvider implements EmailProvider {
       for (const msg of fetched) {
         const id = makeMessageId(this.email, msg.uid);
         const from = msg.envelope.from ? formatAddresses(msg.envelope.from) : "";
-        const to = msg.envelope.to ? formatAddresses(msg.envelope.to) : "";
+        const to = msg.envelope.to ? formatAddresses(msg.envelope.to) : this.email;
         const subject = decodeRfc2047(msg.envelope.subject || "");
 
         results.push({

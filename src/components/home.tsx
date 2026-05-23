@@ -11,6 +11,7 @@ import {
 } from "@hugeicons/core-free-icons";
 
 interface HomeProps {
+  provider: "gmail" | "imap";
   onSearchEmails: () => void;
   onComposeEmail: () => void;
   onCheckForUpdates: () => void;
@@ -22,6 +23,7 @@ interface HomeProps {
 }
 
 export function Home({
+  provider,
   onSearchEmails,
   onComposeEmail,
   onCheckForUpdates,
@@ -34,10 +36,12 @@ export function Home({
   return (
     <>
       <CommandGroup heading="Email">
-        <CommandItem value="compose-email" onSelect={onComposeEmail}>
-          <HugeiconsIcon icon={Mail01Icon} size={16} />
-          <span>Compose Email</span>
-        </CommandItem>
+        {provider !== "imap" && (
+          <CommandItem value="compose-email" onSelect={onComposeEmail}>
+            <HugeiconsIcon icon={Mail01Icon} size={16} />
+            <span>Compose Email</span>
+          </CommandItem>
+        )}
         <CommandItem value="search-emails" onSelect={onSearchEmails}>
           <HugeiconsIcon icon={Search01Icon} size={16} />
           <span>Search Emails</span>
