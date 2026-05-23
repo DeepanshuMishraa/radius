@@ -8,7 +8,6 @@ import {
   Settings01Icon,
   Sun01Icon,
   Add01Icon,
-  Tick01Icon,
   Delete01Icon,
   Moon01Icon,
   SolarSystem01Icon,
@@ -580,9 +579,7 @@ export function SettingsDialog({
                       >
                         <HugeiconsIcon icon={Delete01Icon} size={14} />
                       </button>
-                      {account.email === activeAccount && (
-                        <HugeiconsIcon icon={Tick01Icon} size={14} className="text-radius-accent" />
-                      )}
+
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -618,9 +615,7 @@ export function SettingsDialog({
                       className="text-radius-text-muted"
                     />
                     <span>{item.name}</span>
-                    {item.id === theme && (
-                      <HugeiconsIcon icon={Tick01Icon} size={14} className="ml-auto text-radius-accent" />
-                    )}
+
                   </CommandItem>
                 ))}
               </CommandGroup>
