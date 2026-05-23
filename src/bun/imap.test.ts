@@ -4,17 +4,24 @@ import { decodeRfc2047, formatAddress, formatAddresses, detectFolderKind } from 
 import type { ImapFolder } from "./imap";
 
 describe("makeMessageId / parseMessageId", () => {
-  test("round-trips email and uid", () => {
-    const id = makeMessageId("user@org.com", 42);
-    expect(id).toBe("imap:user@org.com:42");
+  test("round-trips email, folder kind, and uid", () => {
+    const id = makeMessageId("user@org.com", "inbox", 42);
+    expect(id).toBe("imap:user@org.com:inbox:42");
     const parsed = parseMessageId(id);
-    expect(parsed).toEqual({ email: "user@org.com", uid: 42 });
+    expect(parsed).toEqual({ email: "user@org.com", folderKind: "inbox", uid: 42 });
+  });
+
+  test("handles old format without folder kind", () => {
+    const parsed = parseMessageId("imap:user@org.com:42");
+    expect(parsed).toEqual({ email: "user@org.com", folderKind: "inbox", uid: 42 });
   });
 
   test("parseMessageId returns null for invalid format", () => {
     expect(parseMessageId("invalid")).toBeNull();
     expect(parseMessageId("imap:no-uid")).toBeNull();
-    expect(parseMessageId("imap:a:b:c")).toBeNull();
+    expect(parseMessageId("imap:a:b:c:d:e")).toBeNull();
+    expect(parseMessageId("imap::inbox:42")).toBeNull();
+    expect(parseMessageId("imap:user@org.com:inbox:not-a-number")).toBeNull();
   });
 });
 

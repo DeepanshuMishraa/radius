@@ -295,16 +295,12 @@ export async function markAsSeen(client: ImapFlow, folder: string, uid: number):
   }
 }
 
-export async function moveToTrash(client: ImapFlow, folder: string, uid: number): Promise<void> {
-  const lock = await getMailboxLockSafe(client, folder);
+export async function moveToTrash(client: ImapFlow, sourceFolder: string, uid: number, trashFolder: string): Promise<void> {
+  const lock = await getMailboxLockSafe(client, sourceFolder);
   try {
-    await client.messageMove({ uid }, "[Gmail]/Trash", { uid: true });
-  } catch {
-    try {
-      await client.messageDelete({ uid }, { uid: true });
-    } catch (err2) {
-      console.error(`Failed to trash UID ${uid}:`, err2);
-    }
+    await client.messageMove({ uid }, trashFolder, { uid: true });
+  } catch (err) {
+    console.error(`Failed to move UID ${uid} to trash folder "${trashFolder}":`, err);
   } finally {
     lock.release();
   }

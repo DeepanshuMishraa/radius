@@ -95,14 +95,14 @@ async function commitPendingDelete(operationId: string) {
     return;
   }
 
-  try {
-    const provider = getProvider(pending.account_email);
-    if (provider) {
-      await provider.trashMessage(pending.message_id);
-    } else {
-      const accessToken = await getValidAccessTokenForEmail(pending.account_email);
-      await gmailTrashMessage(accessToken, pending.message_id);
-    }
+    try {
+      const provider = getProvider(pending.account_email);
+      if (provider && provider.type !== "imap") {
+        await provider.trashMessage(pending.message_id);
+      } else if (!provider) {
+        const accessToken = await getValidAccessTokenForEmail(pending.account_email);
+        await gmailTrashMessage(accessToken, pending.message_id);
+      }
     await markPendingDeleteStatus(operationId, "committed", { deletedAt: Date.now() });
     emitPendingDeleteStatus({
       operationId,
@@ -191,9 +191,9 @@ export async function queueDeleteMessage(
     try {
       await cancelPendingDelete(params.messageId);
       const provider = getProvider(getAccountEmail() ?? "");
-      if (provider) {
+      if (provider && provider.type !== "imap") {
         await provider.deleteMessage(params.messageId);
-      } else {
+      } else if (!provider) {
         const accessToken = await getValidAccessToken();
         await gmailDeleteMessage(accessToken, params.messageId);
       }
@@ -314,9 +314,9 @@ export async function emptyTrash(): Promise<RadiusRPC["bun"]["requests"]["emptyT
     const provider = getProvider(accountEmail);
     for (const row of rows) {
       await cancelPendingDelete(row.id);
-      if (provider) {
+      if (provider && provider.type !== "imap") {
         await provider.deleteMessage(row.id);
-      } else {
+      } else if (!provider) {
         const accessToken = await getValidAccessTokenForEmail(accountEmail);
         await gmailDeleteMessage(accessToken, row.id);
       }

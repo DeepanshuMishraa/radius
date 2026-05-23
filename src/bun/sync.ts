@@ -645,7 +645,7 @@ export async function doImapIncrementalSync(): Promise<{
         checkSyncCancelled(gen);
         const folderSync = await getImapFolderSync(f.path);
 
-        const messages = await imapProvider.fetchFolderMessages(f.kind as any);
+      const messages = await imapProvider.fetchFolderMessages(f.kind as any, f.path);
         const existingCount = folderSync ? folderSync.uidNext : 0;
 
         const newMessages = messages.filter((m) => {
