@@ -34,7 +34,7 @@ const downloadUrls = {
       rel="stylesheet"
     />
     <link
-      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500;1,6..72,600&family=Instrument+Sans:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500;1,6..72,600&family=Instrument+Sans:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
   </head>
@@ -93,22 +93,16 @@ const downloadUrls = {
             <button
               type="button"
               id="primary-download-btn"
-              class="download-btn w-full sm:w-auto px-6 py-4 bg-radius-accent hover:bg-radius-accent-hover text-[#ffffff] rounded-lg shadow-md cursor-pointer font-semibold flex items-center justify-center gap-2.5"
+              class="download-btn w-full sm:w-auto px-10 py-2.5 bg-radius-accent text-[#ffffff] rounded-md cursor-pointer font-medium flex items-center justify-center"
             >
-              <!-- macOS Icon (Default hidden) -->
-              <span id="mac-icon" class="w-3.5 h-3.5 flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full hidden" set:html={MacOsIcon()} />
-              <!-- Windows Icon (Default hidden) -->
-              <span id="win-icon" class="w-3.5 h-3.5 flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full hidden" set:html={WindowsIcon()} />
-              <!-- Generic/Linux Icon (Default) -->
-              <span id="generic-icon" class="w-3.5 h-3.5 flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full hidden" set:html={LinuxIcon()} />
-              <span id="primary-download-text">Download Beta ›</span>
+              <span id="primary-download-text">Download</span>
             </button>
 
             <a
               href="#features"
-              class="download-btn w-full sm:w-auto px-6 py-4 border border-radius-border text-radius-text-secondary hover:text-radius-text-primary rounded-lg transition-colors font-semibold"
+              class="download-btn w-full sm:w-auto px-10 py-2.5 border border-radius-border text-radius-text-secondary rounded-md font-medium"
             >
-              <span>See features ›</span>
+              <span>See features</span>
             </a>
           </div>
 
@@ -349,23 +343,17 @@ const downloadUrls = {
               <button
                 type="button"
                 id="footer-download-btn"
-                class="download-btn w-full sm:w-auto px-6 py-4 bg-radius-accent hover:bg-radius-accent-hover text-[#ffffff] rounded-lg shadow-md cursor-pointer font-semibold flex items-center justify-center gap-2.5 min-h-[54px]"
+              class="download-btn w-full sm:w-auto px-10 py-2.5 bg-radius-accent text-[#ffffff] rounded-md cursor-pointer font-medium flex items-center justify-center"
               >
-                <!-- macOS Icon (Default hidden) -->
-                <span id="footer-mac-icon" class="w-3.5 h-3.5 flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full hidden" set:html={MacOsIcon()} />
-                <!-- Windows Icon (Default hidden) -->
-                <span id="footer-win-icon" class="w-3.5 h-3.5 flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full hidden" set:html={WindowsIcon()} />
-                <!-- Generic/Linux Icon (Default) -->
-                <span id="footer-generic-icon" class="w-3.5 h-3.5 flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full hidden" set:html={LinuxIcon()} />
-                <span id="footer-download-text" class="text-[12px] font-semibold">Download for macOS ›</span>
+                <span id="footer-download-text">Download</span>
               </button>
-              
-              <button 
-                type="button" 
-                id="alternative-download-trigger" 
-                class="download-btn w-full sm:w-auto px-6 py-4 border border-radius-border hover:bg-radius-bg-secondary text-radius-text-primary rounded-lg transition-colors cursor-pointer font-semibold flex items-center justify-center gap-2.5 min-h-[54px]"
+
+              <button
+                type="button"
+                id="alternative-download-trigger"
+                class="download-btn w-full sm:w-auto px-6 py-3 border border-radius-border hover:bg-radius-bg-secondary text-radius-text-primary rounded-md transition-colors cursor-pointer font-medium flex items-center justify-center"
               >
-                <span>Other Platforms ›</span>
+                <span>Other platforms</span>
               </button>
             </div>
             
@@ -437,7 +425,7 @@ brew install --cask radius</code>
             <button
               type="button"
               id="mac-download-arm"
-              class="download-btn group inline-flex flex-col items-center justify-center p-3.5 bg-radius-accent text-[#ffffff] border border-radius-accent cursor-pointer text-center rounded-lg"
+              class="download-btn group inline-flex flex-col items-center justify-center p-3.5 bg-radius-accent text-[#ffffff] border border-radius-accent cursor-pointer text-center rounded-md shadow-[0_2px_6px_rgba(184,101,63,0.35)] hover:shadow-[0_4px_10px_rgba(184,101,63,0.45)]"
             >
               <div class="flex items-center gap-1.5">
                 <span class="font-semibold">Apple Silicon</span>
@@ -448,7 +436,7 @@ brew install --cask radius</code>
             <button
               type="button"
               id="mac-download-intel"
-              class="download-btn group inline-flex flex-col items-center justify-center p-3.5 bg-radius-bg-secondary text-radius-text-primary hover:bg-radius-bg-tertiary border border-radius-border cursor-pointer text-center rounded-lg"
+              class="download-btn group inline-flex flex-col items-center justify-center p-3.5 bg-radius-bg-secondary text-radius-text-primary hover:bg-radius-bg-tertiary border border-radius-border cursor-pointer text-center rounded-md shadow-[0_1px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:border-radius-text-muted"
             >
               <div class="flex items-center gap-1.5">
                 <span class="font-semibold">Intel Chip</span>
@@ -506,7 +494,7 @@ brew install --cask radius</code>
           <button
             type="button"
             id="win-download-x64"
-            class="download-btn w-full flex items-center justify-center gap-2.5 py-3.5 bg-radius-accent text-[#ffffff] rounded-lg border border-radius-accent cursor-pointer text-center font-semibold"
+            class="download-btn w-full flex items-center justify-center gap-2.5 py-3.5 bg-radius-accent text-[#ffffff] rounded-md shadow-[0_2px_6px_rgba(184,101,63,0.35)] hover:shadow-[0_4px_10px_rgba(184,101,63,0.45)] border border-radius-accent cursor-pointer text-center font-semibold"
           >
             <span class="text-[11px]">Download for Windows (64-bit)</span>
           </button>
@@ -542,11 +530,6 @@ brew install --cask radius</code>
 
       // DOM References
       const downloadBtn = document.getElementById("primary-download-btn");
-      const downloadText = document.getElementById("primary-download-text");
-      const macIcon = document.getElementById("mac-icon");
-      const winIcon = document.getElementById("win-icon");
-      const genericIcon = document.getElementById("generic-icon");
-
       const macDialog = document.getElementById("macos-dialog");
       const winDialog = document.getElementById("windows-dialog");
 
@@ -556,34 +539,7 @@ brew install --cask radius</code>
       const linuxDownloadBtn = document.getElementById("linux-download-x64");
 
       const footerDownloadBtn = document.getElementById("footer-download-btn");
-      const footerDownloadText = document.getElementById("footer-download-text");
-      const footerMacIcon = document.getElementById("footer-mac-icon");
-      const footerWinIcon = document.getElementById("footer-win-icon");
-      const footerGenericIcon = document.getElementById("footer-generic-icon");
       const altDownloadTrigger = document.getElementById("alternative-download-trigger");
-
-      // Dynamic Setup for Buttons
-      if (detectedOS === "mac") {
-        if (downloadText) downloadText.textContent = "Download Beta for macOS ›";
-        if (footerDownloadText) footerDownloadText.textContent = "Download for macOS ›";
-        macIcon?.classList.remove("hidden");
-        footerMacIcon?.classList.remove("hidden");
-      } else if (detectedOS === "windows") {
-        if (downloadText) downloadText.textContent = "Download Beta for Windows ›";
-        if (footerDownloadText) footerDownloadText.textContent = "Download for Windows ›";
-        winIcon?.classList.remove("hidden");
-        footerWinIcon?.classList.remove("hidden");
-      } else if (detectedOS === "linux") {
-        if (downloadText) downloadText.textContent = "Download Beta for Linux ›";
-        if (footerDownloadText) footerDownloadText.textContent = "Download for Linux ›";
-        genericIcon?.classList.remove("hidden");
-        footerGenericIcon?.classList.remove("hidden");
-      } else {
-        if (downloadText) downloadText.textContent = "Download Beta for Desktop ›";
-        if (footerDownloadText) footerDownloadText.textContent = "Download for Desktop ›";
-        genericIcon?.classList.remove("hidden");
-        footerGenericIcon?.classList.remove("hidden");
-      }
 
       // Action Handlers
       downloadBtn?.addEventListener("click", () => {

@@ -10,8 +10,8 @@
   --color-radius-text-secondary: #a8a29e;  /* Warm gray */
   --color-radius-text-muted: #57534e;      /* Muted stone gray */
   --color-radius-text-inverse: #121211;
-  --color-radius-accent: #c4785a;          /* Elegant terracotta */
-  --color-radius-accent-hover: #b56a4d;
+  --color-radius-accent: #b8653f;          /* Rich warm copper */
+  --color-radius-accent-hover: #a05532;
   --color-radius-accent-subtle: #2d1c15;
   --color-radius-border-subtle: #1e1e1d;
   --color-radius-border: #2e2e2c;
@@ -125,6 +125,7 @@
    Microinteractions & Download Buttons
    ============================================ */
 .download-btn {
+  font-family: "JetBrains Mono", monospace;
   transition:
     background-color var(--duration-normal) var(--ease-out),
     transform 120ms var(--ease-out),
