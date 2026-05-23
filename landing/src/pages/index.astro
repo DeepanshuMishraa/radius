@@ -369,8 +369,26 @@ const downloadUrls = {
               </button>
             </div>
             
-            <div class="mt-6 text-[10px] text-radius-text-muted">
-              Homebrew: <code class="bg-radius-accent-subtle px-1 py-0.5 rounded text-radius-text-primary font-mono lowercase">brew install radius</code>
+            <div class="mt-6 text-left">
+              <div class="flex items-center justify-between mb-2 px-1">
+                <span class="text-[10px] font-mono text-radius-text-muted uppercase tracking-wider">Install via Homebrew</span>
+                <button
+                  type="button"
+                  id="copy-brew-cmd"
+                  class="group flex items-center gap-1.5 text-[10px] font-mono text-radius-text-muted hover:text-radius-accent transition-colors cursor-pointer"
+                  aria-label="Copy Homebrew commands"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:stroke-radius-accent transition-colors">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span id="copy-brew-label">Copy</span>
+                </button>
+              </div>
+              <div class="relative bg-radius-bg-secondary border border-radius-border rounded-lg p-4 font-mono text-[11px] leading-relaxed text-radius-text-secondary overflow-x-auto">
+                <code id="brew-commands" class="block whitespace-pre">brew tap DeepanshuMishraa/radius https://github.com/DeepanshuMishraa/radius
+brew install --cask radius</code>
+              </div>
             </div>
           </div>
         </section>
@@ -443,12 +461,12 @@ const downloadUrls = {
         <!-- Quick instructions -->
         <div class="space-y-4 text-[11px] text-radius-text-secondary leading-relaxed pt-1">
           <div>
-            <span class="text-radius-accent font-semibold">Step 1:</span> Drag <code class="bg-radius-bg-secondary px-1.5 py-0.5 rounded text-radius-text-primary text-[10px]">Radius.app</code> to your <code class="bg-radius-bg-secondary px-1.5 py-0.5 rounded text-radius-text-primary text-[10px]">/Applications</code> folder.
+            <span class="text-radius-accent font-semibold">Step 1:</span> Drag <code class="bg-radius-bg-secondary px-1.5 py-0.5 rounded text-radius-text-primary text-[10px]">Radius-canary.app</code> to your <code class="bg-radius-bg-secondary px-1.5 py-0.5 rounded text-radius-text-primary text-[10px]">/Applications</code> folder.
           </div>
           <div>
             <span class="text-radius-accent font-semibold">Step 2:</span> Paste this command into Terminal to clear the quarantine flag:
             <div class="flex items-stretch gap-1.5 mt-2 bg-radius-bg-secondary rounded-lg border border-radius-border-subtle p-2">
-              <code id="mac-quarantine-cmd" class="flex-1 min-w-0 text-[10px] text-radius-text-primary leading-normal break-all select-all font-mono py-1">sudo xattr -rd com.apple.quarantine /Applications/Radius.app</code>
+              <code id="mac-quarantine-cmd" class="flex-1 min-w-0 text-[10px] text-radius-text-primary leading-normal break-all select-all font-mono py-1">sudo xattr -rd com.apple.quarantine /Applications/Radius-canary.app</code>
               <button
                 type="button"
                 id="copy-mac-cmd"
@@ -648,6 +666,30 @@ const downloadUrls = {
           const range = document.createRange();
           if (cmdEl) {
             range.selectNodeContents(cmdEl);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          }
+        }
+      });
+
+      // Brew commands copy
+      const brewCopyBtn = document.getElementById("copy-brew-cmd");
+      const brewCopyLabel = document.getElementById("copy-brew-label");
+      const brewCommandsEl = document.getElementById("brew-commands");
+      brewCopyBtn?.addEventListener("click", async () => {
+        const code = brewCommandsEl?.textContent?.trim();
+        if (!code) return;
+        try {
+          await navigator.clipboard.writeText(code);
+          if (brewCopyLabel) brewCopyLabel.textContent = "Copied!";
+          setTimeout(() => {
+            if (brewCopyLabel) brewCopyLabel.textContent = "Copy";
+          }, 1500);
+        } catch {
+          const selection = window.getSelection();
+          const range = document.createRange();
+          if (brewCommandsEl) {
+            range.selectNodeContents(brewCommandsEl);
             selection?.removeAllRanges();
             selection?.addRange(range);
           }
