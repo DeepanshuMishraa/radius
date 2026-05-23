@@ -1,0 +1,35 @@
+src/bun/imap.ts
+  s_f21fb42c158651::t_6deb33e8eefdb7 298-299,301-303
+src/bun/imap.test.ts
+  s_f21fb42c158651::t_f419133f5c4e94 7-9,11-16,22-24
+src/bun/imap-provider.ts
+  s_f21fb42c158651::t_de7563f117a380 263,266-272,274-275
+  s_f21fb42c158651::t_cbed8e53c56775 87
+  s_f21fb42c158651::t_e739973ef989ae 140-141,156-157,159,163,182-185
+  s_f21fb42c158651::t_8ab1a7bfb434ae 279
+  s_f21fb42c158651::t_d2103c3c54fb29 46-48,50-58,60-61
+  s_f21fb42c158651::t_5ff3ab9e8b7cd4 37-40,43,45,49,59,62-67
+  s_f21fb42c158651::t_269b530a7a9b8b 211-213,226-229,242-244
+src/bun/sync.ts
+  s_f21fb42c158651::t_e37c5d1d775f9b 648
+src/bun/message-actions.ts
+  s_f21fb42c158651::t_db2c44781ae8da 194,196
+  s_f21fb42c158651::t_c921641e94c328 98-105
+  s_f21fb42c158651::t_742933f513905b 317,319
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "08b2589cf2f3dae565d7560f8ee9953bcc7f6bef",
+  "prompts": {},
+  "sessions": {
+    "s_f21fb42c158651": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1acc7e1f6ffeEAxrTmtWtGhuzd",
+        "model": "deepseek-v4-flash-free"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
