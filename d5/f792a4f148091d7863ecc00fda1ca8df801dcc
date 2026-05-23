@@ -1,0 +1,32 @@
+landing/src/styles/global.css
+  s_6ffdd82b78d874::t_7c75b6db149ab9 13-14
+  s_6ffdd82b78d874::t_e41123da18c334 128
+landing/src/pages/index.astro
+  s_6ffdd82b78d874::t_faa2e9c20673ec 353
+  s_6ffdd82b78d874::t_5cb6e530ffbe9a 37
+  s_6ffdd82b78d874::t_466bd24ea4629e 439
+  s_6ffdd82b78d874::t_bbc9fe4b2bb6cc 497
+  s_6ffdd82b78d874::t_22a6ea4ea0f2a2 346
+  s_6ffdd82b78d874::t_0f56993f9e87da 103
+  s_6ffdd82b78d874::t_ca359c2e68035b 428
+  s_6ffdd82b78d874::t_f69e2006ed7de1 348,350-352,354,356
+  s_6ffdd82b78d874::t_aadb873c4f1dca 98
+  s_6ffdd82b78d874::t_6d823d63ef35cb 105
+  s_6ffdd82b78d874::t_f85896dfa84a26 96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "d5f792a4f148091d7863ecc00fda1ca8df801dcc",
+  "prompts": {},
+  "sessions": {
+    "s_6ffdd82b78d874": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1aa150142ffewio5Yh90ChB0Hf",
+        "model": "kimi-k2.6"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
