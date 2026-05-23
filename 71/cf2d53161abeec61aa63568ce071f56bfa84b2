@@ -1,0 +1,65 @@
+bun.lock
+  ai_agent 18,228-229,492-493,512-513,632-633,762-763,768,830-835,920-921,930-931,966-971,986-987,1000-1001,1022-1023,1048-1049,1090-1091,1098-1099,1126-1127,1248-1249,1278
+src/bun/imap.ts
+  s_f21fb42c158651::t_d948114311c9b2 200-202,204-205
+  s_f21fb42c158651::t_e50bbce9c754b2 1-57,73-113,115-199,203,206-301,303-313,315-330
+  s_f21fb42c158651::t_9136a98a886864 302,314
+  s_f21fb42c158651::t_2592a6780e95a9 58-72
+  s_f21fb42c158651::t_2230c2c5b0639d 114
+src/bun/sync.ts
+  s_f21fb42c158651::t_638bc21b120f09 1,10-12,14-15,21,29,161-180,183,185-193,195-209,220-228,230,250-251,253-257,311-318,336-402,414-422,527-612,614,616-625,628-629,633-634,639-672,675,678-679,683,691-692,695,698-699,705-713,735,864-951,977,1075-1076
+src/bun/auth.ts
+  s_f21fb42c158651::t_313ed234839686 194,230-249,252,272,278,284-323
+src/bun/message-actions.ts
+  s_f21fb42c158651::t_386d0d56fee82a 11-12,99-105,193-199,218,314,317-322
+src/bun/imap-provider.ts
+  s_f21fb42c158651::t_663d61c57e7e8b 1-301
+src/bun/accounts.ts
+  s_f21fb42c158651::t_4936a6ebc2f147 4,13-14,28-31,76-79
+src/bun/index.ts
+  s_f21fb42c158651::t_d86f8bd0f1c3d7 66-67,122-123
+src/bun/gmail-provider.ts
+  s_f21fb42c158651::t_1910ab0dee3e57 1-164
+package.json
+  s_f21fb42c158651::t_cabb8e91bcbc70 27
+src/bun/db.ts
+  s_f21fb42c158651::t_779e92586467f5 976-981
+  s_f21fb42c158651::t_629c16da0e98c7 227-233
+  s_f21fb42c158651::t_29f1162807af99 437,445-446,465
+  s_f21fb42c158651::t_2096a3a1da030f 385,403-406,410-411,430
+  s_f21fb42c158651::t_de9555d6970910 268-270
+  s_f21fb42c158651::t_f99902752215da 965-975,982-1016
+src/bun/imap.test.ts
+  s_f21fb42c158651::t_a9b451c850c81f 3
+  s_f21fb42c158651::t_f5d1fddb51cba5 1-2,4-101
+src/shared/types.ts
+  s_f21fb42c158651::t_334d3505c2e89d 17-31
+  s_f21fb42c158651::t_470ee59192f594 378,394-399
+src/bun/provider.test.ts
+  s_f21fb42c158651::t_1600bbb9757f08 1-55
+src/bun/rpc-handlers.ts
+  s_f21fb42c158651::t_d63cb4d69baa29 145
+  s_f21fb42c158651::t_6c084bfaafaba5 143,147-149
+  s_f21fb42c158651::t_5c841b802a28dc 5,113-124,127-130,139-142,144,146,150,300-310,339-344
+  s_f21fb42c158651::t_acd3466b34b546 125
+src/bun/provider.ts
+  s_f21fb42c158651::t_eaa29b1e9cd30c 1-96
+src/bun/sync-lifecycle.ts
+  s_f21fb42c158651::t_dee5fb58cf1b8c 2,10,25,42,44,141-157,239,448,476-480,482-486,504-510,512,515,525,536-609,617-634,694-714,761-763
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "71cf2d53161abeec61aa63568ce071f56bfa84b2",
+  "prompts": {},
+  "sessions": {
+    "s_f21fb42c158651": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1acc7e1f6ffeEAxrTmtWtGhuzd",
+        "model": "deepseek-v4-flash-free"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
