@@ -1,0 +1,87 @@
+src/bun/rpc-handlers.ts
+  s_c000966c80d68e::t_2f10181fc35e8b 196-285
+src/components/cmd.tsx
+  s_c000966c80d68e::t_e17f0860c78538 165
+  s_c000966c80d68e::t_5093b0e10d4783 27,41
+src/bun/imap-provider.ts
+  s_c000966c80d68e::t_3395a5f7582de1 12
+  s_c000966c80d68e::t_c4e8e8602a34a3 165,189-190
+  s_c000966c80d68e::t_273d865e4b93e5 288-289,307-308
+src/bun/sync.ts
+  s_c000966c80d68e::t_3de5df27507798 76
+  s_c000966c80d68e::t_235a07ce64168b 159-160
+  s_c000966c80d68e::t_68c590d99a77c8 841-843
+  s_c000966c80d68e::t_ed438b9d6b96e3 403-404,410
+  s_c000966c80d68e::t_a6a90713d763be 1040-1042
+  s_c000966c80d68e::t_0c0280f1e3a575 12
+  s_c000966c80d68e::t_5b832f7c7c35ba 618
+  s_c000966c80d68e::t_6e45455bbf8e45 183-184
+  s_c000966c80d68e::t_db2607c9c7fee2 700
+  s_c000966c80d68e::t_2c44236dfe5368 189-219
+  s_c000966c80d68e::t_455e02db723c41 188
+src/components/home.tsx
+  s_c000966c80d68e::t_843867ff39e6f5 24,37
+  s_c000966c80d68e::t_5af02e2f2ba46a 11
+  s_c000966c80d68e::t_61ac6fdf717b10 60-63
+src/bun/db.ts
+  s_c000966c80d68e::t_c24bc68ad1ac1f 283-288
+  s_c000966c80d68e::t_24f1d5ecbf3ead 430-431,451-452
+  s_c000966c80d68e::t_4b92a48ab3ad67 422-423
+  s_c000966c80d68e::t_cd694f3fdf965b 467-468,488-489
+  s_c000966c80d68e::t_efef1a26b74bb4 1110-1113,1116-1140,1143-1193
+  s_c000966c80d68e::t_3e2831bf5ab8c0 1114-1115
+  s_c000966c80d68e::t_acf887973c373e 795-796,807-808,822-824,840-841
+  s_c000966c80d68e::t_895444b7218ef1 234-245
+  s_c000966c80d68e::t_bd2fe703d1b645 1141-1142
+src/bun/provider.ts
+  s_c000966c80d68e::t_93fe173b8937ad 20-21
+src/bun/gmail-provider.ts
+  s_c000966c80d68e::t_0b35e033619f16 34-42,64,90
+src/bun/imap.ts
+  s_c000966c80d68e::t_c5b48b4a0eff28 260-271,273,277,279-289
+  s_c000966c80d68e::t_8fa2b0826d0d64 274
+  s_c000966c80d68e::t_b97578bdd985ea 272,275-276,278
+src/mainview/hooks/useInbox.ts
+  s_c000966c80d68e::t_84ec91b895c0de 40-41
+src/mainview/App.tsx
+  s_c000966c80d68e::t_c7ba5d7ea57a69 1073
+  s_c000966c80d68e::t_51cc2b297f068e 944-948
+  s_c000966c80d68e::t_9c45c460e68cc5 1148-1151
+  s_c000966c80d68e::t_bffc161fb3dd99 134
+  s_c000966c80d68e::t_0fdbe55d77dcae 18
+src/shared/types.ts
+  s_c000966c80d68e::t_5466acf2ea922a 408-419
+  s_c000966c80d68e::t_936ca1dfbefab4 127-140
+src/bun/provider.test.ts
+  s_c000966c80d68e::t_ae7843058913c6 21
+src/bun/unsubscribe.ts
+  s_c000966c80d68e::t_756222773b2563 1
+  s_c000966c80d68e::t_dcfd994dd80b03 2-155
+src/bun/index.ts
+  s_c000966c80d68e::t_245c5387f2da85 127-129
+  s_c000966c80d68e::t_0e8c5d5073a189 33-35
+src/mainview/components/ReaderView.tsx
+  s_c000966c80d68e::t_468e2d82f3b59d 15
+  s_c000966c80d68e::t_aa046c14f148e6 19
+  s_c000966c80d68e::t_795050c183effa 287-288,294,297,299-300,321-330
+  s_c000966c80d68e::t_a770de4fb908cf 1327-1340
+src/components/unsubscribe-manager.tsx
+  s_c000966c80d68e::t_4c28d79bc37fbc 251
+  s_c000966c80d68e::t_5e951123ca4410 1-250,252-361
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "7dbe89fc24628e8b60ffe9944fda93d5d66fa615",
+  "prompts": {},
+  "sessions": {
+    "s_c000966c80d68e": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_15f7a70e2ffe5BHVcCtP3mv89r",
+        "model": "deepseek-v4-flash-free"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
