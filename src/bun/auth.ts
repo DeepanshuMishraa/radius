@@ -5,9 +5,10 @@ const CLIENT_SECRET = "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";
 
 const REDIRECT_URI = "http://127.0.0.1:3333";
 const SCOPE = [
-  "https://mail.google.com/",
+  "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/gmail.modify",
   "https://www.googleapis.com/auth/gmail.compose",
+  "https://www.googleapis.com/auth/gmail.settings.basic",
 ].join(" ");
 
 export interface TokenData {

@@ -193,6 +193,92 @@ function parseAddressCandidates(value: string | null | undefined): Array<{ name:
     });
 }
 
+export async function handleGetSubscriptions() {
+  const { getSubscriptions } = await import("./db");
+  const { getUnsubscribeMethod } = await import("./unsubscribe");
+  const rows = await getSubscriptions();
+  const subscriptions = rows.map((row) => ({
+    senderEmail: row.senderEmail,
+    senderName: row.senderName,
+    listUnsubscribe: row.listUnsubscribe,
+    listId: row.listId,
+    firstSeenAt: row.firstSeenAt,
+    lastSeenAt: row.lastSeenAt,
+    messageCount: row.messageCount,
+    category: row.category as import("../shared/types").EmailCategory,
+    unsubscribeMethod: getUnsubscribeMethod(row.listUnsubscribe),
+  }));
+  return { subscriptions } as RadiusRPC["bun"]["requests"]["getSubscriptions"]["response"];
+}
+
+export async function handleUnsubscribeFromSender(params: { senderEmail: string }) {
+  const { senderEmail } = params;
+  const { getSubscriptions, removeSubscription } = await import("./db");
+  const { parseListUnsubscribeHeader, sendUnsubscribeRequest, sendUnsubscribeViaGet, getUnsubscribeMethod } = await import("./unsubscribe");
+
+  const subs = await getSubscriptions();
+  const sub = subs.find((s) => s.senderEmail === senderEmail);
+  if (!sub || !sub.listUnsubscribe) {
+    return { success: false, method: "none" as const, error: "No unsubscribe method found for this sender" };
+  }
+
+  const parsed = parseListUnsubscribeHeader(sub.listUnsubscribe);
+  let lastError: string | undefined;
+
+  for (const url of parsed.urls) {
+    const result = await sendUnsubscribeRequest(url);
+    if (!result.success) {
+      const getResult = await sendUnsubscribeViaGet(url);
+      if (!getResult.success) {
+        lastError = getResult.error;
+      } else {
+        lastError = undefined;
+        break;
+      }
+    } else {
+      lastError = undefined;
+      break;
+    }
+  }
+
+  if (!lastError) {
+    await removeSubscription(senderEmail);
+  }
+
+  const method = getUnsubscribeMethod(sub.listUnsubscribe);
+
+  return {
+    success: !lastError,
+    method: method as "url" | "mailto" | "both" | "none",
+    error: lastError,
+  } as RadiusRPC["bun"]["requests"]["unsubscribeFromSender"]["response"];
+}
+
+export async function handleBlockSender(params: { senderEmail: string }) {
+  const { senderEmail } = params;
+  try {
+    const { getAccountEmail, getValidAccessTokenForEmail } = await import("./auth");
+    const { blockSenderViaGmail } = await import("./unsubscribe");
+
+    const email = getAccountEmail();
+    if (!email) {
+      return { success: false, error: "No active account" } as RadiusRPC["bun"]["requests"]["blockSender"]["response"];
+    }
+
+    const accessToken = await getValidAccessTokenForEmail(email);
+    const result = await blockSenderViaGmail(senderEmail, accessToken);
+
+    if (result.success) {
+      const { removeSubscription } = await import("./db");
+      await removeSubscription(senderEmail);
+    }
+
+    return result as RadiusRPC["bun"]["requests"]["blockSender"]["response"];
+  } catch (err) {
+    return { success: false, error: String(err) } as RadiusRPC["bun"]["requests"]["blockSender"]["response"];
+  }
+}
+
 export async function handleGetComposeSuggestions(params: {
   query?: string;
   limit?: number;

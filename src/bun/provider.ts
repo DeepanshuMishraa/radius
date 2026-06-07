@@ -17,6 +17,8 @@ export interface FetchedMessage {
   isDraft: boolean;
   isTrash: boolean;
   category: string;
+  listUnsubscribe: string | null;
+  listId: string | null;
 }
 
 export interface HistoryItem {

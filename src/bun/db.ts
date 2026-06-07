@@ -231,6 +231,18 @@ export async function createSchema(): Promise<void> {
       uid_next INTEGER NOT NULL DEFAULT 0,
       last_sync_at INTEGER
     );
+
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      sender_email TEXT NOT NULL,
+      sender_name TEXT NOT NULL DEFAULT '',
+      list_unsubscribe TEXT,
+      list_id TEXT,
+      first_seen_at INTEGER NOT NULL,
+      last_seen_at INTEGER NOT NULL,
+      message_count INTEGER NOT NULL DEFAULT 1,
+      category TEXT DEFAULT 'regular',
+      PRIMARY KEY (sender_email)
+    );
   `);
 
   const syncStateColumns = db.query(
@@ -267,6 +279,12 @@ export async function createSchema(): Promise<void> {
   }
   if (!existingMessageColumns.has("folder")) {
     db.exec("ALTER TABLE messages ADD COLUMN folder TEXT DEFAULT NULL");
+  }
+  if (!existingMessageColumns.has("list_unsubscribe")) {
+    db.exec("ALTER TABLE messages ADD COLUMN list_unsubscribe TEXT DEFAULT NULL");
+  }
+  if (!existingMessageColumns.has("list_id")) {
+    db.exec("ALTER TABLE messages ADD COLUMN list_id TEXT DEFAULT NULL");
   }
   const composeSessionColumns = db.query(
     `SELECT name FROM pragma_table_info('compose_sessions')`
@@ -401,14 +419,16 @@ export interface InsertMessageInput {
   isDraft: boolean;
   isTrash: boolean;
   folder?: string | null;
+  listUnsubscribe?: string | null;
+  listId?: string | null;
 }
 
 export async function insertMessage(message: InsertMessageInput): Promise<void> {
   const db = await getDb();
   db.run(
     `INSERT OR REPLACE INTO messages
-     (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read, is_inbox, is_sent, is_draft, is_trash, folder)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read, is_inbox, is_sent, is_draft, is_trash, folder, list_unsubscribe, list_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       message.id,
       message.threadId,
@@ -428,6 +448,8 @@ export async function insertMessage(message: InsertMessageInput): Promise<void> 
       message.isDraft ? 1 : 0,
       message.isTrash ? 1 : 0,
       message.folder ?? null,
+      message.listUnsubscribe ?? null,
+      message.listId ?? null,
     ]
   );
   upsertMessageSearchIndex(db, message.id);
@@ -442,8 +464,8 @@ export async function insertMessages(
     for (const message of messages) {
       db.run(
         `INSERT OR REPLACE INTO messages
-         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read, is_inbox, is_sent, is_draft, is_trash, folder)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, body_text, body_html, attachments, category, is_read, is_inbox, is_sent, is_draft, is_trash, folder, list_unsubscribe, list_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           message.id,
           message.threadId,
@@ -463,6 +485,8 @@ export async function insertMessages(
           message.isDraft ? 1 : 0,
           message.isTrash ? 1 : 0,
           message.folder ?? null,
+          message.listUnsubscribe ?? null,
+          message.listId ?? null,
         ]
       );
       upsertMessageSearchIndex(db, message.id);
@@ -768,6 +792,8 @@ export async function upsertMessageMetadata(
     isSent: boolean;
     isDraft: boolean;
     isTrash: boolean;
+    listUnsubscribe?: string | null;
+    listId?: string | null;
   }>
 ): Promise<void> {
   if (messages.length === 0) return;
@@ -778,8 +804,8 @@ export async function upsertMessageMetadata(
     for (const message of messages) {
       db.run(
         `INSERT INTO messages
-         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, category, is_read, is_inbox, is_sent, is_draft, is_trash)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, thread_id, history_id, internal_date, from_addr, to_addr, subject, snippet, category, is_read, is_inbox, is_sent, is_draft, is_trash, list_unsubscribe, list_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            thread_id = excluded.thread_id,
            history_id = excluded.history_id,
@@ -793,7 +819,9 @@ export async function upsertMessageMetadata(
            is_inbox = excluded.is_inbox,
            is_sent = excluded.is_sent,
            is_draft = excluded.is_draft,
-           is_trash = excluded.is_trash`,
+           is_trash = excluded.is_trash,
+           list_unsubscribe = COALESCE(excluded.list_unsubscribe, messages.list_unsubscribe),
+           list_id = COALESCE(excluded.list_id, messages.list_id)`,
         [
           message.id,
           message.threadId,
@@ -809,6 +837,8 @@ export async function upsertMessageMetadata(
           message.isSent ? 1 : 0,
           message.isDraft ? 1 : 0,
           message.isTrash ? 1 : 0,
+          message.listUnsubscribe ?? null,
+          message.listId ?? null,
         ]
       );
       upsertMessageSearchIndex(db, message.id);
@@ -1075,6 +1105,90 @@ export async function upsertComposeContacts(
     db.exec("ROLLBACK");
     throw err;
   }
+}
+
+export async function upsertSubscription(
+  subscription: {
+    senderEmail: string;
+    senderName: string;
+    listUnsubscribe?: string | null;
+    listId?: string | null;
+    category: string;
+    internalDate: number;
+  }
+): Promise<void> {
+  const db = await getDb();
+  db.run(
+    `INSERT INTO subscriptions (sender_email, sender_name, list_unsubscribe, list_id, first_seen_at, last_seen_at, message_count, category)
+     VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+     ON CONFLICT(sender_email) DO UPDATE SET
+       sender_name = CASE
+         WHEN excluded.sender_name != '' THEN excluded.sender_name
+         ELSE subscriptions.sender_name
+       END,
+       list_unsubscribe = COALESCE(excluded.list_unsubscribe, subscriptions.list_unsubscribe),
+       list_id = COALESCE(excluded.list_id, subscriptions.list_id),
+       last_seen_at = MAX(subscriptions.last_seen_at, excluded.last_seen_at),
+       first_seen_at = MIN(subscriptions.first_seen_at, excluded.first_seen_at),
+       message_count = subscriptions.message_count + 1,
+       category = CASE
+         WHEN subscriptions.category = 'regular' THEN excluded.category
+         ELSE subscriptions.category
+       END`,
+    [
+      subscription.senderEmail,
+      subscription.senderName,
+      subscription.listUnsubscribe ?? null,
+      subscription.listId ?? null,
+      subscription.internalDate,
+      subscription.internalDate,
+      subscription.category,
+    ]
+  );
+}
+
+export async function getSubscriptions(): Promise<
+  Array<{
+    senderEmail: string;
+    senderName: string;
+    listUnsubscribe: string | null;
+    listId: string | null;
+    firstSeenAt: number;
+    lastSeenAt: number;
+    messageCount: number;
+    category: string;
+  }>
+> {
+  const db = await getDb();
+  return db
+    .query(
+      `SELECT sender_email as senderEmail,
+              sender_name as senderName,
+              list_unsubscribe as listUnsubscribe,
+              list_id as listId,
+              first_seen_at as firstSeenAt,
+              last_seen_at as lastSeenAt,
+              message_count as messageCount,
+              category
+       FROM subscriptions
+       WHERE list_unsubscribe IS NOT NULL
+       ORDER BY last_seen_at DESC`
+    )
+    .all() as Array<{
+    senderEmail: string;
+    senderName: string;
+    listUnsubscribe: string | null;
+    listId: string | null;
+    firstSeenAt: number;
+    lastSeenAt: number;
+    messageCount: number;
+    category: string;
+  }>;
+}
+
+export async function removeSubscription(senderEmail: string): Promise<void> {
+  const db = await getDb();
+  db.run("DELETE FROM subscriptions WHERE sender_email = ?", [senderEmail]);
 }
 
 export async function searchComposeContacts(

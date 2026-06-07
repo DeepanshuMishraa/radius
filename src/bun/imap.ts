@@ -257,6 +257,52 @@ export async function fetchMessageBody(
   }
 }
 
+export async function fetchMessageHeaders(
+  client: ImapFlow,
+  folder: string,
+  uid: number
+): Promise<Record<string, string>> {
+  const results = await fetchBatchHeaders(client, folder, [uid]);
+  return results.get(uid) ?? {};
+}
+
+export async function fetchBatchHeaders(
+  client: ImapFlow,
+  folder: string,
+  uids: number[]
+): Promise<Map<number, Record<string, string>>> {
+  if (uids.length === 0) return new Map();
+
+  const lock = await getMailboxLockSafe(client, folder);
+  try {
+    const resultMap = new Map<number, Record<string, string>>();
+    const uidSet = uids.join(",");
+
+    for await (const msg of client.fetch(uidSet, {
+      uid: true,
+      headers: true,
+    })) {
+      const rawHeaders = (msg as unknown as Record<string, unknown>).headers as Record<string, string> | undefined;
+      if (!rawHeaders) {
+        resultMap.set(msg.uid, {});
+        continue;
+      }
+      const normalized: Record<string, string> = {};
+      for (const [key, value] of Object.entries(rawHeaders)) {
+        normalized[key.toLowerCase()] = typeof value === "string" ? value : String(value ?? "");
+      }
+      resultMap.set(msg.uid, normalized);
+    }
+
+    return resultMap;
+  } catch (err) {
+    console.error(`Failed to fetch batch headers for ${uids.length} UIDs:`, err);
+    return new Map();
+  } finally {
+    lock.release();
+  }
+}
+
 export async function getFolderUnseenCount(client: ImapFlow, folder: string): Promise<number> {
   const lock = await getMailboxLockSafe(client, folder);
   try {

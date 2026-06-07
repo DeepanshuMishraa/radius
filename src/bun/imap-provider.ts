@@ -9,6 +9,8 @@ import {
   fetchMessageUids,
   fetchMessages,
   fetchMessageBody,
+  fetchMessageHeaders,
+  fetchBatchHeaders,
   markAsSeen,
   moveToTrash,
   permanentlyDelete,
@@ -161,6 +163,7 @@ export class ImapProvider implements EmailProvider {
 
       const msg = messages[0];
       const body = await fetchMessageBody(client, folderPath, parsed.uid);
+      const headers = await fetchMessageHeaders(client, folderPath, parsed.uid);
 
       const from = msg.envelope.from ? formatAddresses(msg.envelope.from) : "";
       const to = msg.envelope.to ? formatAddresses(msg.envelope.to) : this.email;
@@ -184,6 +187,8 @@ export class ImapProvider implements EmailProvider {
         isDraft: parsed.folderKind === "drafts",
         isTrash: parsed.folderKind === "trash",
         category: classifyContent({ from, subject, snippet, bodyText: body.text }),
+        listUnsubscribe: headers["list-unsubscribe"] ?? null,
+        listId: headers["list-id"] ?? null,
       };
     } finally {
       await disconnect(client);
@@ -274,12 +279,20 @@ export class ImapProvider implements EmailProvider {
       const uids = await fetchMessageUids(client, folderPathResolved, {});
       const fetched = await fetchMessages(client, folderPathResolved, uids);
 
+      const headerMap = await fetchBatchHeaders(
+        client,
+        folderPathResolved,
+        fetched.map((m) => m.uid)
+      );
+
       const results: FetchedMessage[] = [];
       for (const msg of fetched) {
         const id = makeMessageId(this.email, folderKind, msg.uid);
         const from = msg.envelope.from ? formatAddresses(msg.envelope.from) : "";
         const to = msg.envelope.to ? formatAddresses(msg.envelope.to) : this.email;
         const subject = decodeRfc2047(msg.envelope.subject || "");
+
+        const headers = headerMap.get(msg.uid) ?? {};
 
         results.push({
           id,
@@ -298,6 +311,8 @@ export class ImapProvider implements EmailProvider {
           isDraft: folderKind === "drafts",
           isTrash: folderKind === "trash",
           category: classifyContent({ from, subject, snippet: "" }),
+          listUnsubscribe: headers["list-unsubscribe"] ?? null,
+          listId: headers["list-id"] ?? null,
         });
       }
 

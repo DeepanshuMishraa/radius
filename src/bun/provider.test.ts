@@ -18,6 +18,7 @@ class MockProvider implements EmailProvider {
       from: "", to: "", subject: "", bodyText: null, bodyHtml: null,
       attachments: [], isRead: true, isInbox: true, isSent: false,
       isDraft: false, isTrash: false, category: "regular",
+      listUnsubscribe: null, listId: null,
     };
   }
   async getMessageMetadata(id: string) { return this.getMessage(id); }
