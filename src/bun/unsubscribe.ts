@@ -1,5 +1,3 @@
-
-
 export interface ParsedListUnsubscribe {
   urls: string[];
   mailto: string[];
@@ -7,11 +5,16 @@ export interface ParsedListUnsubscribe {
 }
 
 export function parseListUnsubscribeHeader(
-  raw: string | null | undefined
+  raw: string | null | undefined,
+  listUnsubscribePost?: string | null | undefined
 ): ParsedListUnsubscribe {
   const result: ParsedListUnsubscribe = { urls: [], mailto: [], oneClick: false };
 
   if (!raw) return result;
+
+  if (listUnsubscribePost && /one-click/i.test(listUnsubscribePost)) {
+    result.oneClick = true;
+  }
 
   const parts = raw.split(",").map((p) => p.trim());
   for (const part of parts) {
@@ -24,9 +27,6 @@ export function parseListUnsubscribeHeader(
     if (mailtoMatch) {
       result.mailto.push(mailtoMatch[1]);
       continue;
-    }
-    if (/^<https?:\/\/[^>]+>/i.test(part)) {
-      result.urls.push(part.slice(1, -1));
     }
   }
 
@@ -44,23 +44,35 @@ export function getUnsubscribeMethod(
   return "none";
 }
 
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs: number = 10000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function sendUnsubscribeRequest(
   url: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "Radius/1.0",
       },
-      signal: controller.signal,
     });
-
-    clearTimeout(timeout);
 
     if (response.ok || response.status === 301 || response.status === 302) {
       return { success: true };
@@ -71,7 +83,7 @@ export async function sendUnsubscribeRequest(
     }
 
     if (response.status >= 400 && response.status < 500) {
-      return { success: true, error: `Unsubscribe link responded with ${response.status}` };
+      return { success: false, error: `Unsubscribe link responded with ${response.status}` };
     }
 
     if (response.status >= 500) {
@@ -91,18 +103,12 @@ export async function sendUnsubscribeViaGet(
   url: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method: "GET",
       headers: {
         "User-Agent": "Radius/1.0",
       },
-      signal: controller.signal,
     });
-
-    clearTimeout(timeout);
 
     if (response.ok || response.status === 301 || response.status === 302) {
       return { success: true };
@@ -131,7 +137,7 @@ export async function blockSenderViaGmail(
       },
     };
 
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       "https://www.googleapis.com/gmail/v1/users/me/settings/filters",
       {
         method: "POST",
@@ -150,6 +156,9 @@ export async function blockSenderViaGmail(
 
     return { success: true };
   } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      return { success: false, error: "Block sender request timed out" };
+    }
     return { success: false, error: String(err) };
   }
 }

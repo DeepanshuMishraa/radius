@@ -241,10 +241,6 @@ export async function handleUnsubscribeFromSender(params: { senderEmail: string 
     }
   }
 
-  if (lastError && parsed.mailto.length > 0) {
-    lastError = undefined;
-  }
-
   if (!lastError) {
     await removeSubscription(senderEmail);
   }

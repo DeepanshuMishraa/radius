@@ -262,26 +262,42 @@ export async function fetchMessageHeaders(
   folder: string,
   uid: number
 ): Promise<Record<string, string>> {
+  const results = await fetchBatchHeaders(client, folder, [uid]);
+  return results.get(uid) ?? {};
+}
+
+export async function fetchBatchHeaders(
+  client: ImapFlow,
+  folder: string,
+  uids: number[]
+): Promise<Map<number, Record<string, string>>> {
+  if (uids.length === 0) return new Map();
+
   const lock = await getMailboxLockSafe(client, folder);
   try {
-    const msg = await client.fetchOne(uid, {
+    const resultMap = new Map<number, Record<string, string>>();
+    const uidSet = uids.join(",");
+
+    for await (const msg of client.fetch(uidSet, {
       uid: true,
       headers: true,
-    });
-
-    if (!msg) return {};
-
-    const rawHeaders = (msg as unknown as Record<string, unknown>).headers as Record<string, string> | undefined;
-    if (!rawHeaders) return {};
-
-    const result: Record<string, string> = {};
-    for (const [key, value] of Object.entries(rawHeaders)) {
-      result[key.toLowerCase()] = typeof value === "string" ? value : String(value ?? "");
+    })) {
+      const rawHeaders = (msg as unknown as Record<string, unknown>).headers as Record<string, string> | undefined;
+      if (!rawHeaders) {
+        resultMap.set(msg.uid, {});
+        continue;
+      }
+      const normalized: Record<string, string> = {};
+      for (const [key, value] of Object.entries(rawHeaders)) {
+        normalized[key.toLowerCase()] = typeof value === "string" ? value : String(value ?? "");
+      }
+      resultMap.set(msg.uid, normalized);
     }
-    return result;
+
+    return resultMap;
   } catch (err) {
-    console.error(`Failed to fetch headers for UID ${uid}:`, err);
-    return {};
+    console.error(`Failed to fetch batch headers for ${uids.length} UIDs:`, err);
+    return new Map();
   } finally {
     lock.release();
   }

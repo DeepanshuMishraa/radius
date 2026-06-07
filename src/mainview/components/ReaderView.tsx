@@ -296,7 +296,7 @@ function ActionBarWidget({
   if (!visible) return null;
   if (!onReply && !onForward && !onDelete && !onUnsubscribe) return null;
 
-  const hasActionButtons = onReply || onForward || onDelete;
+  const hasReplyForward = !!(onReply || onForward);
   const hasUnsubscribe = !!onUnsubscribe;
 
   return (
@@ -318,7 +318,7 @@ function ActionBarWidget({
     >
       {onReply && <ActionButton icon={<HugeiconsIcon icon={MailReply01Icon} size={16} />} tooltip="Reply" onClick={onReply} />}
       {onForward && <ActionButton icon={<HugeiconsIcon icon={Forward02Icon} size={16} />} tooltip="Forward" onClick={onForward} />}
-      {hasActionButtons && hasUnsubscribe && <div className="w-[1px] h-3.5 bg-radius-border-subtle/75" />}
+      {hasReplyForward && onUnsubscribe && <div className="w-[1px] h-3.5 bg-radius-border-subtle/75" />}
       {onUnsubscribe && 
         <ActionButton 
           icon={<HugeiconsIcon icon={Cancel01Icon} size={16} />} 
@@ -327,7 +327,7 @@ function ActionBarWidget({
           className="hover:text-radius-accent hover:bg-radius-accent/10" 
         />
       }
-      {hasActionButtons && !hasUnsubscribe && onDelete && <div className="w-[1px] h-3.5 bg-radius-border-subtle/75" />}
+      {(hasReplyForward || hasUnsubscribe) && onDelete && <div className="w-[1px] h-3.5 bg-radius-border-subtle/75" />}
       {onDelete && 
         <ActionButton 
           icon={<HugeiconsIcon icon={Delete01Icon} size={16} />} 

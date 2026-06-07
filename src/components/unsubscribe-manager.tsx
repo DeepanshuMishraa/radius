@@ -77,7 +77,7 @@ export function UnsubscribeManager({ open, onClose }: UnsubscribeManagerProps) {
     });
   }, [filteredSubscriptions]);
 
-  const unsubscribeSender = useCallback(async (senderEmail: string) => {
+  const unsubscribeSender = useCallback(async (senderEmail: string): Promise<{ success: boolean }> => {
     setStatuses((prev) => ({ ...prev, [senderEmail]: "unsubscribing" }));
     try {
       const result = await radiusRpc.request.unsubscribeFromSender({ senderEmail });
@@ -93,9 +93,11 @@ export function UnsubscribeManager({ open, onClose }: UnsubscribeManagerProps) {
         setStatuses((prev) => ({ ...prev, [senderEmail]: "failed" }));
         toast.error(`Failed to unsubscribe from ${senderEmail}: ${result.error ?? "Unknown error"}`);
       }
+      return result;
     } catch (err) {
       setStatuses((prev) => ({ ...prev, [senderEmail]: "failed" }));
       toast.error(`Failed to unsubscribe: ${String(err)}`);
+      return { success: false };
     }
   }, []);
 
@@ -107,12 +109,15 @@ export function UnsubscribeManager({ open, onClose }: UnsubscribeManagerProps) {
       emails.map((email) => unsubscribeSender(email))
     );
 
-    const succeeded = results.filter(
-      (r) => r.status === "fulfilled"
-    ).length;
-    const failed = results.filter(
-      (r) => r.status === "rejected"
-    ).length;
+    let succeeded = 0;
+    let failed = 0;
+    for (const r of results) {
+      if (r.status === "fulfilled" && r.value.success === true) {
+        succeeded++;
+      } else {
+        failed++;
+      }
+    }
 
     if (succeeded > 0) {
       toast.success(`Unsubscribed from ${succeeded} sender${succeeded > 1 ? "s" : ""}`);

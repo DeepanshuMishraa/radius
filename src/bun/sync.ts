@@ -206,13 +206,15 @@ function processSubscriptions(messages: Array<{ from: string; category: string; 
       .replace(/^"?([^"<]*)"?\s*<[^>]+>$/, "$1")
       .trim();
 
-    void upsertSubscription({
+    upsertSubscription({
       senderEmail,
       senderName,
       listUnsubscribe: msg.listUnsubscribe,
       listId: msg.listId,
       category: msg.category,
       internalDate: msg.internalDate,
+    }).catch((err) => {
+      console.error(`Failed to upsert subscription for ${senderEmail} (list: ${msg.listUnsubscribe}):`, err);
     });
   }
 }

@@ -10,6 +10,7 @@ import {
   fetchMessages,
   fetchMessageBody,
   fetchMessageHeaders,
+  fetchBatchHeaders,
   markAsSeen,
   moveToTrash,
   permanentlyDelete,
@@ -278,6 +279,12 @@ export class ImapProvider implements EmailProvider {
       const uids = await fetchMessageUids(client, folderPathResolved, {});
       const fetched = await fetchMessages(client, folderPathResolved, uids);
 
+      const headerMap = await fetchBatchHeaders(
+        client,
+        folderPathResolved,
+        fetched.map((m) => m.uid)
+      );
+
       const results: FetchedMessage[] = [];
       for (const msg of fetched) {
         const id = makeMessageId(this.email, folderKind, msg.uid);
@@ -285,7 +292,7 @@ export class ImapProvider implements EmailProvider {
         const to = msg.envelope.to ? formatAddresses(msg.envelope.to) : this.email;
         const subject = decodeRfc2047(msg.envelope.subject || "");
 
-        const headers = await fetchMessageHeaders(client, folderPathResolved, msg.uid);
+        const headers = headerMap.get(msg.uid) ?? {};
 
         results.push({
           id,
