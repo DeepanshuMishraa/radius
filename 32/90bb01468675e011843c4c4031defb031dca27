@@ -1,0 +1,19 @@
+src/bun/auth.ts
+  s_c000966c80d68e::t_4d24a0aca060d5 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "3290bb01468675e011843c4c4031defb031dca27",
+  "prompts": {},
+  "sessions": {
+    "s_c000966c80d68e": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_15f7a70e2ffe5BHVcCtP3mv89r",
+        "model": "deepseek-v4-flash-free"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
