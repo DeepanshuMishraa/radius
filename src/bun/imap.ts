@@ -257,6 +257,36 @@ export async function fetchMessageBody(
   }
 }
 
+export async function fetchMessageHeaders(
+  client: ImapFlow,
+  folder: string,
+  uid: number
+): Promise<Record<string, string>> {
+  const lock = await getMailboxLockSafe(client, folder);
+  try {
+    const msg = await client.fetchOne(uid, {
+      uid: true,
+      headers: true,
+    });
+
+    if (!msg) return {};
+
+    const rawHeaders = (msg as unknown as Record<string, unknown>).headers as Record<string, string> | undefined;
+    if (!rawHeaders) return {};
+
+    const result: Record<string, string> = {};
+    for (const [key, value] of Object.entries(rawHeaders)) {
+      result[key.toLowerCase()] = typeof value === "string" ? value : String(value ?? "");
+    }
+    return result;
+  } catch (err) {
+    console.error(`Failed to fetch headers for UID ${uid}:`, err);
+    return {};
+  } finally {
+    lock.release();
+  }
+}
+
 export async function getFolderUnseenCount(client: ImapFlow, folder: string): Promise<number> {
   const lock = await getMailboxLockSafe(client, folder);
   try {

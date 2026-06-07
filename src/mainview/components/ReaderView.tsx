@@ -12,9 +12,11 @@ import {
   Delete01Icon,
   Forward02Icon,
   MailReply01Icon,
+  Cancel01Icon,
 } from "@hugeicons/core-free-icons";
 import { radiusRpc } from "../lib/rpc";
 import { UI_SETTINGS_EVENT } from "@/lib/font-utils";
+import { toast } from "sonner";
 
 interface ReaderViewProps {
   message: Message | null;
@@ -282,19 +284,20 @@ function ActionBarWidget({
   visible,
   onReply,
   onForward,
-  onDelete
+  onDelete,
+  onUnsubscribe,
 }: {
   visible: boolean;
   onReply?: () => void;
   onForward?: () => void;
   onDelete?: () => void;
+  onUnsubscribe?: () => void;
 }) {
   if (!visible) return null;
-  if (!onReply && !onForward && !onDelete) return null;
+  if (!onReply && !onForward && !onDelete && !onUnsubscribe) return null;
 
-  const showDivider = (onReply || onForward) && onDelete;
-  const replyCount = [onReply, onForward, onDelete].filter(Boolean).length;
-  if (replyCount === 0) return null;
+  const hasActionButtons = onReply || onForward || onDelete;
+  const hasUnsubscribe = !!onUnsubscribe;
 
   return (
     <div
@@ -315,7 +318,16 @@ function ActionBarWidget({
     >
       {onReply && <ActionButton icon={<HugeiconsIcon icon={MailReply01Icon} size={16} />} tooltip="Reply" onClick={onReply} />}
       {onForward && <ActionButton icon={<HugeiconsIcon icon={Forward02Icon} size={16} />} tooltip="Forward" onClick={onForward} />}
-      {showDivider && <div className="w-[1px] h-3.5 bg-radius-border-subtle/75" />}
+      {hasActionButtons && hasUnsubscribe && <div className="w-[1px] h-3.5 bg-radius-border-subtle/75" />}
+      {onUnsubscribe && 
+        <ActionButton 
+          icon={<HugeiconsIcon icon={Cancel01Icon} size={16} />} 
+          tooltip="Unsubscribe" 
+          onClick={onUnsubscribe} 
+          className="hover:text-radius-accent hover:bg-radius-accent/10" 
+        />
+      }
+      {hasActionButtons && !hasUnsubscribe && onDelete && <div className="w-[1px] h-3.5 bg-radius-border-subtle/75" />}
       {onDelete && 
         <ActionButton 
           icon={<HugeiconsIcon icon={Delete01Icon} size={16} />} 
@@ -1312,6 +1324,20 @@ export const ReaderView = memo(function ReaderView({
         onReply={onReply}
         onForward={onForward}
         onDelete={onDelete}
+        onUnsubscribe={
+          message.listUnsubscribe
+            ? async () => {
+                const result = await radiusRpc.request.unsubscribeFromSender({
+                  senderEmail: parseAddress(message.from).email || message.from,
+                });
+                if (result.success) {
+                  toast.success("Unsubscribed successfully");
+                } else {
+                  toast.error(result.error ?? "Failed to unsubscribe");
+                }
+              }
+            : undefined
+        }
       />
 
       <div className="flex-1 email-enter relative" key={message.id}>

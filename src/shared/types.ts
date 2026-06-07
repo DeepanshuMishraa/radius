@@ -124,6 +124,20 @@ export interface Message {
   isSent?: boolean;
   isDraft?: boolean;
   isTrash?: boolean;
+  listUnsubscribe?: string | null;
+  listId?: string | null;
+}
+
+export interface Subscription {
+  senderEmail: string;
+  senderName: string;
+  listUnsubscribe: string | null;
+  listId: string | null;
+  firstSeenAt: number;
+  lastSeenAt: number;
+  messageCount: number;
+  category: EmailCategory;
+  unsubscribeMethod: "url" | "mailto" | "both" | "none";
 }
 
 export interface PendingDeleteStatusMessage {
@@ -389,6 +403,18 @@ export type RadiusRPC = {
       };
       resyncAccount: {
         params: {};
+        response: { success: boolean; error?: string };
+      };
+      getSubscriptions: {
+        params: {};
+        response: { subscriptions: Subscription[] };
+      };
+      unsubscribeFromSender: {
+        params: { senderEmail: string };
+        response: { success: boolean; method: "url" | "mailto" | "both" | "none"; error?: string };
+      };
+      blockSender: {
+        params: { senderEmail: string };
         response: { success: boolean; error?: string };
       };
       addImapAccount: {

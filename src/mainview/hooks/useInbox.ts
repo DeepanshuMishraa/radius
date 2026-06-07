@@ -37,6 +37,8 @@ export interface Message {
   isSent?: boolean;
   isDraft?: boolean;
   isTrash?: boolean;
+  listUnsubscribe?: string | null;
+  listId?: string | null;
 }
 
 export interface SyncStatus {

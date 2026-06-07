@@ -15,6 +15,7 @@ import { NotificationPermissionPrompt } from "@/components/notification-prompt";
 import { UpdateNotification } from "@/components/update-notification";
 import { SyncPill } from "@/components/sync-pill";
 import { AboutDialog } from "@/components/about";
+import { UnsubscribeManager } from "@/components/unsubscribe-manager";
 import { AddAccountDialog } from "@/components/add-account";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -130,6 +131,7 @@ function App() {
   const [addAccountMode, setAddAccountMode] = useState<SyncMode | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [aboutInfo, setAboutInfo] = useState<LocalReleaseInfo | null>(null);
+  const [unsubscribeManagerOpen, setUnsubscribeManagerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [composeIntent, setComposeIntent] = useState<ComposeIntent | null>(null);
   const composeToastTimersRef = useRef<number[]>([]);
@@ -939,6 +941,11 @@ function App() {
     setAboutOpen(false);
   }, []);
 
+  const handleOpenUnsubscribeManager = useCallback(() => {
+    setCmdOpen(false);
+    setUnsubscribeManagerOpen(true);
+  }, []);
+
   const handleSubmitSearch = useCallback(() => {
     if (searchedMessages.length > 0) {
       setSelectedMessageId(searchedMessages[0].id);
@@ -1063,6 +1070,7 @@ function App() {
             onResync={handleResync}
             onReconnect={handleReconnect}
             onOpenSettings={handleOpenSettings}
+            onOpenUnsubscribeManager={handleOpenUnsubscribeManager}
           />
         </DialogContent>
       </Dialog>
@@ -1136,6 +1144,10 @@ function App() {
         onAddAccount={handleAddAccount}
         onRemoveAccount={handleRemoveAccount}
         onAbout={handleOpenAbout}
+      />
+      <UnsubscribeManager
+        open={unsubscribeManagerOpen}
+        onClose={() => setUnsubscribeManagerOpen(false)}
       />
       </div>
       </TooltipProvider>

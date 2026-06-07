@@ -24,6 +24,7 @@ interface CommandKProps {
   onResync: () => void;
   onReconnect: () => void;
   onOpenSettings: () => void;
+  onOpenUnsubscribeManager: () => void;
 }
 
 export function CommandK({
@@ -37,6 +38,7 @@ export function CommandK({
   onResync,
   onReconnect,
   onOpenSettings,
+  onOpenUnsubscribeManager,
 }: CommandKProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [page, setPage] = React.useState<Page>("home");
@@ -160,6 +162,7 @@ export function CommandK({
                     onShowInbox={onShowInbox}
                     onResync={onResync}
                     onReconnect={onReconnect}
+                    onOpenUnsubscribeManager={onOpenUnsubscribeManager}
                   />
                 ) : (
                   <Mailboxes provider={provider} onSelectMailbox={onShowMailbox} />

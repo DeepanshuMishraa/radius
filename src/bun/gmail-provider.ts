@@ -31,6 +31,15 @@ function getMailboxFlags(labelIds: string[] | undefined) {
   };
 }
 
+function extractUnsubscribeHeaders(
+  headers: Record<string, string>
+): { listUnsubscribe: string | null; listId: string | null } {
+  return {
+    listUnsubscribe: headers["list-unsubscribe"] ?? null,
+    listId: headers["list-id"] ?? null,
+  };
+}
+
 function toFetchedMessage(msg: GmailMessage): FetchedMessage {
   const headers = parseHeaders(msg.payload.headers ?? []);
   return {
@@ -52,6 +61,7 @@ function toFetchedMessage(msg: GmailMessage): FetchedMessage {
       subject: headers["subject"],
       snippet: msg.snippet,
     }),
+    ...extractUnsubscribeHeaders(headers),
   };
 }
 
@@ -77,6 +87,7 @@ function gmailToFetchedMessage(msg: GmailMessage, bodies?: { text: string | null
       snippet: msg.snippet,
       bodyText: bodies?.text,
     }),
+    ...extractUnsubscribeHeaders(headers),
   };
 }
 

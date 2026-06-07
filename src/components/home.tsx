@@ -8,6 +8,7 @@ import {
   Home01Icon,
   CloudDownloadIcon,
   Settings01Icon,
+  Cancel01Icon,
 } from "@hugeicons/core-free-icons";
 
 interface HomeProps {
@@ -20,6 +21,7 @@ interface HomeProps {
   onShowInbox: () => void;
   onResync: () => void;
   onReconnect: () => void;
+  onOpenUnsubscribeManager: () => void;
 }
 
 export function Home({
@@ -32,6 +34,7 @@ export function Home({
   onShowInbox,
   onResync,
   onReconnect,
+  onOpenUnsubscribeManager,
 }: HomeProps) {
   return (
     <>
@@ -53,6 +56,10 @@ export function Home({
         <CommandItem value="show-inbox" onSelect={onShowInbox}>
           <HugeiconsIcon icon={Home01Icon} size={16} />
           <span>Show Inbox</span>
+        </CommandItem>
+        <CommandItem value="unsubscribe-manager" onSelect={onOpenUnsubscribeManager}>
+          <HugeiconsIcon icon={Cancel01Icon} size={16} />
+          <span>Unsubscribe Manager</span>
         </CommandItem>
       </CommandGroup>
 

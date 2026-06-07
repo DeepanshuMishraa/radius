@@ -9,6 +9,7 @@ import {
   fetchMessageUids,
   fetchMessages,
   fetchMessageBody,
+  fetchMessageHeaders,
   markAsSeen,
   moveToTrash,
   permanentlyDelete,
@@ -161,6 +162,7 @@ export class ImapProvider implements EmailProvider {
 
       const msg = messages[0];
       const body = await fetchMessageBody(client, folderPath, parsed.uid);
+      const headers = await fetchMessageHeaders(client, folderPath, parsed.uid);
 
       const from = msg.envelope.from ? formatAddresses(msg.envelope.from) : "";
       const to = msg.envelope.to ? formatAddresses(msg.envelope.to) : this.email;
@@ -184,6 +186,8 @@ export class ImapProvider implements EmailProvider {
         isDraft: parsed.folderKind === "drafts",
         isTrash: parsed.folderKind === "trash",
         category: classifyContent({ from, subject, snippet, bodyText: body.text }),
+        listUnsubscribe: headers["list-unsubscribe"] ?? null,
+        listId: headers["list-id"] ?? null,
       };
     } finally {
       await disconnect(client);
@@ -281,6 +285,8 @@ export class ImapProvider implements EmailProvider {
         const to = msg.envelope.to ? formatAddresses(msg.envelope.to) : this.email;
         const subject = decodeRfc2047(msg.envelope.subject || "");
 
+        const headers = await fetchMessageHeaders(client, folderPathResolved, msg.uid);
+
         results.push({
           id,
           threadId: id,
@@ -298,6 +304,8 @@ export class ImapProvider implements EmailProvider {
           isDraft: folderKind === "drafts",
           isTrash: folderKind === "trash",
           category: classifyContent({ from, subject, snippet: "" }),
+          listUnsubscribe: headers["list-unsubscribe"] ?? null,
+          listId: headers["list-id"] ?? null,
         });
       }
 

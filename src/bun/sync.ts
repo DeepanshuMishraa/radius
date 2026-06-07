@@ -9,6 +9,7 @@ import {
   upsertMessageMetadata,
   upsertImapFolderSync,
   getImapFolderSync,
+  upsertSubscription,
   type InsertMessageInput,
 } from "./db";
 import { getProvider } from "./provider";
@@ -72,7 +73,7 @@ const PAGE_SIZE = 500;
 const FETCH_CONCURRENCY = 15;
 const INSERT_BATCH_SIZE = 50;
 const MESSAGE_METADATA_BATCH_SIZE = 250;
-const CURRENT_METADATA_SCHEMA_VERSION = 3;
+const CURRENT_METADATA_SCHEMA_VERSION = 4;
 const DEFERRED_FULL_SYNC_BATCH_TARGET = 500;
 const DEFERRED_FULL_SYNC_INTERVAL_MS = 60 * 60 * 1000;
 const FAST_POLL_INTERVAL_MS = 4000;
@@ -155,6 +156,8 @@ function toStoredMessageMetadata(msg: GmailMessage) {
     }),
     isRead: isReadFromLabels(msg.labelIds),
     ...getMailboxFlags(msg.labelIds),
+    listUnsubscribe: headers["list-unsubscribe"] ?? null,
+    listId: headers["list-id"] ?? null,
   };
 }
 
@@ -177,7 +180,41 @@ function fetchedMessageToInsert(msg: FetchedMessage): InsertMessageInput {
     isSent: msg.isSent,
     isDraft: msg.isDraft,
     isTrash: msg.isTrash,
+    listUnsubscribe: msg.listUnsubscribe ?? null,
+    listId: msg.listId ?? null,
   };
+}
+
+function processSubscriptions(messages: Array<{ from: string; category: string; listUnsubscribe?: string | null; listId?: string | null; internalDate: number }>): void {
+  const seen = new Set<string>();
+  for (const msg of messages) {
+    if (!msg.listUnsubscribe) continue;
+
+    const senderEmail = msg.from
+      .split(",")[0]
+      .replace(/^"?[^"<]*"?\s*<([^>]+)>$/, "$1")
+      .trim()
+      .toLowerCase();
+    if (!senderEmail || !senderEmail.includes("@")) continue;
+
+    const key = `${senderEmail}:${msg.listUnsubscribe}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const senderName = msg.from
+      .split(",")[0]
+      .replace(/^"?([^"<]*)"?\s*<[^>]+>$/, "$1")
+      .trim();
+
+    void upsertSubscription({
+      senderEmail,
+      senderName,
+      listUnsubscribe: msg.listUnsubscribe,
+      listId: msg.listId,
+      category: msg.category,
+      internalDate: msg.internalDate,
+    });
+  }
 }
 
 // ── Gmail-specific sync ──
@@ -363,11 +400,14 @@ async function flushInsertBuffer(
         }),
         isRead: isReadFromLabels(msg.labelIds),
         ...getMailboxFlags(msg.labelIds),
+        listUnsubscribe: headers["list-unsubscribe"] ?? null,
+        listId: headers["list-id"] ?? null,
       };
     })
   );
 
   await insertMessages(toInsert);
+  processSubscriptions(toInsert);
 }
 
 // ── Provider-based sync dispatcher ──
@@ -575,6 +615,7 @@ async function runImapInitialSync(
       const toInsert = messages.map(fetchedMessageToInsert);
       if (toInsert.length > 0) {
         await insertMessages(toInsert);
+        processSubscriptions(toInsert);
         totalMessages += toInsert.length;
       }
 
@@ -656,6 +697,7 @@ export async function doImapIncrementalSync(): Promise<{
         if (newMessages.length > 0) {
           const toInsert = newMessages.map(fetchedMessageToInsert);
           await insertMessages(toInsert);
+          processSubscriptions(toInsert);
           newCount += toInsert.length;
         }
 
@@ -796,9 +838,9 @@ export async function doIncrementalSync(): Promise<{
             gen
           );
           if (fetchedMetadata.length > 0) {
-            await upsertMessageMetadata(
-              fetchedMetadata.map(toStoredMessageMetadata)
-            );
+            const metadata = fetchedMetadata.map(toStoredMessageMetadata);
+            await upsertMessageMetadata(metadata);
+            processSubscriptions(metadata);
           }
         }
 
@@ -995,9 +1037,9 @@ export async function runMessageMetadataBackfillIfNeeded(): Promise<void> {
           gen
         );
         if (fetchedMetadata.length > 0) {
-          await upsertMessageMetadata(
-            fetchedMetadata.map(toStoredMessageMetadata)
-          );
+          const metadata = fetchedMetadata.map(toStoredMessageMetadata);
+          await upsertMessageMetadata(metadata);
+          processSubscriptions(metadata);
         }
 
         processed += ids.length;
