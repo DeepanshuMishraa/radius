@@ -1,0 +1,32 @@
+src/bun/imap.ts
+  s_c000966c80d68e::t_a4a7abc2ecc9fe 265-275,278-281,284-294,296-297,299-300
+src/mainview/components/ReaderView.tsx
+  s_c000966c80d68e::t_aa572739f4060a 299,321,330
+src/bun/unsubscribe.ts
+  s_c000966c80d68e::t_1bbec7d6740d32 8-9,15-18,47-64,69,86,106,140,159-161
+src/components/unsubscribe-manager.tsx
+  s_c000966c80d68e::t_442ac12e640a38 80,96,100,112-120
+src/bun/imap-provider.ts
+  s_c000966c80d68e::t_3d10c7ae7cf7f7 282-287,295
+  s_c000966c80d68e::t_10bc7b8ed11826 13
+src/bun/sync.ts
+  s_c000966c80d68e::t_d407581679a797 209,216-217
+src/bun/auth.ts
+  s_c000966c80d68e::t_1dd0489bb9d042 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "379f51ca98c4fd0574a093b8128b2ca639721aec",
+  "prompts": {},
+  "sessions": {
+    "s_c000966c80d68e": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_15f7a70e2ffe5BHVcCtP3mv89r",
+        "model": "deepseek-v4-flash-free"
+      },
+      "human_author": "Deepanshu Mishra <d4deepanshu723@gmail.com>"
+    }
+  }
+}
